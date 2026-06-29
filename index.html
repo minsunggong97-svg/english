@@ -1,0 +1,2882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Romantic Road - 전체 48문장 연습기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#dcfce7 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .word-chip {
+            transition: all 0.2s ease-in-out;
+        }
+        .word-chip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .word-chip:active {
+            transform: translateY(0);
+        }
+        .word-chip.dragging {
+            opacity: 0.45;
+            transform: scale(0.98);
+        }
+        .drop-zone-active {
+            border-color: #10b981 !important;
+            background-color: #ecfdf5 !important;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 py-8 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+
+    <div class="max-w-3xl w-full space-y-8">
+        
+        <div class="text-center">
+            <h1 class="text-3xl font-extrabold text-emerald-600 sm:text-4xl">
+                <i class="fa-solid fa-language mr-2"></i>Grammar Sentence Builder
+            </h1>
+            <p class="mt-3 text-lg text-slate-600">핵심 어법 문장 배열 연습기 <span id="total-count-label">(총 161문장)</span></p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl border border-amber-100 overflow-hidden">
+            <button onclick="toggleManager()" class="w-full bg-amber-50 hover:bg-amber-100 px-5 py-4 flex items-center justify-between text-left transition-colors">
+                <span class="font-bold text-amber-800"><i class="fa-solid fa-database mr-2"></i>문제 관리 / 지문 불러오기</span>
+                <i id="manager-toggle-icon" class="fa-solid fa-chevron-down text-amber-600"></i>
+            </button>
+            <div id="data-manager" class="hidden p-5 sm:p-6 space-y-4 border-t border-amber-100">
+                <div class="grid sm:grid-cols-2 gap-3 text-sm">
+                    <button onclick="loadDefaultQuestions()" class="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition-colors">
+                        <i class="fa-solid fa-rotate-left mr-1"></i>기본 문제 세트 복원
+                    </button>
+                    <button onclick="loadSavedQuestions()" class="px-4 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 font-semibold text-emerald-700 transition-colors">
+                        <i class="fa-solid fa-folder-open mr-1"></i>저장된 문제 불러오기
+                    </button>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-red-50 border border-red-100">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-bold text-red-800"><i class="fa-solid fa-book-journal-whills mr-1"></i>오답노트</h3>
+                                <span id="wrong-menu-count" class="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full">0개</span>
+                            </div>
+                            <p class="mt-1 text-xs text-red-700/80">틀린 문장을 저장하고 오답만 다시 풀 수 있습니다.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                            <button onclick="scrollToWrongNotes()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-100 text-red-700 font-bold border border-red-100 transition-colors">
+                                오답노트 보기
+                            </button>
+                            <button onclick="startWrongReview()" class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-bold transition-colors">
+                                오답만 다시 풀기
+                            </button>
+                            <button onclick="clearWrongNotes()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-100 text-red-500 font-bold border border-red-100 transition-colors">
+                                전체 삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="import-text" class="block text-sm font-bold text-slate-700 mb-2">새 지문 또는 JSON 붙여넣기</label>
+                    <textarea id="import-text" rows="7" class="w-full p-4 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm resize-y" placeholder="영어 지문을 붙여넣으면 문장별 문제를 자동 생성합니다.
+또는 내보낸 JSON을 붙여넣고 'JSON 가져오기'를 누르세요."></textarea>
+                    <p class="mt-2 text-xs text-slate-500">텍스트 자동 생성은 문장 단위로 나누고, 단어 칩은 2~4단어 단위로 자동 묶습니다. 해석 힌트는 필요하면 JSON으로 직접 수정할 수 있습니다.</p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                    <button onclick="buildQuestionsFromText()" class="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 font-bold text-white shadow-sm transition-colors">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>텍스트로 문제 생성
+                    </button>
+                    <button onclick="importQuestionsFromJson()" class="px-4 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 font-bold text-white shadow-sm transition-colors">
+                        <i class="fa-solid fa-file-import mr-1"></i>JSON 가져오기
+                    </button>
+                    <button onclick="exportQuestionsToJson()" class="px-4 py-3 rounded-xl bg-violet-500 hover:bg-violet-600 font-bold text-white shadow-sm transition-colors">
+                        <i class="fa-solid fa-file-export mr-1"></i>현재 문제 내보내기
+                    </button>
+                    <button onclick="saveQuestionsToBrowser()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-900 font-bold text-white shadow-sm transition-colors">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i>브라우저에 저장
+                    </button>
+                </div>
+
+                <div id="manager-message" class="hidden p-3 rounded-lg text-sm font-semibold"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden" id="app-container">
+            <div class="bg-slate-100 h-2 w-full">
+                <div id="progress-bar" class="bg-emerald-500 h-2 transition-all duration-500 ease-in-out" style="width: 0%;"></div>
+            </div>
+
+            <div class="p-6 sm:p-8">
+                <!-- Status & Hint -->
+                <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 161</span>
+                        <label for="passage-select" class="text-sm font-semibold text-slate-500">지문 선택</label>
+                        <select id="passage-select" onchange="handlePassageChange()" class="text-sm font-semibold border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
+                            <option value="all">전체 기본 세트 (161문장)</option>
+                            <option value="romantic-road">Romantic Road (48문장)</option>
+                            <option value="can-ai">Can AI Think... (19문장)</option>
+                            <option value="day3-1">Day 03-1 (14문장)</option>
+                            <option value="day3-2">Day 03-2 (7문장)</option>
+                            <option value="day3-3">Day 03-3 (6문장)</option>
+                            <option value="day3-4">Day 03-4 (7문장)</option>
+                            <option value="day3-5-6">Day 03-5~6 (13문장)</option>
+                            <option value="day4-1">Day 04-1 (11문장)</option>
+                            <option value="day4-2">Day 04-2 (5문장)</option>
+                            <option value="day4-3">Day 04-3 (9문장)</option>
+                            <option value="day4-4">Day 04-4 (9문장)</option>
+                            <option value="day4-5">Day 04-5 (6문장)</option>
+                            <option value="day4-6">Day 04-6 (7문장)</option>
+                            <option value="custom">사용자 가져오기 문제</option>
+                        </select>
+                        <label for="chunk-level-select" class="text-sm font-semibold text-slate-500 ml-0 sm:ml-2">청킹</label>
+                        <select id="chunk-level-select" onchange="handleChunkLevelChange()" class="text-sm font-semibold border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
+                            <option value="saved">저장된 청크</option>
+                            <option value="1">Level 1 큰 덩어리</option>
+                            <option value="2">Level 2 의미 단위</option>
+                            <option value="3">Level 3 기능어 분리</option>
+                            <option value="4" selected>Level 4 단어별</option>
+                        </select>
+                    </div>
+                    <span class="text-sm font-medium text-slate-500">점수: <span id="score-display" class="font-bold text-slate-700">0</span></span>
+                </div>
+                
+                <div class="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <h3 class="text-sm font-bold text-blue-800 mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> 해석 및 어법 힌트</h3>
+                    <p id="hint-text" class="text-blue-900 font-medium whitespace-pre-line"></p>
+                </div>
+
+                <!-- Available Words -->
+                <div class="mb-6">
+                    <p class="text-sm font-semibold text-slate-500 mb-3"><i class="fa-solid fa-hand-pointer mr-1"></i> 단어를 클릭하거나 직접 아래에 타이핑하세요.</p>
+                    <div id="word-bank" class="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[100px]">
+                        <!-- Word chips will be injected here -->
+                    </div>
+                </div>
+
+                <!-- User Answer Input -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-sm font-semibold text-slate-500"><i class="fa-solid fa-grip mr-1"></i> 블록을 이곳으로 드래그하거나 클릭해서 문장을 조합하세요.</p>
+                        <button onclick="clearInput()" class="text-sm text-slate-400 hover:text-red-500 transition-colors font-semibold" title="지우기">
+                            <i class="fa-solid fa-eraser mr-1"></i>전체 지우기
+                        </button>
+                    </div>
+                    <div id="answer-dropzone" class="min-h-[92px] p-4 bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-wrap gap-2 items-start transition-all" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                        <span id="dropzone-placeholder" class="text-slate-400 font-medium">여기에 블록을 놓으세요...</span>
+                    </div>
+                    <textarea id="answer-input" rows="2" class="hidden" aria-hidden="true"></textarea>
+                </div>
+
+                <!-- Actions & Feedback -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <button id="check-btn" onclick="checkAnswer()" class="w-full sm:w-auto px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95">
+                        <i class="fa-solid fa-check mr-2"></i>정답 확인
+                    </button>
+                    <button id="next-btn" onclick="nextQuestion()" class="w-full sm:w-auto px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-95 hidden">
+                        다음 문제 <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- Feedback Message -->
+                <div id="feedback-area" class="mt-6 p-4 rounded-xl hidden transition-all">
+                    <div class="flex items-start gap-3">
+                        <div id="feedback-icon" class="text-2xl mt-1"></div>
+                        <div>
+                            <h4 id="feedback-title" class="font-bold text-lg mb-1"></h4>
+                            <p id="feedback-desc" class="text-sm font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="keep-action-area" class="mt-4 hidden">
+                    <button id="keep-current-btn" onclick="toggleKeepCurrent()" class="w-full px-4 py-3 rounded-xl bg-yellow-50 hover:bg-yellow-100 text-yellow-800 font-bold border border-yellow-200 transition-colors">
+                        <i class="fa-regular fa-star mr-2"></i>나중에 다시 풀 문장으로 킵
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="wrong-notes-container" class="bg-white rounded-2xl shadow-xl border border-red-100 overflow-hidden hidden">
+            <div class="bg-red-50 p-4 border-b border-red-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-book-journal-whills text-red-500 text-xl"></i>
+                    <h2 class="text-lg font-bold text-red-800">나의 오답 노트</h2>
+                    <span id="wrong-count" class="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full">0개</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="startWrongReview()" class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors">
+                        오답만 다시 풀기
+                    </button>
+                    <button onclick="clearWrongNotes()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-50 text-red-500 text-sm font-bold border border-red-100 transition-colors">
+                        전체 삭제
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <ul id="wrong-notes-list" class="space-y-6">
+                    <!-- Wrong items will be injected here -->
+                </ul>
+            </div>
+        </div>
+
+        <div id="kept-notes-container" class="bg-white rounded-2xl shadow-xl border border-yellow-100 overflow-hidden hidden">
+            <div class="bg-yellow-50 p-4 border-b border-yellow-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-star text-yellow-500 text-xl"></i>
+                    <h2 class="text-lg font-bold text-yellow-800">나중에 다시 풀 문장</h2>
+                    <span id="kept-count" class="text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">0개</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="startKeptReview()" class="px-3 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-bold transition-colors">
+                        킵 문장만 풀기
+                    </button>
+                    <button onclick="clearKeptQuestions()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-50 text-red-500 text-sm font-bold border border-red-100 transition-colors">
+                        전체 삭제
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <ul id="kept-notes-list" class="space-y-4"></ul>
+            </div>
+        </div>
+
+        <div id="completion-screen" class="bg-white rounded-2xl shadow-xl border border-emerald-100 p-10 text-center hidden">
+            <i class="fa-solid fa-trophy text-6xl text-yellow-400 mb-4"></i>
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">학습 완료!</h2>
+            <p class="text-slate-600 mb-6">모든 문장 배열 연습을 마쳤습니다. 오답 노트를 확인하여 복습하세요.</p>
+            <button onclick="location.reload()" class="px-6 py-3 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold rounded-xl transition-all">
+                <i class="fa-solid fa-rotate-right mr-2"></i>다시 시작하기
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        let quizData = [
+            {
+                hint: "로맨틱한 휴가를 위한 완벽한 목적지를 찾고 있나요? (현재진행형 의문문)",
+                original: "Are you looking for the perfect destination for romantic holidays?",
+                words: ["Are you", "looking for", "the perfect destination", "for", "romantic holidays?"]
+            },
+            {
+                hint: "그렇다면 남부 독일의 로맨틱 가도보다 더 나은 곳은 없습니다. (비교급 관용표현 look no further than)",
+                original: "Then look no further than the Romantic Road in southern Germany.",
+                words: ["Then", "look no further", "than", "the Romantic Road", "in southern Germany."]
+            },
+            {
+                hint: "이 길은 전 세계 관광객들 사이에서 가장 인기 있는 곳입니다. (전치사구 수식)",
+                original: "This trail is a favorite among tourists from all over the world.",
+                words: ["This trail", "is a favorite", "among tourists", "from all over", "the world."]
+            },
+            {
+                hint: "로맨틱 가도의 역사는 무역과 교통을 위해 원래 지어졌기 때문에, 로마 제국으로 거슬러 올라간다. (as 접속사, 수동태 유의)",
+                original: "The history of the Romantic Road dates back to the Roman Empire, as it was originally built for trade and transportation.",
+                words: ["The history", "of the Romantic Road", "dates back", "to", "the Roman Empire,", "as", "it", "was originally", "built", "for trade", "and transportation."]
+            },
+            {
+                hint: "제2차 세계대전 동안 파괴된 후, 그 도로와 주변 도시들은 재건되었다. (After + 분사구문, 수동태 유의)",
+                original: "After being destroyed during World War II, the road and the surrounding cities were reconstructed.",
+                words: ["After", "being destroyed", "during World War II,", "the road", "and", "the surrounding cities", "were reconstructed."]
+            },
+            {
+                hint: "그 결과가 '로마의 길'이라는 이름에서 유래된 로맨틱 가도였다. (주격 관계대명사 계속적 용법, 수동태)",
+                original: "The result was the Romantic Road, which was derived from the name “Roman Road.”",
+                words: ["The result", "was", "the Romantic Road,", "which", "was derived", "from", "the name", "“Roman Road.”"]
+            },
+            {
+                hint: "오늘날 그것은 매년 수많은 방문객들을 끌어들인다. (수량형용사 tons of)",
+                original: "Today it attracts tons of visitors every year.",
+                words: ["Today", "it attracts", "tons of visitors", "every year."]
+            },
+            {
+                hint: "나는 로맨틱 가도에 있는 동안 내가 방문했던 세 곳의 놀라운 장소들을 당신과 공유하고 싶다. (목적격 관계대명사 생략, while 접속사)",
+                original: "I want to share with you three amazing spots I visited while on the Romantic Road.",
+                words: ["I want", "to share", "with you", "three amazing spots", "I visited", "while on", "the Romantic Road."]
+            },
+            {
+                hint: "\"만약 내가 태어난 곳을 고를 수 있다면, 나는 뷔르츠부르크를 고려할 것이다\"라고 유명한 작가 헤르만 헤세는 썼다. (가정법 과거)",
+                original: "“If I could choose my place of birth, I would consider Würzburg,” wrote the renowned author Hermann Hesse.",
+                words: ["“If I could choose", "my place", "of birth,", "I would consider", "Würzburg,”", "wrote", "the renowned author", "Hermann Hesse."]
+            },
+            {
+                hint: "매력적이고 중세적인 마을 주변을 산책한 후에 그 이유를 아는 것은 쉽다. (가주어 it, 진주어 to부정사)",
+                original: "It’s easy to see why after taking a stroll around the charming, medieval town.",
+                words: ["It’s easy", "to see why", "after taking", "a stroll", "around the charming,", "medieval town."]
+            },
+            {
+                hint: "도착하자마자, 성 킬리안 대성당의 두 탑이 당신을 환영한다. (Upon + 명사)",
+                original: "Upon arrival, the two towers of St. Kilian Cathedral welcome you.",
+                words: ["Upon arrival,", "the two towers", "of St. Kilian Cathedral", "welcome you."]
+            },
+            {
+                hint: "그리고 탑에서 걸어서 5분 거리에, 유네스코 세계문화유산인 뷔르츠부르크 레지덴츠가 궁정 정원 및 레지덴츠 광장과 함께 완전히 모습을 드러낼 것이다. (동격의 콤마, 전치사구)",
+                original: "And within a five-minute walk of the towers, the Würzburg Residence, a UNESCO World Heritage Site, will be on full display with Court Gardens and Residence Square.",
+                words: ["And within", "a five-minute walk", "of the towers,", "the Würzburg Residence,", "a UNESCO", "World Heritage Site,", "will be", "on full display", "with Court Gardens", "and Residence Square."]
+            },
+            {
+                hint: "이 아름다운 궁전은 오스트리아, 프랑스, 이탈리아, 독일 출신의 18세기 가장 저명한 건축가들과 예술가들에 의해 지어졌다. (수동태)",
+                original: "This beautiful palace was built by the most prominent architects and artists of the 18th century from Austria, France, Italy, and Germany.",
+                words: ["This beautiful palace", "was built by", "the most prominent", "architects and artists", "of the 18th century", "from Austria, France,", "Italy, and Germany."]
+            },
+            {
+                hint: "하지만 그 도시의 아름다움은 거기서 멈추지 않는다. (부정문)",
+                original: "But the beauty of the city doesn’t stop there.",
+                words: ["But", "the beauty", "of the city", "doesn’t stop", "there."]
+            },
+            {
+                hint: "더 편안한 경험을 위해, 마인 강둑을 따라 산책하며 스카이라인 뒤로 해가 지는 것을 지켜보아라. (명령문, 지각동사 watch + 목적어 + 동사원형)",
+                original: "For a more relaxing experience, take a stroll along the banks of the Main and watch the sun set behind the skyline.",
+                words: ["For a more", "relaxing experience,", "take a stroll", "along the banks", "of the Main", "and watch", "the sun set", "behind the skyline."]
+            },
+            {
+                hint: "그곳은 훌륭한 사진 명소여서, 나는 일몰 동안 몇 장을 찍었다. (so 접속사)",
+                original: "It’s an excellent photo spot, so I took some during the sunset.",
+                words: ["It’s", "an excellent photo spot,", "so", "I took some", "during the sunset."]
+            },
+            {
+                hint: "만약 초여름에 뷔르츠부르크로의 여행을 계획하고 있다면, 당신 스스로 운이 좋다고 생각하라! (조건의 부사절 if, 5형식 count)",
+                original: "If you’re planning a trip to Würzburg in early summer, then count yourself lucky!",
+                words: ["If you’re planning", "a trip", "to Würzburg", "in early summer,", "then", "count yourself", "lucky!"]
+            },
+            {
+                hint: "매년, 그 도시는 위대한 고전 작곡가 볼프강 모차르트를 기념하여 거대한 파티장으로 변신한다. (전치사구 in celebration of)",
+                original: "Every year, the city transforms into a giant party scene in celebration of the great classical composer Wolfgang Mozart.",
+                words: ["Every year,", "the city transforms", "into a giant", "party scene", "in celebration of", "the great classical composer", "Wolfgang Mozart."]
+            },
+            {
+                hint: "뷔르츠부르크 레지덴츠의 황제의 홀부터 궁정 정원까지, 당신은 세계 최고의 교향악단 중 일부에 의해 연주되는 모차르트의 클래식 음악을 즐길 수 있다. (과거분사구 후치수식)",
+                original: "From the Imperial Hall of the Würzburg Residence to the Court Gardens, you can enjoy Mozart’s classical music, performed by some of the best symphony orchestras in the world.",
+                words: ["From the Imperial Hall", "of the Würzburg Residence", "to the Court Gardens,", "you can enjoy", "Mozart’s classical music,", "performed by", "some of the best", "symphony orchestras", "in the world."]
+            },
+            {
+                hint: "무료 팝업 거리 공연을 포함하여 60개 연주회와 함께, 당신은 도시 전역에서 모차르트의 매력적인 소리를 즐길 것이다.",
+                original: "With over 60 concerts, including free pop-up street performances, you’ll enjoy Mozart’s charming sound all over the city.",
+                words: ["With over 60 concerts,", "including free", "pop-up street performances,", "you’ll enjoy", "Mozart’s charming sound", "all over the city."]
+            },
+            {
+                hint: "강에 비친 웅장한 건축물의 모습, 활기찬 시장, 아름다운 음악이 결합되어 매혹적인 경험을 만들어낸다.",
+                original: "The grand architecture’s reflection on the river, the lively markets in the town squares, and the beautiful music of the street performers combine to create a truly enchanting experience.",
+                words: ["The grand architecture’s", "reflection on the river,", "the lively markets", "in the town squares,", "and the beautiful music", "of the street performers", "combine to create", "a truly", "enchanting experience."]
+            },
+            {
+                hint: "시간 여행을 위한 준비를 하라! (명령문)",
+                original: "Get ready for a journey through time!",
+                words: ["Get ready", "for a journey", "through time!"]
+            },
+            {
+                hint: "우리의 다음 목적지는 타우버의 깊은 강 계곡 꼭대기에 자리 잡은 요새화된 도시인 로텐부르크이다. (주격 관계대명사 that)",
+                original: "Our next stop is Rothenburg, a fortified city that sits on top of the deep river valley of the Tauber.",
+                words: ["Our next stop", "is Rothenburg,", "a fortified city", "that sits", "on top of", "the deep river valley", "of the Tauber."]
+            },
+            {
+                hint: "타우버 위의 붉은 성으로 번역되는 로텐부르크 옵 데어 타우버는, 강을 내려다보는 그 위치 때문에 이름 지어졌다.",
+                original: "Rothenburg ob der Tauber, which translates to “Red Castle above the Tauber,” is named for its position overlooking the river.",
+                words: ["Rothenburg ob der Tauber,", "which translates to", "“Red Castle above the Tauber,”", "is named", "for its position", "overlooking the river."]
+            },
+            {
+                hint: "그 마을은 진정으로 독특한 분위기를 만들어내는 중세 건축물과 반목조 가옥들을 자랑한다. (주격 관계대명사 that)",
+                original: "The town boasts medieval architecture and half-timbered houses that create a truly unique atmosphere.",
+                words: ["The town boasts", "medieval architecture", "and half-timbered houses", "that create", "a truly", "unique atmosphere."]
+            },
+            {
+                hint: "이 매력적인 장소에 완전히 몰입하기 위해, 당신은 다채로운 집들 사이로 여유로운 산책을 할 수 있다.",
+                original: "To fully immerse yourself in this charming location, you can take a relaxed stroll through the colorful houses.",
+                words: ["To fully immerse", "yourself", "in this charming location,", "you can take", "a relaxed stroll", "through", "the colorful houses."]
+            },
+            {
+                hint: "만약 크리스마스 시즌에 우연히 방문하게 된다면, 당신은 크리스마스 시장에서 독특한 아이템들을 쇼핑할 기회를 갖게 될 것이다.",
+                original: "If you happen to visit during the Christmas season, you will have the chance to shop for adorable ornaments and other unique items at Rothenburg’s Christmas market.",
+                words: ["If you happen", "to visit", "during the Christmas season,", "you will have", "the chance to shop", "for adorable ornaments", "and other unique items", "at Rothenburg’s", "Christmas market."]
+            },
+            {
+                hint: "독일을 여행하는 동안 달콤한 간식을 찾을 때, 로텐부르크에서 슈니발렌을 시도해 보아라.",
+                original: "When looking for a sweet treat during your travels in Germany, try a Schneeball in Rothenburg.",
+                words: ["When looking", "for a sweet treat", "during your travels", "in Germany,", "try a Schneeball", "in Rothenburg."]
+            },
+            {
+                hint: "이름이 영어로 '눈덩이'를 의미하는 슈니발렌은 500년 이상 인기를 끌어온 튀긴 페이스트리이다. (소유격 관계대명사 whose, 현재완료)",
+                original: "The Schneeball, whose name means “snowball” in English, is a deep-fried pastry that has been popular for over 500 years.",
+                words: ["The Schneeball,", "whose name means", "“snowball” in English,", "is a deep-fried pastry", "that has been", "popular", "for over 500 years."]
+            },
+            {
+                hint: "나는 고전적인 아이싱 슈가 맛을 좋아하지만, 다른 선택지로는 초콜릿, 카라멜, 또는 과일이 들어간 것이 포함된다.",
+                original: "I like the classic icing sugar flavor, but other choices include chocolate, caramel, or fruit-filled.",
+                words: ["I like", "the classic", "icing sugar flavor,", "but other choices", "include chocolate,", "caramel,", "or fruit-filled."]
+            },
+            {
+                hint: "당신이 무엇을 선택하든, 슈니발렌은 깨서 열기 까다롭다는 것을 아는 것이 중요하다.",
+                original: "Whatever you choose, it’s important to know a Schneeball is tricky to break open.",
+                words: ["Whatever", "you choose,", "it’s important", "to know", "a Schneeball", "is tricky", "to break open."]
+            },
+            {
+                hint: "그래서, 당신은 껍질을 깨기 위해 나무 망치를 사용할 필요가 있을 것이다.",
+                original: "So, you’ll need to use a wooden hammer to break through the crust.",
+                words: ["So,", "you’ll need", "to use", "a wooden hammer", "to break through", "the crust."]
+            },
+            {
+                hint: "그것은 예전에는 결혼식과 같은 특별한 행사에만 제공되었지만, 지금은 일년 내내 찾을 수 있다.",
+                original: "It used to be served only on special occasions like weddings, but now you can find it year-round in pastry shops and cafes.",
+                words: ["It used to be", "served only", "on special occasions", "like weddings,", "but now", "you can find it", "year-round", "in pastry shops", "and cafes."]
+            },
+            {
+                hint: "그것은 먹기에 지저분할 수 있지만, 그것이 바로 그 재미의 전부이다.",
+                original: "It can be messy to eat, but that’s all part of the fun.",
+                words: ["It can be", "messy to eat,", "but", "that’s all", "part of the fun."]
+            },
+            {
+                hint: "당신의 방문 동안 이 대표적인 간식을 놓치지 마라!",
+                original: "Don’t miss this signature treat during your visit!",
+                words: ["Don’t miss", "this signature treat", "during your visit!"]
+            },
+            {
+                hint: "남부 독일의 퓌센은 로맨틱 가도의 마지막 목적지이다.",
+                original: "Füssen, in southern Germany, is the final stop on the Romantic Road.",
+                words: ["Füssen,", "in southern Germany,", "is", "the final stop", "on the Romantic Road."]
+            },
+            {
+                hint: "그곳은 알프스 기슭에 위치하고 레흐 강이 한가운데로 흐르는 매력적인 오래된 마을이다.",
+                original: "It is an attractive old town at the foot of the Alps with the Lech running right through it.",
+                words: ["It is", "an attractive old town", "at the foot of the Alps", "with the Lech", "running right", "through it."]
+            },
+            {
+                hint: "퓌센은 그 길을 따라 여행한 후 휴식을 취하기에 완벽한 장소인데, 이것이 바로 내가 야외 스파를 발견했을 때 했던 일이다.",
+                original: "Füssen is the perfect place to take a rest after traveling along the road, which is exactly what I did when I discovered an open-air spa.",
+                words: ["Füssen is", "the perfect place", "to take a rest", "after traveling", "along the road,", "which is exactly", "what I did", "when I discovered", "an open-air spa."]
+            },
+            {
+                hint: "나를 둘러싼 숨 막히는 경치는 그 경험을 훨씬 더 즐겁게 만들었다.",
+                original: "The breathtaking views surrounding me made the experience even more delightful.",
+                words: ["The breathtaking views", "surrounding me", "made the experience", "even more delightful."]
+            },
+            {
+                hint: "그러나 퓌센의 진정한 하이라이트는 세계적으로 유명한 노이슈반슈타인 성이었다.",
+                original: "However, the real highlight of Füssen was the world-famous Neuschwanstein Castle.",
+                words: ["However,", "the real highlight", "of Füssen", "was", "the world-famous", "Neuschwanstein Castle."]
+            },
+            {
+                hint: "언덕 꼭대기에 위치하여, 그 성은 장엄한 전망을 제공한다.",
+                original: "Situated on top of a hill, the castle provides magnificent views.",
+                words: ["Situated", "on top of", "a hill,", "the castle", "provides", "magnificent views."]
+            },
+            {
+                hint: "그것은 잠자는 숲속의 미녀와 신데렐라 같은 애니메이션에서 성 묘사에 영감을 주었다.",
+                original: "It has inspired castle depictions in animations such as Sleeping Beauty and Cinderella.",
+                words: ["It has inspired", "castle depictions", "in animations", "such as", "Sleeping Beauty", "and Cinderella."]
+            },
+            {
+                hint: "그 성은 유명한 작곡가 리하르트 바그너의 훌륭한 후원자였던 루트비히 2세 왕에 의해 지어졌다.",
+                original: "The castle was built by King Ludwig II, a great supporter of the celebrated composer Richard Wagner.",
+                words: ["The castle", "was built by", "King Ludwig II,", "a great supporter", "of the celebrated composer", "Richard Wagner."]
+            },
+            {
+                hint: "'노이슈반슈타인'이라는 이름이 바그너의 오페라에 영감을 준 백조의 기사 전설에서 유래되었다는 것은 주목할 만하다.",
+                original: "It is worth noting that the name “Neuschwanstein,” meaning “New Swan Castle,” is derived from the Knight of the Swan legend, which inspired an opera by Wagner.",
+                words: ["It is worth noting", "that the name", "“Neuschwanstein,”", "meaning", "“New Swan Castle,”", "is derived from", "the Knight", "of the Swan legend,", "which inspired", "an opera", "by Wagner."]
+            },
+            {
+                hint: "로맨틱 가도에서의 우리의 여정이 끝에 다다름에 따라, 나는 당신이 나와 함께 여행하는 것을 즐겼기를 바란다.",
+                original: "As we come to the end of our journey on the Romantic Road, I hope you’ve enjoyed traveling with me.",
+                words: ["As we come", "to the end", "of our journey", "on the Romantic Road,", "I hope", "you’ve enjoyed", "traveling with me."]
+            },
+            {
+                hint: "로맨틱 가도는 당신에게 잊을 수 없는 기억을 남길 역사, 문화, 아름다움의 조화를 제공한다.",
+                original: "The Romantic Road offers a unique blend of history, culture, and outstanding natural beauty that will leave you with unforgettable memories, whatever the next stop of your travels may be.",
+                words: ["The Romantic Road", "offers", "a unique blend", "of history, culture,", "and outstanding natural beauty", "that will leave you", "with unforgettable memories,", "whatever", "the next stop", "of your travels", "may be."]
+            },
+            {
+                hint: "기억하라, 삶은 여정이며, 모든 여정은 한 걸음부터 시작된다는 것을.",
+                original: "Remember, life is a journey, and every journey begins with a single step.",
+                words: ["Remember,", "life is a journey,", "and every journey", "begins with", "a single step."]
+            },
+            {
+                hint: "오늘 그 한 걸음을 내딛고 로맨틱 가도를 탐험하는 것을 고려해보라!",
+                original: "Take that step today and consider exploring the Romantic Road!",
+                words: ["Take", "that step", "today", "and consider", "exploring", "the Romantic Road!"]
+            },
+{
+                "hint": "Alan Turing은 현대 컴퓨터 과학의 아버지로 여겨지며, 컴퓨터 기억 장치와 전자식 저장 프로그램 설계로 유명했다. (분사구문, 병렬동명사)",
+                "original": "Often considered the father of modern computer science, Alan Turing was famous for developing the idea of computer memory and making the first design of an electronic stored program.",
+                "words": [
+                                "Often considered",
+                                "the father",
+                                "of modern computer science,",
+                                "Alan Turing",
+                                "was famous for",
+                                "developing the idea",
+                                "of computer memory",
+                                "and making",
+                                "the first design",
+                                "of an electronic",
+                                "stored program."
+                ]
+},
+{
+                "hint": "1950년에 그는 논문에서 '기계가 생각할 수 있는가?'라는 사고를 자극하는 질문을 던졌다. (과거분사 titled, 콜론)",
+                "original": "In 1950, in his research paper titled “Computing Machinery and Intelligence,” he posed a thought-provoking question: Can machines think?",
+                "words": [
+                                "In 1950,",
+                                "in his research paper",
+                                "titled",
+                                "“Computing Machinery",
+                                "and Intelligence,”",
+                                "he posed",
+                                "a thought-provoking question:",
+                                "Can machines think?"
+                ]
+},
+{
+                "hint": "이 논문은 기계 지능에 대해 생각할 틀을 제공한 최초의 논문이었다. (the first to V)",
+                "original": "This research paper was the first to provide a framework for thinking about machine intelligence.",
+                "words": [
+                                "This research paper",
+                                "was the first",
+                                "to provide",
+                                "a framework",
+                                "for thinking about",
+                                "machine intelligence."
+                ]
+},
+{
+                "hint": "Turing은 기계가 인간만큼 지능적일 수 있는지 보려 했고, 스스로 조건문 질문을 던졌다. (if 명사절, as 형용사 as, 간접의문)",
+                "original": "Turing wanted to see if a machine could be as intelligent as humans and asked himself, “If a machine could imitate human behavior, why wouldn’t it be able to think like a human?”",
+                "words": [
+                                "Turing wanted",
+                                "to see",
+                                "if a machine",
+                                "could be",
+                                "as intelligent as humans",
+                                "and asked himself,",
+                                "“If a machine",
+                                "could imitate",
+                                "human behavior,",
+                                "why wouldn’t it",
+                                "be able to think",
+                                "like a human?”"
+                ]
+},
+{
+                "hint": "이 질문은 Turing이 'imitation game'을 설계하도록 이끌었고, 그것은 Turing test로도 알려졌다. (lead A to V, 계속적 관계대명사)",
+                "original": "This question led Turing to design the “imitation game,” which also became known as the “Turing test.”",
+                "words": [
+                                "This question",
+                                "led Turing",
+                                "to design",
+                                "the “imitation game,”",
+                                "which also",
+                                "became known as",
+                                "the “Turing test.”"
+                ]
+},
+{
+                "hint": "그 게임 자체는 단순했다. (주어 강조 itself)",
+                "original": "The game itself was simple:",
+                "words": [
+                                "The game itself",
+                                "was simple:"
+                ]
+},
+{
+                "hint": "인간 참가자는 컴퓨터와 인간이라는 두 응답자와 일련의 타이핑 상호작용을 주고받았다. (would, 병렬명사)",
+                "original": "A human participant would exchange a series of typed interactions with two respondents, a computer and a human being.",
+                "words": [
+                                "A human participant",
+                                "would exchange",
+                                "a series of",
+                                "typed interactions",
+                                "with two respondents,",
+                                "a computer",
+                                "and a human being."
+                ]
+},
+{
+                "hint": "일정 시간이 지난 후 참가자는 어떤 답이 컴퓨터에서 왔고 어떤 답이 인간에게서 왔는지 말하도록 요청받았다. (수동태, 간접의문 병렬)",
+                "original": "After a set period of time, the participant would be asked to state which answers came from the computer and which came from the human being.",
+                "words": [
+                                "After a set",
+                                "period of time,",
+                                "the participant",
+                                "would be asked",
+                                "to state",
+                                "which answers",
+                                "came from",
+                                "the computer",
+                                "and which",
+                                "came from",
+                                "the human being."
+                ]
+},
+{
+                "hint": "참가자가 둘을 구별하지 못하면, 컴퓨터는 Turing test를 통과한 것이었다. (if 조건절, 과거완료)",
+                "original": "If the participant failed to distinguish one from the other, the computer had passed the Turing test.",
+                "words": [
+                                "If the participant",
+                                "failed to distinguish",
+                                "one from the other,",
+                                "the computer",
+                                "had passed",
+                                "the Turing test."
+                ]
+},
+{
+                "hint": "그때 컴퓨터가 인간처럼 생각할 능력이 있다고 추론될 수 있었다. (조동사 수동태, that절)",
+                "original": "It might be then inferred that the computer had the ability to think like a human.",
+                "words": [
+                                "It might",
+                                "be then inferred",
+                                "that the computer",
+                                "had the ability",
+                                "to think",
+                                "like a human."
+                ]
+},
+{
+                "hint": "Turing은 이 패턴이 결국 매우 일관되게 일어나 기계가 지능적이라고 여겨질 것이라고 예측했다. (so ... that, 수동태)",
+                "original": "Turing predicted that this pattern would eventually happen so consistently that machines would be considered intelligent.",
+                "words": [
+                                "Turing predicted",
+                                "that this pattern",
+                                "would eventually happen",
+                                "so consistently",
+                                "that machines",
+                                "would be considered",
+                                "intelligent."
+                ]
+},
+{
+                "hint": "컴퓨터 과학 초기에도 그는 사람들이 생각할 수 있는 기계를 만들 수 있는 세계를 상상했다. (in which, 관계대명사 that)",
+                "original": "In the early days of computer science, he already imagined a world in which people could build machines that could “think.”",
+                "words": [
+                                "In the early days",
+                                "of computer science,",
+                                "he already imagined",
+                                "a world",
+                                "in which people",
+                                "could build machines",
+                                "that could “think.”"
+                ]
+},
+{
+                "hint": "최초의 챗봇 ELIZA는 MIT AI 연구소 교수 Joseph Weizenbaum에 의해 설계되었다. (동격, 수동태)",
+                "original": "ELIZA, the first chatbot, was designed by Joseph Weizenbaum, a professor at MIT’s artificial intelligence laboratory between 1964 and 1967.",
+                "words": [
+                                "ELIZA,",
+                                "the first chatbot,",
+                                "was designed by",
+                                "Joseph Weizenbaum,",
+                                "a professor",
+                                "at MIT’s artificial intelligence laboratory",
+                                "between 1964 and 1967."
+                ]
+},
+{
+                "hint": "그것은 심리치료사의 역할을 하며 사용자와 의사소통하도록 프로그램되었다. (수동태, 분사구문)",
+                "original": "It was programmed to communicate with users, playing the role of a psychotherapist.",
+                "words": [
+                                "It was programmed",
+                                "to communicate",
+                                "with users,",
+                                "playing the role",
+                                "of a psychotherapist."
+                ]
+},
+{
+                "hint": "사용자가 화면 입력창에 질문과 답을 입력하면, ELIZA는 패턴 매칭 기법을 사용해 미리 프로그램된 답을 했다. (when 부사절, would, 분사구문)",
+                "original": "When users typed questions and answers in the input box on the screen, ELIZA would give pre-programmed replies using a pattern-matching technique.",
+                "words": [
+                                "When users typed",
+                                "questions and answers",
+                                "in the input box",
+                                "on the screen,",
+                                "ELIZA would give",
+                                "pre-programmed replies",
+                                "using a pattern-matching technique."
+                ]
+},
+{
+                "hint": "Weizenbaum은 ELIZA가 인간 언어를 진정으로 이해하지 못하고, 미리 짜인 패턴을 따르도록만 프로그램되었다고 주장했다. (that절 병렬, 수동태)",
+                "original": "Weizenbaum claimed that ELIZA did not genuinely understand human language and that it was only programmed to follow pre-scripted patterns.",
+                "words": [
+                                "Weizenbaum claimed",
+                                "that ELIZA",
+                                "did not genuinely understand",
+                                "human language",
+                                "and that it",
+                                "was only programmed",
+                                "to follow",
+                                "pre-scripted patterns."
+                ]
+},
+{
+                "hint": "그러나 그 프로그램에 대한 사용자들의 반응은 꽤 놀라웠다. (전치사구 수식)",
+                "original": "However, users’ reactions to the program were quite surprising.",
+                "words": [
+                                "However,",
+                                "users’ reactions",
+                                "to the program",
+                                "were quite surprising."
+                ]
+},
+{
+                "hint": "사용자들은 자신의 입력을 이해하는 누군가와 이야기하는 것처럼 느꼈다. (felt like, 관계대명사 who)",
+                "original": "The users felt like they were talking to someone who understood their input.",
+                "words": [
+                                "The users",
+                                "felt like",
+                                "they were talking",
+                                "to someone",
+                                "who understood",
+                                "their input."
+                ]
+},
+{
+                "hint": "그들은 실제 심리치료사와 이야기하듯 ELIZA에게 삶에 대한 걱정과 생각을 공유했다. (as if 가정 표현, 병렬목적어)",
+                "original": "They shared their worries and thoughts about their lives with ELIZA as if they were talking to a real psychotherapist.",
+                "words": [
+                                "They shared",
+                                "their worries",
+                                "and thoughts",
+                                "about their lives",
+                                "with ELIZA",
+                                "as if",
+                                "they were talking",
+                                "to a real psychotherapist."
+                ]
+},
+
+            {
+                        "hint": "해석: 상상해 보라 / 평소 인색한 친구가 / 너에게 크리스마스 선물을 사 주는 것을 기뻐한다고 / 관대함 증진제를 먹은 후에.\n어법 힌트: `delights in to buy`는 틀립니다. / `usually stingy friend`에서 `usually`는 `friend`가 아니라 `stingy`를 수식합니다.",
+                        "original": "Imagine that your usually stingy friend delights in buying you a Christmas present after taking a generosity booster.",
+                        "words": [
+                                    "Imagine that your",
+                                    "usually stingy",
+                                    "friend delights in buying",
+                                    "you a Christmas",
+                                    "present after",
+                                    "taking a generosity booster."
+                        ]
+            },
+            {
+                        "hint": "해석: 어떻게 / 너는 느낄까?\n어법 힌트: `How you would feel?`은 직접의문문 어순이 아닙니다. / `would`를 단순 미래로만 해석하면 앞 문장의 가상성이 약해집니다.",
+                        "original": "How would you feel?",
+                        "words": [
+                                    "How would you",
+                                    "feel?"
+                        ]
+            },
+            {
+                        "hint": "해석: 의심할 여지 없이, / 있다 / 칭찬할 만한 무언가가 / 그 행동에는.\n어법 힌트: `there are something`은 수 일치 오류입니다. / `praiseworthy something`은 일반적인 어순이 아닙니다.",
+                        "original": "Undoubtedly, there is something praiseworthy about the action.",
+                        "words": [
+                                    "Undoubtedly, there is",
+                                    "something praiseworthy",
+                                    "about the action."
+                        ]
+            },
+            {
+                        "hint": "해석: 너는 기쁠 것이다 / 그 선물을 받아서.\n어법 힌트: `You'd be pleasing`은 `네가 남을 기쁘게 하는` 의미가 되어 어색합니다. / `pleased to receive`를 `pleased receiving`으로 바꾸면 원문의 구조와 다릅니다.",
+                        "original": "You'd be pleased to receive the gift.",
+                        "words": [
+                                    "You'd be pleased",
+                                    "to receive",
+                                    "the gift."
+                        ]
+            },
+            {
+                        "hint": "해석: 너는 `고마워`라고 말할 것이고, / 그것을 진심으로 여길 것이다.\n어법 힌트: `and means it`은 주어와 조동사의 연결을 잘못 본 형태입니다. / `it`의 지칭을 잡아야 문장이 자연스럽게 해석됩니다.",
+                        "original": "You'd say 'thank you', and mean it.",
+                        "words": [
+                                    "You'd say 'thank",
+                                    "you', and",
+                                    "mean it."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러나 / 그의 마음의 변화는 / 전적으로 만족스럽지는 않다.\n어법 힌트: `his change of heart is satisfied`는 틀립니다. 마음의 변화가 만족을 느끼는 것이 아닙니다. / `not entirely`를 `전혀 ~아니다`로 해석하면 강도가 지나칩니다.",
+                        "original": "But his change of heart is not entirely satisfying.",
+                        "words": [
+                                    "But his change",
+                                    "of heart",
+                                    "is not entirely satisfying."
+                        ]
+            },
+            {
+                        "hint": "해석: 미국 철학자 Zagzebski에 따르면, / 그는 정말로 관대한 것은 아니다.\n어법 힌트: `generously`는 부사이므로 보어 자리에 맞지 않습니다. / `an American philosopher`를 문장의 주어로 보면 구조가 틀어집니다.",
+                        "original": "According to Zagzebski, an American philosopher, he is not really generous.",
+                        "words": [
+                                    "According to Zagzebski,",
+                                    "an American",
+                                    "philosopher, he is not",
+                                    "really generous."
+                        ]
+            },
+            {
+                        "hint": "해석: 우리가 누군가의 성품을 칭찬할 때, / 우리는 다양한 미덕을 나타내는 말들을 사용한다: / `관대한`, `친절한`, `용감한` 등.\n어법 힌트: `various` 뒤에는 보통 복수명사 `virtues`가 옵니다. / 콜론 뒤의 단어들은 새 문장이 아니라 앞 명사의 예시입니다.",
+                        "original": "When we praise someone's character, we use words for various virtues: 'generous', 'kind', 'courageous', etc.",
+                        "words": [
+                                    "When we praise",
+                                    "someone's character,",
+                                    "we use words for",
+                                    "various virtues: 'generous',",
+                                    "'kind', 'courageous',",
+                                    "etc."
+                        ]
+            },
+            {
+                        "hint": "해석: 한 번 선물을 주는 사람이 / 관대한 것은 아니다.\n어법 힌트: `who give one gift`는 수 일치 오류입니다. / `A person ... aren't generous`도 주절 수 일치 오류입니다.",
+                        "original": "A person who gives one gift isn't generous.",
+                        "words": [
+                                    "A person who",
+                                    "gives one",
+                                    "gift isn't generous."
+                        ]
+            },
+            {
+                        "hint": "해석: 대신에, / 관대함은 한 사람의 `도덕적 정체성`의 안정된 일부이다, / 즉 너라는 사람의 일부인 감정적 습관이다.\n어법 힌트: `what is part of who you are`로 바꾸면 선행사와 관계절 구조가 달라집니다. / `who you are`는 직접의문문이 아니므로 `who are you` 어순이 아닙니다.",
+                        "original": "Instead, generosity is a stable part of a person's 'moral identity', an emotional habit that is part of who you are.",
+                        "words": [
+                                    "Instead, generosity is",
+                                    "a stable",
+                                    "part of a person's",
+                                    "'moral identity', an",
+                                    "emotional habit",
+                                    "that is part of",
+                                    "who you are."
+                        ]
+            },
+            {
+                        "hint": "해석: 따라서 미덕은, / 비전형적인 충동과는 달리, / 너의 개인적 역사의 결과이다.\n어법 힌트: `virtues is`는 수 일치 오류입니다. / `as opposed to`를 단순히 `~에 반대하여`로만 해석하면 문맥이 딱딱해집니다.",
+                        "original": "Thus virtues, as opposed to nontypical impulse, are the result of your personal history.",
+                        "words": [
+                                    "Thus virtues, as",
+                                    "opposed to",
+                                    "nontypical impulse, are the",
+                                    "result of your",
+                                    "personal history."
+                        ]
+            },
+            {
+                        "hint": "해석: 그것들은 너라는 사람의 일부이다, / 그것들이 네 성품이 어떻게 형성되었는지의 일부이듯이.\n어법 힌트: `who are you`나 `how was your character formed`는 직접의문문 어순입니다. / `your character formed`는 능동처럼 보여 어색합니다.",
+                        "original": "They are part of who you are, as they are part of how your character was formed.",
+                        "words": [
+                                    "They are part",
+                                    "of who",
+                                    "you are, as they",
+                                    "are part of",
+                                    "how your",
+                                    "character was formed."
+                        ]
+            },
+            {
+                        "hint": "해석: 즉석의 미덕은 / 따라서 / 불가능하다.\n어법 힌트: `is impossibly`는 틀립니다. be동사 뒤 보어는 형용사입니다. / 이 문장은 글 전체의 핵심 결론입니다.",
+                        "original": "Instant virtue is therefore impossible.",
+                        "words": [
+                                    "Instant virtue is",
+                                    "therefore impossible."
+                        ]
+            },
+            {
+                        "hint": "해석: 알약 하나를 먹는 것은 / 너를 더 나은 사람으로 만들 수 없다.\n어법 힌트: `make you to be a better person`은 원문 구조와 다릅니다. 사역·변화 의미의 `make` 뒤 보어로 명사구가 바로 올 수 있습니다. / `make you better person`은 관사 `a`가 빠져 어색합니다.",
+                        "original": "Popping a pill cannot make you a better person.",
+                        "words": [
+                                    "Popping a pill",
+                                    "cannot make",
+                                    "you a better person."
+                        ]
+            },
+            {
+                        "hint": "해석: 몇몇 사람들은 주장한다 / 읽기라고 알려진 하나의 논리적으로 일관된 개념이 있다고 / 그리고 그것이 깔끔하게 분리될 수 있다고 / 사람들이 책으로 하는 다른 모든 것들로부터.\n어법 힌트: `known as`는 '~로 알려진'이고, `known for`는 '~로 유명한'입니다. / `concept that can be neatly set apart`의 `that`은 주격 관계대명사이므로 생략할 수 없습니다.",
+                        "original": "Some people argue that there is a single, logically consistent concept known as reading that can be neatly set apart from everything else people do with books.",
+                        "words": [
+                                    "Some people argue",
+                                    "that there",
+                                    "is a single, logically",
+                                    "consistent concept known",
+                                    "as reading",
+                                    "that can be neatly",
+                                    "set apart from",
+                                    "everything else",
+                                    "people do with books."
+                        ]
+            },
+            {
+                        "hint": "해석: 읽기는 / 정말로 / 그렇게 단순한가?\n어법 힌트: `reading`을 현재분사로 보면 안 됩니다. 여기서는 주어 역할을 하므로 동명사입니다. / `that`은 지시대명사가 아니라 `simple`을 수식하는 부사입니다.",
+                        "original": "Is reading really that simple?",
+                        "words": [
+                                    "Is reading really",
+                                    "that simple?"
+                        ]
+            },
+            {
+                        "hint": "해석: 읽기에 대해 생각하는 가장 생산적인 방법은 / 느슨하게 관련된 행동들의 집합으로 보는 것이다 / 그 행동들은 가족 유사성 때문에 함께 묶이며 / 루트비히 비트겐슈타인이 그 표현을 사용했듯이 / 하나의 공통된 정의적 특성을 가지지 않은 채로.\n어법 힌트: `owing to` 뒤에는 명사구가 오므로 `owing that`처럼 쓰면 안 됩니다. / `without` 뒤에는 동명사가 와야 하므로 `without to have`는 틀립니다.",
+                        "original": "The most productive way to think about reading is as a loosely related set of behaviors that belong together owing to family resemblances, as Ludwig Wittgenstein used the phrase, without having in common a single defining trait.",
+                        "words": [
+                                    "The most productive",
+                                    "way to",
+                                    "think about reading is",
+                                    "as a loosely",
+                                    "related set",
+                                    "of behaviors that belong",
+                                    "together owing to",
+                                    "family resemblances,",
+                                    "as Ludwig Wittgenstein used",
+                                    "the phrase, without",
+                                    "having in",
+                                    "common a single defining",
+                                    "trait."
+                        ]
+            },
+            {
+                        "hint": "해석: 결과적으로, / 읽기와 비읽기를 구별하려는 노력은 / 실패할 운명이다 / 왜냐하면 애초에 무엇이 읽기로 인정되는지에 대한 합의가 없기 때문이다.\n어법 힌트: `efforts`가 복수이므로 `is destined`가 아니라 `are destined`입니다. / `because`를 `because of`로 바꾸려면 뒤를 명사구로 바꿔야 합니다.",
+                        "original": "Consequently, efforts to distinguish reading from nonreading are destined to fail because there is no agreement on what qualifies as reading in the first place.",
+                        "words": [
+                                    "Consequently, efforts to",
+                                    "distinguish reading",
+                                    "from nonreading are destined",
+                                    "to fail because",
+                                    "there is",
+                                    "no agreement on what",
+                                    "qualifies as reading",
+                                    "in the",
+                                    "first place."
+                        ]
+            },
+            {
+                        "hint": "해석: 읽기와 비읽기 사이의 경계가 어디에 놓여 있는지 알아내려고 더 노력할수록, / 그 용어의 유연한 경계를 확장하는 더 많은 경계 사례들이 발견될 것이다.\n어법 힌트: `where the border lies`를 `where lies the border`로 쓰면 간접의문문 어순이 깨집니다. / `lies`를 `lays`로 바꾸면 틀립니다. `lay`는 목적어가 필요한 타동사입니다.",
+                        "original": "The more one tries to figure out where the border lies between reading and not-reading, the more edge cases will be found to stretch the term's flexible boundaries.",
+                        "words": [
+                                    "The more one",
+                                    "tries to",
+                                    "figure out where the",
+                                    "border lies between",
+                                    "reading and",
+                                    "not-reading, the more edge",
+                                    "cases will be",
+                                    "found to",
+                                    "stretch the term's flexible",
+                                    "boundaries."
+                        ]
+            },
+            {
+                        "hint": "해석: 따라서, / 이러한 예외적인 읽기 형태들을 하나의 장으로 모으려는 시도는 가치가 있다 / 즉, 읽기가 어디서 시작하고 끝나는지 경계를 세우려는 사람이 직면하는 어려움을 부각하는 장으로.\n어법 힌트: `worth to attempt`는 틀리고 `worth attempting`이 맞습니다. / `highlighted`로 바꾸면 `one`이 어려움을 부각하는 능동 의미가 사라집니다.",
+                        "original": "Thus, it is worth attempting to collect together these exceptional forms of reading into a single forum, one highlighting the challenges faced by anyone wishing to establish the boundaries where reading begins and ends.",
+                        "words": [
+                                    "Thus, it is",
+                                    "worth attempting",
+                                    "to collect together these",
+                                    "exceptional forms of",
+                                    "reading into",
+                                    "a single forum, one",
+                                    "highlighting the challenges",
+                                    "faced by",
+                                    "anyone wishing to establish",
+                                    "the boundaries where",
+                                    "reading begins",
+                                    "and ends."
+                        ]
+            },
+            {
+                        "hint": "해석: 그 시도는 / 읽기를 하나의 스펙트럼으로 이해하는 방향으로 나아간다 / 독특한 읽기 활동들을 수용할 만큼 충분히 넓은 스펙트럼으로.\n어법 힌트: 형용사를 수식하는 `enough`는 형용사 뒤에 옵니다. 따라서 `enough expansive`가 아니라 `expansive enough`입니다. / `a spectrum`이 단수이므로 관계절 동사는 `is`입니다.",
+                        "original": "The attempt moves toward an understanding of reading as a spectrum that is expansive enough to accommodate the distinct reading activities.",
+                        "words": [
+                                    "The attempt moves",
+                                    "toward an",
+                                    "understanding of reading as",
+                                    "a spectrum that",
+                                    "is expansive",
+                                    "enough to accommodate the",
+                                    "distinct reading activities."
+                        ]
+            },
+            {
+                        "hint": "해석: 과학 연구에 관한 한, / 설명적 이야기들은 기대된다 / 실험 데이터에 밀접하게 부합하고 / 경험의 규칙적이고 예측 가능한 특징들을 밝혀 주기를.\n어법 힌트: `Where scientific research is concerned`를 단순 장소 부사절로 해석하면 안 됩니다. 여기서는 '~에 관한 한'이라는 의미입니다. / `are expected to`를 능동태 `expect`로 바꾸면 주어가 설명적 이야기이므로 의미가 어색해집니다.",
+                        "original": "Where scientific research is concerned, explanatory tales are expected to adhere closely to experimental data and to illuminate the regular and predictable features of experience.",
+                        "words": [
+                                    "Where scientific research",
+                                    "is concerned,",
+                                    "explanatory tales are expected",
+                                    "to adhere closely",
+                                    "to experimental",
+                                    "data and to illuminate",
+                                    "the regular and",
+                                    "predictable features",
+                                    "of experience."
+                        ]
+            },
+            {
+                        "hint": "해석: 하지만 이러한 패러다임은 / 때때로 그 사실을 숨긴다 / 이론들이 창의적 요소들로 깊이 채워져 있다는 / 그 요소들이 연구 프로젝트의 구성과 증거의 해석을 형성한다는 사실을.\n어법 힌트: `the fact that`의 `that`은 관계대명사 `which`로 바꿀 수 없습니다. / `theories are deeply loaded`를 `theories deeply load`처럼 능동으로 바꾸면 의미가 어색합니다.",
+                        "original": "However, this paradigm sometimes conceals the fact that theories are deeply loaded with creative elements that shape the construction of research projects and the interpretations of evidence.",
+                        "words": [
+                                    "However, this paradigm",
+                                    "sometimes conceals",
+                                    "the fact that theories",
+                                    "are deeply loaded",
+                                    "with creative",
+                                    "elements that shape the",
+                                    "construction of research",
+                                    "projects and",
+                                    "the interpretations of evidence."
+                        ]
+            },
+            {
+                        "hint": "해석: 과학적 설명은 / 단지 전달하는 것이 아니다 / 사실들의 연대기를.\n어법 힌트: 주어가 복수 `Scientific explanations`이므로 `does not`이 아니라 `do not`이 맞습니다. / `just`의 위치를 잘못 옮기면 강조 대상이 달라질 수 있습니다.",
+                        "original": "Scientific explanations do not just relate a chronology of facts.",
+                        "words": [
+                                    "Scientific explanations do",
+                                    "not just",
+                                    "relate a chronology of",
+                                    "facts."
+                        ]
+            },
+            {
+                        "hint": "해석: 그것들은 / 틀을 구성한다 / 체계적으로 선택된 데이터를 위한 / 제공하기 위해 / 일관되고 의미 있는 설명을 / 관찰되는 것에 대한.\n어법 힌트: `systematically chosen data`를 `systematically choosing data`로 바꾸면 데이터가 선택하는 주체처럼 되어 틀립니다. / `what is observed`를 `that is observed`로 바꾸면 선행사가 없어 문장이 어색합니다.",
+                        "original": "They construct frameworks for systematically chosen data in order to provide a consistent and meaningful explanation of what is observed.",
+                        "words": [
+                                    "They construct frameworks",
+                                    "for systematically",
+                                    "chosen data in order",
+                                    "to provide a",
+                                    "consistent and",
+                                    "meaningful explanation of what",
+                                    "is observed."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러한 구성들은 / 우리로 하여금 상상하게 한다 / 특정한 종류의 주제를 / 특정한 종류의 관계 속에서, / 그리고 그것들이 불러일으키는 이야기 전개는 / 더 효과적인 것으로 드러날 것이다 / 경험의 어떤 특징들을 다른 특징들보다 분석하는 데.\n어법 힌트: `lead us imagine`이나 `lead us imagining`은 틀리고, `lead us to imagine`이 맞습니다. / `the storylines they inspire`를 `the storylines inspired by them`으로 바꿀 수 있지만, 이때 능동 관계절이 수동 분사구로 바뀐다는 점을 이해해야 합니다.",
+                        "original": "Such constructions lead us to imagine specific kinds of subject matter in particular sorts of relations, and the storylines they inspire will prove more effective for analyzing some features of experience over others.",
+                        "words": [
+                                    "Such constructions lead",
+                                    "us to",
+                                    "imagine specific kinds of",
+                                    "subject matter in",
+                                    "particular sorts",
+                                    "of relations, and the",
+                                    "storylines they inspire",
+                                    "will prove",
+                                    "more effective for analyzing",
+                                    "some features of",
+                                    "experience over",
+                                    "others."
+                        ]
+            },
+            {
+                        "hint": "해석: 우리가 그러한 과학적 상상력의 창의적 기여를 무시하고 / 모델과 해석적 설명을 단순한 사실로, 심지어 더 나쁘게는 현실 전체를 포함하는 사실로 취급할 때, / 우리는 스스로를 눈멀게 할 수 있다 / 주어진 모델의 한계에 대해 / 그리고 알아차리지 못할 수 있다 / 그 모델이 잘 적용되지 않는 상황을 오해하게 만들 가능성을.\n어법 힌트: `treat A as B`에서 `as`를 빼거나 `to`로 바꾸면 틀립니다. / `including`을 `included`로 바꾸면 '현실 전체를 포함하는 사실'이라는 능동 의미가 약해져 문맥에 맞지 않습니다.",
+                        "original": "When we neglect the creative contributions of such scientific imagination and treat models and interpretive explanations as straightforward facts ─ even worse, as facts including all of reality ─ we can blind ourselves to the limitations of a given model and fail to note its potential for misunderstanding a situation to which it ill applies.",
+                        "words": [
+                                    "When we neglect",
+                                    "the creative",
+                                    "contributions of such scientific",
+                                    "imagination and treat",
+                                    "models and",
+                                    "interpretive explanations as straightforward",
+                                    "facts ─ even",
+                                    "worse, as",
+                                    "facts including all of",
+                                    "reality ─ we",
+                                    "can blind",
+                                    "ourselves to the limitations",
+                                    "of a given",
+                                    "model and",
+                                    "fail to note its",
+                                    "potential for misunderstanding",
+                                    "a situation",
+                                    "to which it ill",
+                                    "applies."
+                        ]
+            },
+            {
+                        "hint": "해석: 홉스에 따르면, / 인간은 존재가 아니다 / 도덕적으로 행동할 수 있는 / 자신의 존재를 보호하려는 본능에도 불구하고 / 자연 상태에서.\n어법 힌트: `in spite of` 뒤에 `he has...` 같은 절을 바로 붙이면 안 됩니다. 절을 쓰려면 `although` 등이 필요합니다. / `who can act morally`의 `who`는 주격이므로 생략할 수 없습니다.",
+                        "original": "According to Hobbes, man is not a being who can act morally in spite of his instinct to protect his existence in the state of nature.",
+                        "words": [
+                                    "According to Hobbes,",
+                                    "man is",
+                                    "not a being who",
+                                    "can act morally",
+                                    "in spite",
+                                    "of his instinct to",
+                                    "protect his existence",
+                                    "in the",
+                                    "state of nature."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러므로, / 도덕성과 도덕적 자유가 적용되기 시작할 유일한 곳은 / 시작된다 / 주권적 권력, 즉 국가가 등장하는 곳에서.\n어법 힌트: 첫 번째 `where`와 두 번째 `where` 모두 관계부사입니다. 단순 의문사로 보면 안 됩니다. / `the only place ... begin`은 수 일치 오류입니다. 핵심 주어가 단수이므로 `begins`가 맞습니다.",
+                        "original": "Hence, the only place where morality and moral liberty will begin to find an application begins in a place where a sovereign power, namely the state, emerges.",
+                        "words": [
+                                    "Hence, the only",
+                                    "place where",
+                                    "morality and moral liberty",
+                                    "will begin to",
+                                    "find an",
+                                    "application begins in a",
+                                    "place where a",
+                                    "sovereign power,",
+                                    "namely the state, emerges."
+                        ]
+            },
+            {
+                        "hint": "해석: 홉스는 따라서 자연 상태를 묘사한다 / 한 상황으로 / 그 안에서 인간의 삶이 `고독하고, 가난하고, 불쾌하고, 잔인하고, 짧은`.\n어법 힌트: `describe A to B`가 아니라 `describe A as B`입니다. / `in which`에서 전치사 `in`을 빼면 뒤 절과의 관계가 어색해집니다.",
+                        "original": "Hobbes thus describes the state of nature as a circumstance in which man's life is \"solitary, poor, nasty, brutish and short\".",
+                        "words": [
+                                    "Hobbes thus describes",
+                                    "the state",
+                                    "of nature as a",
+                                    "circumstance in which",
+                                    "man's life",
+                                    "is \"solitary, poor, nasty,",
+                                    "brutish and short\"."
+                        ]
+            },
+            {
+                        "hint": "해석: 그것은 의미한다 / 사람들이 그들 모두를 통제할 일반 권력 없이 살 때, / 그들은 실제로 전쟁 상태에 있다는 것을.\n어법 힌트: `It`은 비인칭 주어가 아니라 앞 문장 내용을 받습니다. / `when`절만 보고 문장이 끝났다고 보면 안 됩니다. 핵심은 `they are...`입니다.",
+                        "original": "It means when people live without a general power to control them all, they are indeed in a state of war.",
+                        "words": [
+                                    "It means when",
+                                    "people live",
+                                    "without a general power",
+                                    "to control them",
+                                    "all, they",
+                                    "are indeed in a",
+                                    "state of war."
+                        ]
+            },
+            {
+                        "hint": "해석: 다시 말해, / 홉스는, 자연 상태의 인간이 사회적·정치적 존재가 아니라고 받아들였던 그는, / 믿는다 / 그 권력 없이는 자연 상태의 인간들이 `그들의 이기심에 기반하여 반사회적이고 이성적`이라고.\n어법 힌트: 삽입절 때문에 `Hobbes`의 본동사를 `accepted`로 착각하기 쉽지만, 문장 전체의 본동사는 `believes`입니다. / 두 개의 `that`은 관계대명사가 아니라 명사절 접속사입니다.",
+                        "original": "In other words, Hobbes, who accepted that human beings are not social and political beings in the state of nature, believes that without the power human beings in the state of nature are \"antisocial and rational based on their selfishness\".",
+                        "words": [
+                                    "In other words,",
+                                    "Hobbes, who",
+                                    "accepted that human beings",
+                                    "are not social",
+                                    "and political",
+                                    "beings in the state",
+                                    "of nature, believes",
+                                    "that without",
+                                    "the power human beings",
+                                    "in the state",
+                                    "of nature",
+                                    "are \"antisocial and rational",
+                                    "based on their",
+                                    "selfishness\"."
+                        ]
+            },
+            {
+                        "hint": "해석: 게다가, / 사회는 자연 현상이 아니고 사람들을 모으는 자연적 힘도 없기 때문에, / 그들을 사회로 함께 모을 것은 / 홉스에 따르면 상호 애정이 아니다.\n어법 힌트: `since`를 시간 의미로 해석하면 글의 논리가 어색해집니다. / `what`을 `that`으로 바꾸면 주어 명사절 구조가 깨집니다.",
+                        "original": "Moreover, since society is not a natural phenomenon and there is no natural force bringing people together, what will bring them together as a society is not mutual affection according to Hobbes.",
+                        "words": [
+                                    "Moreover, since society",
+                                    "is not",
+                                    "a natural phenomenon and",
+                                    "there is no",
+                                    "natural force",
+                                    "bringing people together, what",
+                                    "will bring them",
+                                    "together as",
+                                    "a society is not",
+                                    "mutual affection according",
+                                    "to Hobbes."
+                        ]
+            },
+            {
+                        "hint": "해석: 오히려 / 인간의 현재와 미래에 대한 상호 두려움이 / 그들을 모은다, / 두려움의 원인은 자연 상태의 사람들 사이에서 공통된 동인이기 때문에.\n어법 힌트: 이 문장은 가주어-진주어가 아니라 강조구문입니다. `Mutual fear ... assembles them`으로 복원됩니다. / 강조구문의 `that`을 일반 관계대명사처럼만 설명하면 구조를 놓칠 수 있습니다.",
+                        "original": "It is, rather, mutual fear of men's present and future that assembles them, since the cause of fear is a common drive among people in the state of nature.",
+                        "words": [
+                                    "It is, rather,",
+                                    "mutual fear",
+                                    "of men's present and",
+                                    "future that assembles",
+                                    "them, since",
+                                    "the cause of fear",
+                                    "is a common",
+                                    "drive among",
+                                    "people in the state",
+                                    "of nature."
+                        ]
+            },
+            {
+                        "hint": "해석: 우리 몸에서 유전체가 복제되는 매 회차마다, / 여전히 약 70퍼센트의 가능성이 있다 / 적어도 한 쌍의 염색체에 오류가 생길 것이라는.\n어법 힌트: `there are a 70 percent chance`는 수 일치 오류입니다. / `chance that...`의 `that`은 관계대명사가 아니라 동격절 접속사입니다.",
+                        "original": "In each round of genome copying in our body, there is still about a 70 percent chance that at least one pair of chromosomes will have an error.",
+                        "words": [
+                                    "In each round",
+                                    "of genome",
+                                    "copying in our body,",
+                                    "there is still",
+                                    "about a",
+                                    "70 percent chance that",
+                                    "at least one",
+                                    "pair of",
+                                    "chromosomes will have an",
+                                    "error."
+                        ]
+            },
+            {
+                        "hint": "해석: 유전체 복제가 한 차례씩 진행될 때마다, / 오류들이 축적된다.\n어법 힌트: `each rounds`는 틀립니다. / `errors accumulates`는 수 일치 오류입니다.",
+                        "original": "With each round of genome copying, errors accumulate.",
+                        "words": [
+                                    "With each round",
+                                    "of genome",
+                                    "copying, errors accumulate."
+                        ]
+            },
+            {
+                        "hint": "해석: 이것은 / 중세 책들에서의 변형과 / 유사하다.\n어법 힌트: `similar with`보다 `similar to`가 표준적입니다. / `alterations`와 `alternations`를 혼동하지 않도록 주의해야 합니다.",
+                        "original": "This is similar to alterations in medieval books.",
+                        "words": [
+                                    "This is similar",
+                                    "to alterations",
+                                    "in medieval books."
+                        ]
+            },
+            {
+                        "hint": "해석: 사본이 손으로 만들어질 때마다, / 몇몇 변화들이 우연히 도입되었다; / 변화들이 쌓이면서, / 그 사본들은 원본과 다른 의미들을 얻게 되었을지도 모른다.\n어법 힌트: `Each time when...`처럼 `when`을 덧붙이면 어색합니다. / `some changes was introduced`는 수 일치 오류입니다.",
+                        "original": "Each time a copy was made by hand, some changes were introduced accidentally; as changes stacked up, the copies may have acquired meanings at variance with the original.",
+                        "words": [
+                                    "Each time a",
+                                    "copy was",
+                                    "made by hand, some",
+                                    "changes were introduced",
+                                    "accidentally; as",
+                                    "changes stacked up, the",
+                                    "copies may have",
+                                    "acquired meanings",
+                                    "at variance with the",
+                                    "original."
+                        ]
+            },
+            {
+                        "hint": "해석: 마찬가지로, / 더 많은 복제 과정을 겪은 유전체들은 / 더 많은 오류를 축적했을 것이다.\n어법 힌트: 선행사 `genomes`가 복수이므로 `has undergone`이 아니라 `have undergone`입니다. / `undergo`는 `겪다`라는 타동사로, 여기서는 능동태입니다.",
+                        "original": "Similarly, genomes that have undergone more copying processes will have gathered more mistakes.",
+                        "words": [
+                                    "Similarly, genomes that",
+                                    "have undergone",
+                                    "more copying processes will",
+                                    "have gathered more",
+                                    "mistakes."
+                        ]
+            },
+            {
+                        "hint": "해석: 설상가상으로, / 돌연변이는 유전체 오류 확인과 복구를 담당하는 유전자들을 손상시킬 수 있고, / 그 결과 돌연변이의 도입을 더욱 가속화한다.\n어법 힌트: `genes responsible for...`에서 `which are`가 생략된 것으로 볼 수 있습니다. / `responsibly for`는 틀립니다. `responsible`은 형용사입니다.",
+                        "original": "To make things worse, mutations may damage genes responsible for error checking and repair of genomes, further accelerating the introduction of mutations.",
+                        "words": [
+                                    "To make things",
+                                    "worse, mutations",
+                                    "may damage genes responsible",
+                                    "for error checking",
+                                    "and repair",
+                                    "of genomes, further accelerating",
+                                    "the introduction of",
+                                    "mutations."
+                        ]
+            },
+            {
+                        "hint": "해석: 대부분의 유전체 돌연변이는 / 어떤 눈에 띄는 영향도 / 가지지 않는다.\n어법 힌트: `Most genome mutations does not have`는 수 일치 오류입니다. / `some noticeable effects`는 긍정문 느낌이 강하므로 부정문에서는 `any`가 자연스럽습니다.",
+                        "original": "Most genome mutations do not have any noticeable effects.",
+                        "words": [
+                                    "Most genome mutations",
+                                    "do not",
+                                    "have any noticeable effects."
+                        ]
+            },
+            {
+                        "hint": "해석: 그것은 마치 / `kingdom`에서 i를 y로 바꾸는 것이 / 그 단어의 가독성을 왜곡하지 않을 것과 같다.\n어법 힌트: `like` 뒤에 절이 이어지는 구어적·비격식적 구조로 볼 수 있습니다. / `distort`는 `왜곡하다`이고, `distract`와 혼동하면 안 됩니다.",
+                        "original": "It is just like changing the i for a y in \"kingdom\" would not distort the word's readability.",
+                        "words": [
+                                    "It is just",
+                                    "like changing",
+                                    "the i for a",
+                                    "y in \"kingdom\"",
+                                    "would not",
+                                    "distort the word's readability."
+                        ]
+            },
+            {
+                        "hint": "해석: 하지만 때때로 / 인간 유전자에 생긴 돌연변이는 / 예를 들어 / 홍채가 두 가지 다른 색인 눈을 초래한다.\n어법 힌트: `result from`은 원인을 나타내므로 원문의 의미와 다릅니다. / `whose its iris`처럼 소유 표현을 중복하면 틀립니다.",
+                        "original": "But sometimes a mutation to a human gene results in, for example, an eye whose iris is of two different colors.",
+                        "words": [
+                                    "But sometimes a",
+                                    "mutation to",
+                                    "a human gene results",
+                                    "in, for example,",
+                                    "an eye",
+                                    "whose iris is of",
+                                    "two different colors."
+                        ]
+            },
+            {
+                        "hint": "해석: 마찬가지로, / 거의 모든 사람은 반점을 가지고 있는데, / 그것들은 돌연변이 때문이다 / 우리 몸의 세포들이 피부를 형성하기 위해 증식할 때 발생한.\n어법 힌트: `birthmarks, that are due to...`는 콤마 뒤 관계대명사로 부적절합니다. / `mutations were occurred`는 틀립니다.",
+                        "original": "Similarly, almost everyone has birthmarks, which are due to mutations that occurred as our body's cells multiplied to form skin.",
+                        "words": [
+                                    "Similarly, almost everyone",
+                                    "has birthmarks,",
+                                    "which are due to",
+                                    "mutations that occurred",
+                                    "as our",
+                                    "body's cells multiplied to",
+                                    "form skin."
+                        ]
+            },
+            {
+                        "hint": "해석: 만약 돌연변이가 / 한 특정 세포의 유전체 변화라면, / 어떻게 홍채의 세포 한 부분이나 피부의 전체 한 부분이, / 많은 개별 세포들로 구성되어 있는데, / 동시에 영향을 받을 수 있을까?\n어법 힌트: `is consisted of`는 틀립니다. `consist of`는 수동태로 쓰지 않습니다. / `effected`와 `affected`를 혼동하지 않아야 합니다. 여기서는 동사 `affect`의 수동태입니다.",
+                        "original": "If mutations are changes to the genome of one particular cell, how can a patch of cells in an iris or a whole patch of skin, consisting of many individual cells, be affected simultaneously?",
+                        "words": [
+                                    "If mutations are",
+                                    "changes to",
+                                    "the genome of one",
+                                    "particular cell, how",
+                                    "can a",
+                                    "patch of cells in",
+                                    "an iris or",
+                                    "a whole",
+                                    "patch of skin, consisting",
+                                    "of many individual",
+                                    "cells, be",
+                                    "affected simultaneously?"
+                        ]
+            },
+            {
+                        "hint": "해석: 그 답은 / 세포 계통에 있다, / 즉 특정 세포들로부터 완전히 분화된 상태에 이르기까지의 / 조직의 발달 역사에 있다.\n어법 힌트: `The answer lays in...`은 틀립니다. 여기서는 자동사 `lies`가 맞습니다. / `differentiating state`는 `분화하는 상태`가 되어 원문과 다릅니다.",
+                        "original": "The answer lies in the cell lineage, the developmental history of a tissue from particular cells through to their fully differentiated state.",
+                        "words": [
+                                    "The answer lies",
+                                    "in the",
+                                    "cell lineage, the developmental",
+                                    "history of a",
+                                    "tissue from",
+                                    "particular cells through to",
+                                    "their fully differentiated",
+                                    "state."
+                        ]
+            },
+            {
+                        "hint": "해석: 만약 그 돌연변이가 / 발달 중인 홍채의 계통에서 초기에 발생했다면, / 그러면 그 부분의 모든 세포들은 / 그 변화를 물려받은 것이다.\n어법 힌트: `the mutation was occurred`는 틀립니다. / `developed iris`는 발달이 완료된 홍채로 의미가 달라질 수 있습니다.",
+                        "original": "If the mutation occurred early on in the lineage of the developing iris, then all cells in that patch have inherited that change.",
+                        "words": [
+                                    "If the mutation",
+                                    "occurred early",
+                                    "on in the lineage",
+                                    "of the developing",
+                                    "iris, then",
+                                    "all cells in that",
+                                    "patch have inherited",
+                                    "that change."
+                        ]
+            },
+            {
+                        "hint": "해석: 오늘날의 정보 시대에, / 많은 회사와 많은 팀에서, / 목표는 더 이상 / 오류 방지와 반복 가능성이 아니다.\n어법 힌트: `the objective`가 단수이므로 `are`가 아니라 `is`가 맞습니다. / `no longer`는 `not anymore`와 비슷한 뜻입니다.",
+                        "original": "In today's information age, in many companies and on many teams, the objective is no longer error prevention and replicability.",
+                        "words": [
+                                    "In today's information",
+                                    "age, in",
+                                    "many companies and on",
+                                    "many teams, the",
+                                    "objective is",
+                                    "no longer error prevention",
+                                    "and replicability."
+                        ]
+            },
+            {
+                        "hint": "해석: 반대로, / 그것은 창의성, 속도, 예리함이다.\n어법 힌트: `it`이 막연한 비인칭 주어가 아니라 앞의 목표를 받는 대명사입니다. / `creative, speed, and keen`처럼 품사를 섞으면 병렬이 깨집니다.",
+                        "original": "On the contrary, it's creativity, speed, and keenness.",
+                        "words": [
+                                    "On the contrary,",
+                                    "it's creativity,",
+                                    "speed, and keenness."
+                        ]
+            },
+            {
+                        "hint": "해석: 산업 시대에는, / 목표가 / 변동을 최소화하는 것이었다.\n어법 힌트: `minimize`와 `maximize`는 의미가 반대이므로 문맥상 구분해야 합니다. / `the goal were`는 수 일치 오류입니다.",
+                        "original": "In the industrial era, the goal was to minimize variation.",
+                        "words": [
+                                    "In the industrial",
+                                    "era, the",
+                                    "goal was to minimize",
+                                    "variation."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러나 오늘날 창의적인 회사에서는, / 변동을 극대화하는 것이 / 더 필수적이다.\n어법 힌트: `maximizing variation are`는 수 일치 오류입니다. / `essentialer`는 쓰지 않습니다.",
+                        "original": "But in creative companies today, maximizing variation is more essential.",
+                        "words": [
+                                    "But in creative",
+                                    "companies today,",
+                                    "maximizing variation is more",
+                                    "essential."
+                        ]
+            },
+            {
+                        "hint": "해석: 이러한 상황에서는, / 가장 큰 위험은 실수를 하거나 일관성을 잃는 것이 아니다; / 그것은 최고의 인재를 끌어들이지 못하고, / 신제품을 발명하지 못하고, / 환경이 변할 때 빠르게 방향을 바꾸지 못하는 것이다.\n어법 힌트: `failing attracting`은 틀립니다. `fail` 뒤에는 보통 to부정사가 옵니다. / `making a mistake or to lose consistency`처럼 병렬 형태를 섞으면 안 됩니다.",
+                        "original": "In these situations, the biggest risk isn't making a mistake or losing consistency; it's failing to attract top talent, to invent new products, or to change direction quickly when the environment shifts.",
+                        "words": [
+                                    "In these situations,",
+                                    "the biggest",
+                                    "risk isn't making a",
+                                    "mistake or losing",
+                                    "consistency; it's",
+                                    "failing to attract top",
+                                    "talent, to invent",
+                                    "new products,",
+                                    "or to change direction",
+                                    "quickly when the",
+                                    "environment shifts."
+                        ]
+            },
+            {
+                        "hint": "해석: 일관성과 반복 가능성은 / 신선한 사고를 억누를 가능성이 더 높다 / 당신의 회사에 이익을 가져다줄 가능성보다.\n어법 힌트: `than bring`보다 원문처럼 `than to bring`이 앞의 `to suppress`와 병렬을 이룹니다. / `bring your company profit`은 `bring profit to your company`로 바꿔 쓸 수 있습니다.",
+                        "original": "Consistency and repeatability are more likely to suppress fresh thinking than to bring your company profit.",
+                        "words": [
+                                    "Consistency and repeatability",
+                                    "are more",
+                                    "likely to suppress fresh",
+                                    "thinking than to",
+                                    "bring your",
+                                    "company profit."
+                        ]
+            },
+            {
+                        "hint": "해석: 많은 작은 실수들은, / 때로는 고통스럽지만, / 조직이 빠르게 배우도록 돕고 / 혁신 주기의 중요한 부분이다.\n어법 힌트: `A lot of little mistakes helps`는 수 일치 오류입니다. / `help the organization learning`은 원문 구조와 맞지 않습니다.",
+                        "original": "A lot of little mistakes, while sometimes painful, help the organization learn quickly and are a critical part of the innovation cycle.",
+                        "words": [
+                                    "A lot of",
+                                    "little mistakes,",
+                                    "while sometimes painful, help",
+                                    "the organization learn",
+                                    "quickly and",
+                                    "are a critical part",
+                                    "of the innovation",
+                                    "cycle."
+                        ]
+            },
+            {
+                        "hint": "해석: 이러한 상황에서는, / 규칙과 절차는 / 더 이상 최선의 답이 아니다.\n어법 힌트: `rules and process is`는 원문 수 일치와 맞지 않습니다. / `no longer`는 be동사 뒤에 위치합니다.",
+                        "original": "In these situations, rules and process are no longer the best answer.",
+                        "words": [
+                                    "In these situations,",
+                                    "rules and",
+                                    "process are no longer",
+                                    "the best answer."
+                        ]
+            },
+            {
+                        "hint": "해석: 교향곡은 / 당신이 추구하는 것이 아니다.\n어법 힌트: `what`을 `that`으로 바꾸면 선행사 없는 명사절 구조가 깨집니다. / `you're going`만 남기면 `추구하다` 의미의 `for`가 빠져 의미가 달라집니다.",
+                        "original": "A symphony isn't what you're going for.",
+                        "words": [
+                                    "A symphony isn't",
+                                    "what you're",
+                                    "going for."
+                        ]
+            },
+            {
+                        "hint": "해석: 지휘자와 악보는 / 뒤에 남겨 두어라.\n어법 힌트: `Leaving the conductor...`로 시작하면 명령문 구조가 아닙니다. / `behind`를 빼면 `버리고 가라`는 뉘앙스가 약해집니다.",
+                        "original": "Leave the conductor and the sheet music behind.",
+                        "words": [
+                                    "Leave the conductor",
+                                    "and the",
+                                    "sheet music behind."
+                        ]
+            },
+            {
+                        "hint": "해석: 대신에 / 재즈 밴드를 만들어라.\n어법 힌트: `instead`와 `instead of`를 구분해야 합니다. `instead of` 뒤에는 명사나 동명사가 필요합니다. / `Build`는 여기서 실제 밴드를 만들라는 뜻보다 유연하고 즉흥적인 조직을 만들라는 비유입니다.",
+                        "original": "Build a jazz band instead.",
+                        "words": [
+                                    "Build a jazz",
+                                    "band instead."
+                        ]
+            },
+            {
+                        "hint": "해석: 우리가 불리한 결과를 얻을 때, / 어떤 면에서 / 우리가 가장 듣고 싶지 않은 것은 / 그 과정이 공정했다는 말이다.\n어법 힌트: `that the process was fair`의 `that`은 관계대명사가 아니라 명사절 접속사입니다. / `the last thing we want to hear`를 단순히 시간 순서의 `마지막 것`으로만 해석하면 어색합니다.",
+                        "original": "When we get an unfavorable outcome, in some ways the last thing we want to hear is that the process was fair.",
+                        "words": [
+                                    "When we get",
+                                    "an unfavorable",
+                                    "outcome, in some ways",
+                                    "the last thing",
+                                    "we want",
+                                    "to hear is that",
+                                    "the process was",
+                                    "fair."
+                        ]
+            },
+            {
+                        "hint": "해석: 불리한 결과와 불공정한 과정의 조합이 아무리 분노를 유발하더라도, / 이 조합은 또한 위로의 상을 가져온다: / 나쁜 결과를 우리 자신이 아닌 다른 것의 탓으로 돌릴 가능성이다.\n어법 힌트: `outraged`는 사람이 `분노한` 상태를 나타내므로 여기서는 `outraging`이 자연스럽습니다. / `attributing`은 전치사 `of`의 목적어인 동명사입니다.",
+                        "original": "As outraging as the combination of an unfavorable outcome and an unfair process is, this combination also brings with it a consolation prize: the possibility of attributing the bad outcome to something other than ourselves.",
+                        "words": [
+                                    "As outraging as",
+                                    "the combination",
+                                    "of an unfavorable outcome",
+                                    "and an unfair",
+                                    "process is,",
+                                    "this combination also brings",
+                                    "with it a",
+                                    "consolation prize:",
+                                    "the possibility of attributing",
+                                    "the bad outcome",
+                                    "to something",
+                                    "other than ourselves."
+                        ]
+            },
+            {
+                        "hint": "해석: 우리는 스스로를 안심시킬 수 있다 / 믿음으로써 / 우리의 나쁜 결과가 우리와는 거의 관련이 없고 / 불공정한 과정과는 전적으로 관련이 있다고.\n어법 힌트: `by believe`나 `by to believe`는 틀립니다. / `ourselves`를 `us`로 바꾸면 `스스로를`이라는 재귀 의미가 약해집니다.",
+                        "original": "We may reassure ourselves by believing that our bad outcome had little to do with us and everything to do with the unfair process.",
+                        "words": [
+                                    "We may reassure",
+                                    "ourselves by",
+                                    "believing that our bad",
+                                    "outcome had little",
+                                    "to do",
+                                    "with us and everything",
+                                    "to do with",
+                                    "the unfair",
+                                    "process."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러나 과정이 공정하다면, / 우리는 그 결과를 거의 그렇게 쉽게 외부 탓으로 돌릴 수 없다; / 우리는 우리가 얻은 것을 `정정당당하게` 얻은 것이다.\n어법 힌트: `as easily`에서 `easily`는 동사 `externalize`를 수식하는 부사입니다. / `what we got`을 `that we got`으로 바꾸면 명사절 구조가 깨집니다.",
+                        "original": "If the process is fair, however, we cannot nearly as easily externalize the outcome; we got what we got \"fair and square.\"",
+                        "words": [
+                                    "If the process",
+                                    "is fair,",
+                                    "however, we cannot nearly",
+                                    "as easily externalize",
+                                    "the outcome;",
+                                    "we got what we",
+                                    "got \"fair and",
+                                    "square.\""
+                        ]
+            },
+            {
+                        "hint": "해석: 과정이 공정할 때 / 우리는 우리의 결과가 마땅한 것이라고 믿는다, / 그리고 그것은 다른 말로 하면 / 우리 자신에 관한 무언가가 있었음에 틀림없다는 뜻이다 / 우리가 한 일이나 우리가 누구인지 같은 것이 / 그 결과를 야기했다는.\n어법 힌트: 계속적 용법에서는 `, that`을 쓸 수 없습니다. / `must have been`은 현재 추측이 아니라 과거에 대한 강한 추측입니다.",
+                        "original": "When the process is fair we believe that our outcome is deserved, which is another way of saying that there must have been something about ourselves (what we did or who we are) that caused the outcome.",
+                        "words": [
+                                    "When the process",
+                                    "is fair",
+                                    "we believe that our",
+                                    "outcome is deserved,",
+                                    "which is",
+                                    "another way of saying",
+                                    "that there must",
+                                    "have been",
+                                    "something about ourselves (what",
+                                    "we did or",
+                                    "who we",
+                                    "are) that caused the",
+                                    "outcome."
+                        ]
+            },
+            {
+                        "hint": "해석: 흔히 말해진다 / 할 수 없는 사람들이 / 가르친다고.\n어법 힌트: `It says that...`은 원문 의미와 다릅니다. / `those who can't do teaches`는 수 일치 오류입니다.",
+                        "original": "It's often said that those who can't do, teach.",
+                        "words": [
+                                    "It's often said",
+                                    "that those",
+                                    "who can't do, teach."
+                        ]
+            },
+            {
+                        "hint": "해석: 더 정확할 것이다 / 할 수 있는 사람들은 / 기본을 가르칠 수 없다고 말하는 것이.\n어법 힌트: `accurater`는 쓰지 않습니다. / `that` 뒤에는 `those ... can't teach...`라는 완전한 절이 옵니다.",
+                        "original": "It would be more accurate to say that those who can do, can't teach the basics.",
+                        "words": [
+                                    "It would be",
+                                    "more accurate",
+                                    "to say that those",
+                                    "who can do,",
+                                    "can't teach",
+                                    "the basics."
+                        ]
+            },
+            {
+                        "hint": "해석: 많은 전문가 지식은 / 암묵적이다, / 명시적인 것이 아니라.\n어법 힌트: `A great number of knowledge`는 틀립니다. / `knowledge are`는 수 일치 오류입니다.",
+                        "original": "A great deal of expert knowledge is implicit, not explicit.",
+                        "words": [
+                                    "A great deal",
+                                    "of expert",
+                                    "knowledge is implicit, not",
+                                    "explicit."
+                        ]
+            },
+            {
+                        "hint": "해석: 숙달을 향해 더 나아갈수록, / 기본에 대한 의식적 인식은 / 더 적어진다.\n어법 힌트: `fewer awareness`는 틀립니다. / `consciously awareness`가 아니라 형용사 `conscious`가 명사 `awareness`를 수식합니다.",
+                        "original": "The further you progress toward mastery, the less conscious awareness you often have of the fundamentals.",
+                        "words": [
+                                    "The further you",
+                                    "progress toward",
+                                    "mastery, the less conscious",
+                                    "awareness you often",
+                                    "have of",
+                                    "the fundamentals."
+                        ]
+            },
+            {
+                        "hint": "해석: 실험들은 보여 준다 / 숙련된 골퍼와 와인 애호가들이 / 자신의 퍼팅과 시음 기술을 설명하는 데 어려움을 겪는다는 것을 / 심지어 그들에게 접근법을 설명해 달라고 요청하는 것만으로도 / 그들의 수행을 방해하기에 충분해서, / 그들은 종종 자동 조종 상태에 머문다.\n어법 힌트: `have a hard time to describe`는 틀립니다. / `asking them explain`이 아니라 `asking them to explain`입니다.",
+                        "original": "Experiments show that skilled golfers and wine aficionados have a hard time describing their putting and tasting techniques ─ even asking them to explain their approaches is enough to interfere with their performance, so they often stay on autopilot.",
+                        "words": [
+                                    "Experiments show that",
+                                    "skilled golfers",
+                                    "and wine aficionados have",
+                                    "a hard time",
+                                    "describing their",
+                                    "putting and tasting techniques",
+                                    "─ even asking",
+                                    "them to",
+                                    "explain their approaches is",
+                                    "enough to interfere",
+                                    "with their",
+                                    "performance, so they often",
+                                    "stay on autopilot."
+                        ]
+            },
+            {
+                        "hint": "해석: 내가 처음 보았을 때 / 한 엘리트 다이버가 네 바퀴 반 공중제비를 하는 것을, / 나는 물었다 / 그가 어떻게 그렇게 빨리 회전할 수 있었는지.\n어법 힌트: `saw an elite diver to do`는 지각동사 구조에 맞지 않습니다. / `how did he manage`는 직접의문문 어순입니다. `asked`의 목적어절에서는 `how he managed`가 맞습니다.",
+                        "original": "When I first saw an elite diver do four and a half somersaults, I asked how he managed to spin so fast.",
+                        "words": [
+                                    "When I first",
+                                    "saw an",
+                                    "elite diver do four",
+                                    "and a half",
+                                    "somersaults, I",
+                                    "asked how he managed",
+                                    "to spin so",
+                                    "fast."
+                        ]
+            },
+            {
+                        "hint": "해석: 그의 대답은 이랬다: / `그냥 공처럼 몸을 웅크리고 올라가세요.`\n어법 힌트: `goes up`은 명령문 형태가 아닙니다. / `in a ball`은 문자 그대로 공 안에 있다는 뜻이 아니라 몸을 공처럼 웅크린 상태입니다.",
+                        "original": "His answer: \"Just go up in a ball.\"",
+                        "words": [
+                                    "His answer: \"Just",
+                                    "go up",
+                                    "in a ball.\""
+                        ]
+            },
+            {
+                        "hint": "해석: 전문가들은 종종 경로에 대한 직관적 이해를 가지고 있지만, / 취해야 할 모든 단계를 명확히 표현하는 데 어려움을 겪는다.\n어법 힌트: `struggle expressing`은 원문 구조와 다릅니다. / `clear express`가 아니라 `clearly express`입니다.",
+                        "original": "Experts often have an intuitive understanding of a route, but they struggle to clearly express all the steps to take.",
+                        "words": [
+                                    "Experts often have",
+                                    "an intuitive",
+                                    "understanding of a route,",
+                                    "but they struggle",
+                                    "to clearly",
+                                    "express all the steps",
+                                    "to take."
+                        ]
+            },
+            {
+                        "hint": "해석: 그들이 머릿속 지식을 쏟아낸 것은 / 부분적으로 / 쓸모없는 정보로 채워져 있다.\n어법 힌트: `is filled by`보다 `is filled with`가 자연스럽습니다. / `partial filled`는 틀립니다. 동사구를 수식하려면 부사 `partially`가 필요합니다.",
+                        "original": "Their brain dump is partially filled with garbage.",
+                        "words": [
+                                    "Their brain dump",
+                                    "is partially",
+                                    "filled with garbage."
+                        ]
+            },
+            {
+                        "hint": "해석: 입력 데이터를 받아 / 그것으로부터 어떤 출력을 생성하는 계산 알고리즘은 / 실제로 의미라는 개념을 전혀 담고 있지 않다.\n어법 힌트: 선행사 `algorithm`이 단수이므로 관계절 동사는 `takes`, `generates`입니다. / `what takes...`로 바꾸면 선행사가 있는 관계절 구조와 맞지 않습니다.",
+                        "original": "A computational algorithm that takes input data and generates some output from it doesn't really embody any notion of meaning.",
+                        "words": [
+                                    "A computational algorithm",
+                                    "that takes",
+                                    "input data and generates",
+                                    "some output from",
+                                    "it doesn't",
+                                    "really embody any notion",
+                                    "of meaning."
+                        ]
+            },
+            {
+                        "hint": "해석: 확실히, / 그러한 계산은 일반적으로 / 자기 자신의 생존과 안녕을 / 자신의 목적으로 삼지 않는다.\n어법 힌트: `its`는 소유격이고, `it's`는 `it is`의 축약형입니다. / `does not generally`는 `일반적으로 ~하지 않는다`이지 `절대 ~하지 않는다`는 뜻은 아닙니다.",
+                        "original": "Certainly, such a computation does not generally have as its purpose its own survival and well-being.",
+                        "words": [
+                                    "Certainly, such a",
+                                    "computation does",
+                                    "not generally have as",
+                                    "its purpose its",
+                                    "own survival",
+                                    "and well-being."
+                        ]
+            },
+            {
+                        "hint": "해석: 그것은 일반적으로 / 입력값들에 / 가치를 부여하지 않는다.\n어법 힌트: `assign value the inputs`처럼 전치사 `to`를 빼면 안 됩니다. / `in general`은 `generally`로 바꿔 쓸 수 있습니다.",
+                        "original": "It does not, in general, assign value to the inputs.",
+                        "words": [
+                                    "It does not,",
+                                    "in general,",
+                                    "assign value to the",
+                                    "inputs."
+                        ]
+            },
+            {
+                        "hint": "해석: 예를 들어, / 컴퓨터 알고리즘을 꿀벌의 8자 춤과 비교해 보라, / 그 수단을 통해 / 먹이를 찾는 벌이 벌집 안의 다른 벌들에게 / 자신이 찾아낸 먹이원에 대한 정보를 전달한다 / 꿀 같은.\n어법 힌트: `by which means`의 `means`는 단수·복수 형태가 같은 명사로, 여기서는 `수단`입니다. / `it has located`의 `it`은 `a foraging bee`를 가리킵니다.",
+                        "original": "Compare, for example, a computer algorithm with the waggle dance of the honeybee, by which means a foraging bee conveys to others in the hive information about the source of food (such as nectar) it has located.",
+                        "words": [
+                                    "Compare, for example,",
+                                    "a computer",
+                                    "algorithm with the waggle",
+                                    "dance of the",
+                                    "honeybee, by",
+                                    "which means a foraging",
+                                    "bee conveys to",
+                                    "others in",
+                                    "the hive information about",
+                                    "the source of",
+                                    "food (such",
+                                    "as nectar) it has",
+                                    "located."
+                        ]
+            },
+            {
+                        "hint": "해석: 그 `춤`은 / 벌집 위에서의 일련의 정형화된 움직임인데 / 벌들에게 보여 준다 / 먹이가 얼마나 멀리 있는지와 / 어느 방향에 있는지를.\n어법 힌트: 대시 삽입구는 주어의 수 일치에 영향을 주지 않습니다. 동사는 `shows`입니다. / `how far away is the food`는 직접의문문 어순입니다.",
+                        "original": "The \"dance\" ─ a series of stylized movements on the comb ─ shows the bees how far away the food is and in which direction.",
+                        "words": [
+                                    "The \"dance\" ─",
+                                    "a series",
+                                    "of stylized movements on",
+                                    "the comb ─",
+                                    "shows the",
+                                    "bees how far away",
+                                    "the food is",
+                                    "and in",
+                                    "which direction."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러나 이 입력은 / 단순히 다른 벌들이 밖으로 나가 그것을 찾도록 / 프로그램하지는 않는다.\n어법 힌트: `program other bees go out`은 원문 구조와 맞지 않습니다. / `look for`는 `찾다`라는 구동사이므로 전치사 `for`가 필요합니다.",
+                        "original": "But this input does not simply program other bees to go out and look for it.",
+                        "words": [
+                                    "But this input",
+                                    "does not",
+                                    "simply program other bees",
+                                    "to go out",
+                                    "and look",
+                                    "for it."
+                        ]
+            },
+            {
+                        "hint": "해석: 오히려, / 그들은 이 정보를 평가한다, / 그것을 주변 환경에 대한 자신들의 지식과 비교하면서.\n어법 힌트: `compared it with...`로 바꾸면 주절과 연결이 어색해집니다. / `it`과 `this information`의 지칭 관계를 잡아야 합니다.",
+                        "original": "Rather, they evaluate this information, comparing it with their own knowledge of the surroundings.",
+                        "words": [
+                                    "Rather, they evaluate",
+                                    "this information,",
+                                    "comparing it with their",
+                                    "own knowledge of",
+                                    "the surroundings."
+                        ]
+            },
+            {
+                        "hint": "해석: 어떤 벌들은 / 그 여정을 굳이 하지 않을 수도 있다, / 그것이 가치 없다고 여기면서.\n어법 힌트: `bother making`도 쓰일 수 있지만, 원문은 `bother to make` 구조입니다. / `consider it not worthwhile`에서 `as` 없이 목적어와 보어가 바로 이어집니다.",
+                        "original": "Some bees might not bother to make the journey, considering it not worthwhile.",
+                        "words": [
+                                    "Some bees might",
+                                    "not bother",
+                                    "to make the journey,",
+                                    "considering it not",
+                                    "worthwhile."
+                        ]
+            },
+            {
+                        "hint": "해석: 그 입력은, / 있는 그대로의 입력이지만, / 유기체 자신의 내부 상태와 이력에 비추어 처리된다; / 그 효과에는 지시적이거나 강제적인 것이 없다.\n어법 힌트: `is processed`를 능동태 `processes`로 바꾸면 주어의 역할이 달라집니다. / `prescriptive nothing`은 어순이 틀립니다.",
+                        "original": "The input, such as it is, is processed in the light of the organism's own internal states and history; there is nothing prescriptive about its effects.",
+                        "words": [
+                                    "The input, such",
+                                    "as it",
+                                    "is, is processed in",
+                                    "the light of",
+                                    "the organism's",
+                                    "own internal states and",
+                                    "history; there is",
+                                    "nothing prescriptive",
+                                    "about its effects."
+                        ]
+            },
+            {
+                        "hint": "해석: 우리가 다른 사람들에게 어떻게 보이는지에 대한 염려는 / 아이들에게서도 볼 수 있다, / 비록 심리학자 Ervin Staub의 연구가 / 그 효과가 나이에 따라 달라질 수 있음을 시사하지만.\n어법 힌트: `about what we appear`는 어색합니다. 방식은 `how`로 나타냅니다. / `can see in children`으로 바꾸면 `concern`이 보는 주체가 되어 어색합니다.",
+                        "original": "The concern about how we appear to others can be seen in children, though work by the psychologist Ervin Staub suggests that the effect may vary with age.",
+                        "words": [
+                                    "The concern about",
+                                    "how we",
+                                    "appear to others can",
+                                    "be seen in",
+                                    "children, though",
+                                    "work by the psychologist",
+                                    "Ervin Staub suggests",
+                                    "that the",
+                                    "effect may vary with",
+                                    "age."
+                        ]
+            },
+            {
+                        "hint": "해석: 아이들이 고통받는 다른 아이의 소리를 들은 한 연구에서, / 어린아이들은, 즉 유치원부터 2학년까지의 아이들은 / 혼자 있을 때보다 다른 아이와 함께 있을 때 / 고통받는 아이를 도울 가능성이 더 높았다.\n어법 힌트: `where` 뒤에는 완전한 절이 옵니다. `which`만 쓰려면 구조가 달라져야 합니다. / `alone`은 `혼자 있는` 상태이고, `lonely`는 `외로운` 감정입니다.",
+                        "original": "In a study where children heard another child in distress, young children (kindergarten through second grade) were more likely to help the child in distress when with another child than when alone.",
+                        "words": [
+                                    "In a study",
+                                    "where children",
+                                    "heard another child in",
+                                    "distress, young children",
+                                    "(kindergarten through",
+                                    "second grade) were more",
+                                    "likely to help",
+                                    "the child",
+                                    "in distress when with",
+                                    "another child than",
+                                    "when alone."
+                        ]
+            },
+            {
+                        "hint": "해석: 그러나 더 나이 많은 아이들의 경우, / 4학년과 6학년 아이들에게서는, / 그 효과가 역전되었다: / 그들은 또래와 함께 있을 때 / 혼자 있을 때보다 / 고통받는 아이를 도울 가능성이 더 낮았다.\n어법 힌트: `less likely`를 `fewer likely`로 쓰면 안 됩니다. / `peer`는 친구라기보다 `또래`라는 뜻입니다.",
+                        "original": "But for older children ─ in fourth and sixth grade ─ the effect reversed: they were less likely to help a child in distress when they were with a peer than when they were alone.",
+                        "words": [
+                                    "But for older",
+                                    "children ─",
+                                    "in fourth and sixth",
+                                    "grade ─ the",
+                                    "effect reversed:",
+                                    "they were less likely",
+                                    "to help a",
+                                    "child in",
+                                    "distress when they were",
+                                    "with a peer",
+                                    "than when",
+                                    "they were alone."
+                        ]
+            },
+            {
+                        "hint": "해석: Staub는 시사했다 / 어린아이들은 또래가 함께 있을 때 행동하는 것을 더 편하게 느낄 수 있는 반면, / 나이 많은 아이들은 또래에게 판단받는 것에 대해 더 많이 걱정하고 / 과잉 반응함으로써 당황스러움을 느낄까 봐 두려워할 수 있다고.\n어법 힌트: `comfortable` 자리에 부사 `comfortably`를 쓰면 안 됩니다. / `about judging`은 `판단하는 것`이 되어 의미가 달라집니다. 원문은 `being judged`입니다.",
+                        "original": "Staub suggested that younger children might feel more comfortable acting when they have the company of a peer, whereas older children might feel more concern about being judged by their peers and fear feeling embarrassed by overreacting.",
+                        "words": [
+                                    "Staub suggested that",
+                                    "younger children",
+                                    "might feel more comfortable",
+                                    "acting when they",
+                                    "have the",
+                                    "company of a peer,",
+                                    "whereas older children",
+                                    "might feel",
+                                    "more concern about being",
+                                    "judged by their",
+                                    "peers and",
+                                    "fear feeling embarrassed by",
+                                    "overreacting."
+                        ]
+            },
+            {
+                        "hint": "해석: Staub는 언급했다 / 나이 많은 아이들이 어린아이들보다 / 그 고통의 소리에 대해 덜 논의하고 / 그것에 덜 공개적으로 반응하는 것처럼 보였다고.\n어법 힌트: `seemed discussing`은 원문 구조와 맞지 않습니다. / `open`이 아니라 동사를 수식하는 부사 `openly`가 필요합니다.",
+                        "original": "Staub noted that \"older children seemed to discuss the distress sounds less and to react to them less openly than younger children.\"",
+                        "words": [
+                                    "Staub noted that",
+                                    "\"older children",
+                                    "seemed to discuss the",
+                                    "distress sounds less",
+                                    "and to",
+                                    "react to them less",
+                                    "openly than younger",
+                                    "children.\""
+                        ]
+            },
+            {
+                        "hint": "해석: 다시 말해, / 나이 많은 아이들은 / 또래 앞에서 / 의도적으로 포커페이스를 하고 있었다.\n어법 힌트: `deliberate putting`은 틀립니다. 동사를 수식하려면 부사 `deliberately`가 필요합니다. / `put on`을 단순히 `입다`로만 해석하면 문맥이 어색합니다.",
+                        "original": "In other words, the older children were deliberately putting on a poker face in front of their peers.",
+                        "words": [
+                                    "In other words,",
+                                    "the older",
+                                    "children were deliberately putting",
+                                    "on a poker",
+                                    "face in",
+                                    "front of their peers."
+                        ]
+            },
+            {
+                        "hint": "해석: 하나의 잘 알려진 변화가 일어났다 / 받아들여지던 관점, 즉 지구가 우주의 중심이라는 관점이 / 하나의 관점으로 바뀌었을 때 / 우리가 이해하게 된 / 우리가 단지 거주자일 뿐이라는 것을 / 태양을 공전하는 하나의 행성 위의.\n어법 힌트: `take place`를 수동태로 바꾸는 선택지는 오답입니다. / 동격 `that`을 관계대명사 `which`나 `what`으로 바꾸면 안 됩니다.",
+                        "original": "One well-known shift took place when the accepted view ─ that the Earth was the center of the universe ─ changed to one where we understood that we are only inhabitants on one planet orbiting the Sun.",
+                        "words": [
+                                    "One well-known shift",
+                                    "took place",
+                                    "when the accepted view",
+                                    "─ that the",
+                                    "Earth was",
+                                    "the center of the",
+                                    "universe ─ changed",
+                                    "to one",
+                                    "where we understood that",
+                                    "we are only",
+                                    "inhabitants on",
+                                    "one planet orbiting the",
+                                    "Sun."
+                        ]
+            },
+            {
+                        "hint": "해석: 태양계 관점을 이해한 각각의 사람이 생길수록 / 그것은 더 쉬워졌다 / 다음 사람이 그렇게 하는 것이.\n어법 힌트: `each people`은 불가능합니다. `each person`처럼 단수 명사를 써야 합니다. / `for the next person`을 `of the next person`으로 바꾸면 어색합니다. `easy`는 보통 `for + 목적격 + to부정사` 구조를 취합니다.",
+                        "original": "With each person who grasped the solar system view, it became easier for the next person to do so.",
+                        "words": [
+                                    "With each person",
+                                    "who grasped",
+                                    "the solar system view,",
+                                    "it became easier",
+                                    "for the",
+                                    "next person to do",
+                                    "so."
+                        ]
+            },
+            {
+                        "hint": "해석: 그것은 마찬가지이다 / 그 생각의 경우에도 / 세상이 인간 경제를 중심으로 돈다는.\n어법 힌트: `So it is with`를 단순 도치 구문처럼 `So is it with`로 바꾸면 원문의 관용적 흐름이 깨집니다. / `that` 뒤가 완전한 문장이므로 관계대명사 `which`나 `what`으로 바꿀 수 없습니다.",
+                        "original": "So it is with the notion that the world revolves around the human economy.",
+                        "words": [
+                                    "So it is",
+                                    "with the",
+                                    "notion that the world",
+                                    "revolves around the",
+                                    "human economy."
+                        ]
+            },
+            {
+                        "hint": "해석: 이것은 서서히 대체되고 있다 / 그 관점에 의해 / 경제가 일부라는 / 더 큰 물질 흐름 체계의 / 모든 생명체를 연결하는.\n어법 힌트: `is being replaced`를 능동형 `is replacing`으로 바꾸면 주체와 대상 관계가 뒤집힙니다. / 동격 `that`과 관계대명사 `that`을 구별해야 합니다. 앞의 `that the economy is ...`는 동격이고, 뒤의 `that connect ...`는 관계대명사입니다.",
+                        "original": "This is slowly being replaced by the view that the economy is a part of the larger system of material flows that connect all living things.",
+                        "words": [
+                                    "This is slowly",
+                                    "being replaced",
+                                    "by the view that",
+                                    "the economy is",
+                                    "a part",
+                                    "of the larger system",
+                                    "of material flows",
+                                    "that connect",
+                                    "all living things."
+                        ]
+            },
+            {
+                        "hint": "해석: 이 관점이 제자리를 잡으면 / 명백해질 것이다 / 우리의 경제적 안녕이 요구한다는 것이 / 우리가 고려하고 대응해야 함을 / 생태적 건강의 요인들에.\n어법 힌트: `When this perspective will shift`처럼 시간 부사절에 `will`을 넣는 것은 내신 문법상 대표 오답입니다. / `account for`와 `respond to`는 각각 전치사를 포함한 동사구이므로 `for`, `to`를 함부로 삭제하면 안 됩니다.",
+                        "original": "When this perspective shifts into place, it will be obvious that our economic well-being requires that we account for, and respond to, factors of ecological health.",
+                        "words": [
+                                    "When this perspective",
+                                    "shifts into",
+                                    "place, it will be",
+                                    "obvious that our",
+                                    "economic well-being",
+                                    "requires that we account",
+                                    "for, and respond",
+                                    "to, factors",
+                                    "of ecological health."
+                        ]
+            },
+            {
+                        "hint": "해석: 불행히도 우리는 가지고 있지 않다 / 1세기나 2세기라는 시간을 / 그 변화를 이루기 위한.\n어법 힌트: `to make`를 `making`으로 바꾸면 `앞으로 그 변화를 이룰 시간`이라는 의미가 약해집니다. / `a century or two`에서 `century`는 `a`와 함께 단수로 쓰입니다.",
+                        "original": "Unfortunately we do not have a century or two to make the change.",
+                        "words": [
+                                    "Unfortunately we do",
+                                    "not have",
+                                    "a century or two",
+                                    "to make the",
+                                    "change."
+                        ]
+            },
+            {
+                        "hint": "해석: 오래된 관점과 새로운 관점의 본질을 명확히 함으로써 / 그리고 행동들을 찾아냄으로써 / 우리가 협력할 수 있는 / 그 과정을 진전시키기 위해 / 우리는 도울 수 있다 / 그 전환을 가속화하는 것을.\n어법 힌트: `By` 뒤의 `clarifying`, `identifying`을 동사원형으로 바꾸면 안 됩니다. 전치사 뒤에는 동명사가 옵니다. / `on which`에서 `on`을 빼면 `cooperate`와의 연결이 어색해집니다.",
+                        "original": "By clarifying the nature of the old and new perspectives, and by identifying actions on which we might cooperate to move the process along, we can help accelerate the shift.",
+                        "words": [
+                                    "By clarifying the",
+                                    "nature of",
+                                    "the old and new",
+                                    "perspectives, and by",
+                                    "identifying actions",
+                                    "on which we might",
+                                    "cooperate to move",
+                                    "the process",
+                                    "along, we can help",
+                                    "accelerate the shift."
+                        ]
+            }
+
+
+        ];
+
+        const defaultQuizData = JSON.parse(JSON.stringify(quizData));
+        const defaultPassages = [
+            { id: "all", label: "전체 기본 세트", start: 0, end: defaultQuizData.length },
+            { id: "romantic-road", label: "Romantic Road", start: 0, end: 48 },
+            { id: "can-ai", label: "Can AI Think Would Like Us", start: 48, end: 67 },
+            { id: "day3-1", label: "Day 03-1", start: 67, end: 81 },
+            { id: "day3-2", label: "Day 03-2", start: 81, end: 88 },
+            { id: "day3-3", label: "Day 03-3", start: 88, end: 94 },
+            { id: "day3-4", label: "Day 03-4", start: 94, end: 101 },
+            { id: "day3-5-6", label: "Day 03-5~6", start: 101, end: 114 },
+            { id: "day4-1", label: "Day 04-1", start: 114, end: 125 },
+            { id: "day4-2", label: "Day 04-2", start: 125, end: 130 },
+            { id: "day4-3", label: "Day 04-3", start: 130, end: 139 },
+            { id: "day4-4", label: "Day 04-4", start: 139, end: 148 },
+            { id: "day4-5", label: "Day 04-5", start: 148, end: 154 },
+            { id: "day4-6", label: "Day 04-6", start: 154, end: 161 }
+        ];
+        const STORAGE_KEY = "romanticRoadQuizData";
+        const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
+        const WRONG_STORAGE_KEY = "sentenceBuilderWrongNotes";
+        const PROGRESS_STORAGE_KEY = "sentenceBuilderProgress";
+        const ANALYZE_WRONG_ENDPOINT = "/api/analyze-wrong";
+
+        let currentIndex = 0;
+        let score = 0;
+        let wrongAnswers = [];
+        let progressRecords = {};
+        let activeQuestionPool = JSON.parse(JSON.stringify(quizData));
+        let hasAnsweredCurrent = false;
+        let currentChunkLevel = "4";
+        let draggedWord = null;
+        let wasDragging = false;
+        let keptQuestions = [];
+        let currentSessionMode = "normal";
+
+        function toggleManager() {
+            const manager = document.getElementById('data-manager');
+            const icon = document.getElementById('manager-toggle-icon');
+            manager.classList.toggle('hidden');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        function showManagerMessage(message, type = 'info') {
+            const box = document.getElementById('manager-message');
+            box.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'bg-red-50', 'text-red-700', 'bg-blue-50', 'text-blue-700');
+            const styleMap = {
+                success: ['bg-emerald-50', 'text-emerald-700'],
+                error: ['bg-red-50', 'text-red-700'],
+                info: ['bg-blue-50', 'text-blue-700']
+            };
+            box.classList.add(...(styleMap[type] || styleMap.info));
+            box.innerText = message;
+        }
+
+        function updateTotalCountLabel() {
+            document.getElementById('total-count-label').innerText = `(총 ${quizData.length}문장)`;
+        }
+
+        function syncPassageSelect(value) {
+            const select = document.getElementById('passage-select');
+            if (select) select.value = value;
+        }
+
+        function getDefaultPassageData(passageId) {
+            const passage = defaultPassages.find(item => item.id === passageId) || defaultPassages[0];
+            return JSON.parse(JSON.stringify(defaultQuizData.slice(passage.start, passage.end)));
+        }
+
+        function handlePassageChange() {
+            const select = document.getElementById('passage-select');
+            const passageId = select.value;
+            if (passageId === 'custom') return;
+            const passage = defaultPassages.find(item => item.id === passageId) || defaultPassages[0];
+            applyQuizData(getDefaultPassageData(passageId), `${passage.label} 문제를 불러왔습니다.`, passageId);
+        }
+
+        function resetSession() {
+            currentIndex = 0;
+            score = 0;
+            hasAnsweredCurrent = false;
+            document.getElementById('score-display').innerText = score;
+            renderWrongNotes();
+            document.getElementById('completion-screen').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            updateTotalCountLabel();
+            loadQuestion();
+        }
+
+        function splitIntoSentences(text) {
+            return text
+                .replace(/\s+/g, ' ')
+                .replace(/\b(Mr|Mrs|Ms|Dr|Prof|St)\./g, '$1__DOT__')
+                .split(/(?<=[.!?])\s+(?=[“"'A-Z])/)
+                .map(sentence => sentence.replace(/__DOT__/g, '.').trim())
+                .filter(Boolean);
+        }
+
+        function getWordTokens(sentence) {
+            return sentence
+                .replace(/([,;:!?])(?=\S)/g, '$1 ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean);
+        }
+
+        function groupTokens(tokens, sizePattern) {
+            const chunks = [];
+            let i = 0;
+            while (i < tokens.length) {
+                const remaining = tokens.length - i;
+                const size = typeof sizePattern === 'function' ? sizePattern(tokens[i], remaining, i) : sizePattern;
+                const safeSize = Math.max(1, Math.min(size, remaining));
+                chunks.push(tokens.slice(i, i + safeSize).join(' '));
+                i += safeSize;
+            }
+            return chunks;
+        }
+
+        function chunkSentence(sentence) {
+            return chunkSentenceByLevel(sentence, '2');
+        }
+
+        function chunkSentenceByLevel(sentence, level = currentChunkLevel) {
+            if (level === 'saved') return null;
+            const tokens = getWordTokens(sentence);
+            if (tokens.length <= 1) return tokens;
+
+            if (level === '1') {
+                const commaIndex = tokens.findIndex(token => /[,;:]$/.test(token));
+                if (commaIndex > 2 && commaIndex < tokens.length - 2) {
+                    return [tokens.slice(0, commaIndex + 1).join(' '), ...groupTokens(tokens.slice(commaIndex + 1), Math.ceil((tokens.length - commaIndex - 1) / 2))];
+                }
+                return groupTokens(tokens, Math.ceil(tokens.length / Math.min(3, tokens.length)));
+            }
+
+            if (level === '2') {
+                return groupTokens(tokens, (token, remaining) => remaining <= 4 ? remaining : (token.length <= 3 ? 3 : 2));
+            }
+
+            if (level === '3') {
+                const functionWords = new Set(['a','an','the','to','for','from','of','in','on','at','by','with','as','if','that','which','who','whose','when','while','after','before','and','or','but','so','than','then','it','is','are','was','were','be','been','being','do','does','did','can','could','will','would','should','may','might','must']);
+                const chunks = [];
+                let buffer = [];
+                const flush = () => {
+                    if (buffer.length) {
+                        chunks.push(...groupTokens(buffer, 2));
+                        buffer = [];
+                    }
+                };
+                tokens.forEach(token => {
+                    const key = token.toLowerCase().replace(/^[“"'`]+|[.,;:!?“”"'`]+$/g, '');
+                    if (functionWords.has(key)) {
+                        flush();
+                        chunks.push(token);
+                    } else {
+                        buffer.push(token);
+                    }
+                });
+                flush();
+                return chunks;
+            }
+
+            if (level === '4') {
+                return tokens;
+            }
+
+            return null;
+        }
+
+        function getQuestionWords(question) {
+            const generated = chunkSentenceByLevel(question.original, currentChunkLevel);
+            return generated || question.words;
+        }
+
+        function loadProgressRecords() {
+            try {
+                progressRecords = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
+            } catch (error) {
+                progressRecords = {};
+            }
+        }
+
+        function saveProgressRecords() {
+            localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressRecords));
+        }
+
+        function markQuestionProgress(question, isCorrect, userAnswer) {
+            const key = getQuestionKey(question);
+            progressRecords[key] = {
+                status: isCorrect ? 'correct' : 'wrong',
+                userAnswer,
+                answeredAt: new Date().toISOString()
+            };
+            saveProgressRecords();
+        }
+
+        function getUnsolvedQuestions(questions) {
+            return questions.filter(question => !progressRecords[getQuestionKey(question)]);
+        }
+
+        function getWrongQuestionsForSet(questions) {
+            return questions.filter(question => progressRecords[getQuestionKey(question)]?.status === 'wrong');
+        }
+
+        function handleChunkLevelChange() {
+            const select = document.getElementById('chunk-level-select');
+            currentChunkLevel = select.value;
+            resetSession();
+        }
+
+        function applyQuizData(newData, message, sourceValue = 'custom') {
+            if (!Array.isArray(newData) || newData.length === 0) {
+                showManagerMessage('가져올 문제가 없습니다.', 'error');
+                return;
+            }
+            const cleaned = newData
+                .filter(item => item && item.original && Array.isArray(item.words) && item.words.length > 0)
+                .map((item, index) => ({
+                    hint: item.hint || `문장 ${index + 1}을 올바른 순서로 배열하세요.`,
+                    original: item.original.trim(),
+                    words: item.words.map(word => String(word).trim()).filter(Boolean)
+                }));
+            if (cleaned.length === 0) {
+                showManagerMessage('문제 형식이 올바르지 않습니다. original과 words가 필요합니다.', 'error');
+                return;
+            }
+            activeQuestionPool = JSON.parse(JSON.stringify(cleaned));
+            const unsolvedQuestions = getUnsolvedQuestions(cleaned);
+            const wrongQuestions = getWrongQuestionsForSet(cleaned);
+            if (unsolvedQuestions.length > 0) {
+                quizData = unsolvedQuestions;
+                currentSessionMode = "normal";
+            } else if (wrongQuestions.length > 0) {
+                quizData = wrongQuestions;
+                currentSessionMode = "wrong-review";
+            } else {
+                quizData = cleaned;
+                currentSessionMode = "normal";
+            }
+            syncPassageSelect(sourceValue);
+            resetSession();
+            const progressMessage = unsolvedQuestions.length > 0
+                ? ` 안 푼 문제 ${unsolvedQuestions.length}개를 먼저 불러왔습니다.`
+                : wrongQuestions.length > 0
+                    ? ` 모든 문제를 푼 상태라 틀린 문제 ${wrongQuestions.length}개를 먼저 불러왔습니다.`
+                    : ' 모든 문제를 푼 상태라 전체 세트를 복습합니다.';
+            showManagerMessage(`${message || `${cleaned.length}개 문제가 적용되었습니다.`}${progressMessage}`, 'success');
+        }
+
+        function buildQuestionsFromText() {
+            const raw = document.getElementById('import-text').value.trim();
+            if (!raw) {
+                showManagerMessage('먼저 영어 지문을 붙여넣어 주세요.', 'error');
+                return;
+            }
+            const sentences = splitIntoSentences(raw);
+            const generated = sentences.map((sentence, index) => ({
+                hint: `문장 ${index + 1}: 단어를 올바른 순서로 배열하세요.`,
+                original: sentence,
+                words: chunkSentence(sentence)
+            }));
+            applyQuizData(generated, `${generated.length}개 문장을 문제로 생성했습니다.`);
+        }
+
+        function importQuestionsFromJson() {
+            const raw = document.getElementById('import-text').value.trim();
+            if (!raw) {
+                showManagerMessage('가져올 JSON을 붙여넣어 주세요.', 'error');
+                return;
+            }
+            try {
+                const parsed = JSON.parse(raw);
+                applyQuizData(parsed, `${parsed.length}개 문제를 JSON에서 가져왔습니다.`);
+            } catch (error) {
+                showManagerMessage('JSON 형식이 올바르지 않습니다.', 'error');
+            }
+        }
+
+        function exportQuestionsToJson() {
+            const json = JSON.stringify(quizData, null, 2);
+            const importText = document.getElementById('import-text');
+            importText.value = json;
+            navigator.clipboard?.writeText(json).then(() => {
+                showManagerMessage('현재 문제 JSON을 아래 입력창에 넣고 클립보드에도 복사했습니다.', 'success');
+            }).catch(() => {
+                showManagerMessage('현재 문제 JSON을 아래 입력창에 넣었습니다.', 'info');
+            });
+        }
+
+        function saveQuestionsToBrowser() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(quizData));
+            showManagerMessage(`${quizData.length}개 문제를 이 브라우저에 저장했습니다.`, 'success');
+        }
+
+        function loadSavedQuestions() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) {
+                showManagerMessage('저장된 문제가 없습니다.', 'error');
+                return;
+            }
+            try {
+                applyQuizData(JSON.parse(saved), '저장된 문제를 불러왔습니다.');
+            } catch (error) {
+                showManagerMessage('저장된 데이터가 손상되어 불러올 수 없습니다.', 'error');
+            }
+        }
+
+        function loadDefaultQuestions() {
+            applyQuizData(getDefaultPassageData('all'), '기본 문제 세트를 복원했습니다.', 'all');
+        }
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function normalizeString(str) {
+            return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()“”"']/g, "")
+                      .replace(/\s{2,}/g, " ")
+                      .trim()
+                      .toLowerCase();
+        }
+
+        function loadQuestion() {
+            if (!quizData.length) {
+                showManagerMessage('문제가 없습니다. 문제 관리에서 지문을 불러오세요.', 'error');
+                return;
+            }
+            hasAnsweredCurrent = false;
+            const q = quizData[currentIndex];
+            
+            document.getElementById('question-counter').innerText = `문제 ${currentIndex + 1} / ${quizData.length}`;
+            document.getElementById('progress-bar').style.width = `${((currentIndex) / quizData.length) * 100}%`;
+            document.getElementById('hint-text').innerText = q.hint;
+            
+            const answerInput = document.getElementById('answer-input');
+            answerInput.value = "";
+            answerInput.disabled = false;
+            document.getElementById('answer-dropzone').querySelectorAll('.answer-chip').forEach(chip => chip.remove());
+            document.getElementById('dropzone-placeholder').classList.remove('hidden');
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('keep-action-area').classList.add('hidden');
+            
+            document.getElementById('check-btn').classList.remove('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+
+            const wordBank = document.getElementById('word-bank');
+            wordBank.innerHTML = "";
+            
+            const scrambledWords = shuffleArray([...getQuestionWords(q)]);
+            
+            scrambledWords.forEach(word => {
+                wordBank.appendChild(createWordChip(word, 'bank'));
+            });
+        }
+
+        function createWordChip(word, location = 'bank') {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.draggable = !hasAnsweredCurrent;
+            btn.dataset.word = word;
+            btn.className = location === 'answer'
+                ? "word-chip answer-chip px-4 py-2 bg-emerald-50 border-2 border-emerald-200 rounded-lg text-emerald-800 font-bold hover:border-red-300 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                : "word-chip px-4 py-2 bg-white border-2 border-slate-200 rounded-lg text-slate-700 font-medium hover:border-emerald-400 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200";
+            btn.innerText = word;
+            btn.addEventListener('dragstart', event => handleDragStart(event, word));
+            btn.addEventListener('dragend', handleDragEnd);
+            btn.onclick = () => {
+                if (wasDragging) {
+                    wasDragging = false;
+                    return;
+                }
+                if (location === 'answer') {
+                    removeAnswerChip(btn);
+                } else {
+                    addWordToInput(word, btn);
+                }
+            };
+            return btn;
+        }
+
+        function syncAnswerFromChips() {
+            const chips = [...document.querySelectorAll('#answer-dropzone .answer-chip')];
+            document.getElementById('answer-input').value = chips.map(chip => chip.dataset.word).join(' ');
+            document.getElementById('dropzone-placeholder').classList.toggle('hidden', chips.length > 0);
+        }
+
+        function addWordToInput(word, sourceButton = null) {
+            if (hasAnsweredCurrent) return;
+            const dropzone = document.getElementById('answer-dropzone');
+            dropzone.appendChild(createWordChip(word, 'answer'));
+            if (sourceButton) sourceButton.remove();
+            syncAnswerFromChips();
+        }
+
+        function removeAnswerChip(chip) {
+            if (hasAnsweredCurrent) return;
+            document.getElementById('word-bank').appendChild(createWordChip(chip.dataset.word, 'bank'));
+            chip.remove();
+            syncAnswerFromChips();
+        }
+
+        function clearInput() {
+            if (hasAnsweredCurrent) return;
+            const dropzone = document.getElementById('answer-dropzone');
+            const wordBank = document.getElementById('word-bank');
+            [...dropzone.querySelectorAll('.answer-chip')].forEach(chip => {
+                wordBank.appendChild(createWordChip(chip.dataset.word, 'bank'));
+                chip.remove();
+            });
+            document.getElementById('answer-input').value = "";
+            document.getElementById('dropzone-placeholder').classList.remove('hidden');
+        }
+
+        function handleDragStart(event, word) {
+            if (hasAnsweredCurrent) return;
+            draggedWord = word;
+            wasDragging = false;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', word);
+            event.currentTarget.classList.add('dragging');
+        }
+
+        function handleDragEnd(event) {
+            event.currentTarget.classList.remove('dragging');
+            draggedWord = null;
+            setTimeout(() => { wasDragging = false; }, 120);
+            document.getElementById('answer-dropzone').classList.remove('drop-zone-active');
+        }
+
+        function getDragInsertBefore(container, x, y) {
+            const chips = [...container.querySelectorAll('.answer-chip:not(.dragging)')];
+            let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+            chips.forEach(chip => {
+                const box = chip.getBoundingClientRect();
+                const verticalInside = y >= box.top - 8 && y <= box.bottom + 8;
+                const offset = verticalInside ? x - box.left - box.width / 2 : y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    closest = { offset, element: chip };
+                }
+            });
+            return closest.element;
+        }
+
+        function handleDragOver(event) {
+            if (hasAnsweredCurrent) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            document.getElementById('answer-dropzone').classList.add('drop-zone-active');
+        }
+
+        function handleDragLeave(event) {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+                event.currentTarget.classList.remove('drop-zone-active');
+            }
+        }
+
+        function handleDrop(event) {
+            if (hasAnsweredCurrent) return;
+            event.preventDefault();
+            wasDragging = true;
+            const dropzone = document.getElementById('answer-dropzone');
+            dropzone.classList.remove('drop-zone-active');
+            const word = event.dataTransfer.getData('text/plain') || draggedWord;
+            const dragging = document.querySelector('.word-chip.dragging');
+            if (!word || !dragging) return;
+            const insertBefore = getDragInsertBefore(dropzone, event.clientX, event.clientY);
+
+            if (dragging.closest('#word-bank')) {
+                const answerChip = createWordChip(word, 'answer');
+                dropzone.insertBefore(answerChip, insertBefore);
+                dragging.remove();
+            } else if (dragging.closest('#answer-dropzone')) {
+                dropzone.insertBefore(dragging, insertBefore);
+            }
+            syncAnswerFromChips();
+        }
+
+        function checkAnswer() {
+            if (hasAnsweredCurrent) return;
+            
+            const inputVal = document.getElementById('answer-input').value;
+            if (inputVal.trim() === "") return;
+
+            const q = quizData[currentIndex];
+            const normalizedInput = normalizeString(inputVal);
+            const normalizedOriginal = normalizeString(q.original);
+            const isCorrect = normalizedInput === normalizedOriginal;
+
+            hasAnsweredCurrent = true;
+            document.getElementById('answer-input').disabled = true;
+            markQuestionProgress(q, isCorrect, inputVal);
+
+            const feedbackArea = document.getElementById('feedback-area');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+
+            feedbackArea.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'bg-red-50', 'text-red-800', 'border', 'border-emerald-200', 'border-red-200');
+
+            if (isCorrect) {
+                score += 20;
+                document.getElementById('score-display').innerText = score;
+                
+                feedbackArea.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+                feedbackTitle.innerText = "정답입니다!";
+                feedbackDesc.innerText = "완벽하게 문장을 배열했습니다.";
+            } else {
+                feedbackArea.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
+                feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+                feedbackTitle.innerText = "틀렸습니다.";
+                feedbackDesc.innerHTML = `<span class="block mt-1 text-slate-600">올바른 문장:</span><strong class="text-red-700">${q.original}</strong>`;
+                
+                addWrongNote(q, inputVal);
+            }
+
+            document.getElementById('check-btn').classList.add('hidden');
+            document.getElementById('next-btn').classList.remove('hidden');
+            updateKeepButton();
+        }
+
+        function getQuestionKey(question) {
+            return question.original;
+        }
+
+        function isQuestionKept(question) {
+            return keptQuestions.some(item => getQuestionKey(item) === getQuestionKey(question));
+        }
+
+        function saveKeptQuestions() {
+            localStorage.setItem(KEEP_STORAGE_KEY, JSON.stringify(keptQuestions));
+        }
+
+        function loadKeptQuestions() {
+            try {
+                keptQuestions = JSON.parse(localStorage.getItem(KEEP_STORAGE_KEY) || '[]');
+            } catch (error) {
+                keptQuestions = [];
+            }
+            renderKeptNotes();
+        }
+
+        function updateKeepButton() {
+            const area = document.getElementById('keep-action-area');
+            const btn = document.getElementById('keep-current-btn');
+            const q = quizData[currentIndex];
+            if (!hasAnsweredCurrent || !q) {
+                area.classList.add('hidden');
+                return;
+            }
+            const kept = isQuestionKept(q);
+            area.classList.remove('hidden');
+            btn.className = kept
+                ? 'w-full px-4 py-3 rounded-xl bg-yellow-200 hover:bg-yellow-300 text-yellow-900 font-bold border border-yellow-300 transition-colors'
+                : 'w-full px-4 py-3 rounded-xl bg-yellow-50 hover:bg-yellow-100 text-yellow-800 font-bold border border-yellow-200 transition-colors';
+            btn.innerHTML = kept
+                ? '<i class="fa-solid fa-star mr-2"></i>킵 완료 - 클릭하면 해제'
+                : '<i class="fa-regular fa-star mr-2"></i>나중에 다시 풀 문장으로 킵';
+        }
+
+        function toggleKeepCurrent() {
+            const q = quizData[currentIndex];
+            if (!q) return;
+            const key = getQuestionKey(q);
+            if (isQuestionKept(q)) {
+                keptQuestions = keptQuestions.filter(item => getQuestionKey(item) !== key);
+            } else {
+                keptQuestions.push(JSON.parse(JSON.stringify(q)));
+            }
+            saveKeptQuestions();
+            renderKeptNotes();
+            updateKeepButton();
+        }
+
+        function removeKeptQuestion(original) {
+            keptQuestions = keptQuestions.filter(item => item.original !== original);
+            saveKeptQuestions();
+            renderKeptNotes();
+            updateKeepButton();
+        }
+
+        function renderKeptNotes() {
+            const container = document.getElementById('kept-notes-container');
+            const list = document.getElementById('kept-notes-list');
+            const count = document.getElementById('kept-count');
+            if (!container || !list || !count) return;
+            count.innerText = `${keptQuestions.length}개`;
+            container.classList.toggle('hidden', keptQuestions.length === 0);
+            list.innerHTML = '';
+            keptQuestions.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'pb-4 border-b border-slate-100 last:border-0 last:pb-0';
+                li.innerHTML = `
+                    <p class="text-sm font-bold text-yellow-700 mb-1">킵 ${index + 1}</p>
+                    <p class="text-sm font-medium text-blue-700 bg-blue-50 p-2 rounded mb-2"><i class="fa-solid fa-lightbulb mr-1 opacity-60"></i>${item.hint}</p>
+                    <p class="text-sm font-bold text-slate-800 mb-2">${item.original}</p>
+                `;
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'text-xs font-bold text-red-500 hover:text-red-700';
+                removeBtn.innerText = '삭제';
+                removeBtn.onclick = () => removeKeptQuestion(item.original);
+                li.appendChild(removeBtn);
+                list.appendChild(li);
+            });
+        }
+
+        function startKeptReview() {
+            if (keptQuestions.length === 0) {
+                showManagerMessage('킵한 문장이 없습니다.', 'error');
+                return;
+            }
+            applyQuizData(JSON.parse(JSON.stringify(keptQuestions)), '킵한 문장만 불러왔습니다.', 'custom');
+        }
+
+        function clearKeptQuestions() {
+            if (!keptQuestions.length) return;
+            if (!confirm('킵한 문장을 모두 삭제할까요?')) return;
+            keptQuestions = [];
+            saveKeptQuestions();
+            renderKeptNotes();
+            updateKeepButton();
+        }
+
+        function saveWrongNotes() {
+            localStorage.setItem(WRONG_STORAGE_KEY, JSON.stringify(wrongAnswers));
+        }
+
+        function loadWrongNotes() {
+            try {
+                wrongAnswers = JSON.parse(localStorage.getItem(WRONG_STORAGE_KEY) || '[]');
+            } catch (error) {
+                wrongAnswers = [];
+            }
+            renderWrongNotes();
+        }
+
+        function addWrongNote(questionObj, userWrongInput) {
+            const existing = wrongAnswers.find(item => item.original === questionObj.original);
+            if (existing) {
+                existing.userWrong = userWrongInput;
+                existing.lastWrongAt = new Date().toISOString();
+            } else {
+                wrongAnswers.push({ ...JSON.parse(JSON.stringify(questionObj)), userWrong: userWrongInput, lastWrongAt: new Date().toISOString() });
+            }
+            saveWrongNotes();
+            renderWrongNotes();
+        }
+
+        function removeWrongNote(original) {
+            wrongAnswers = wrongAnswers.filter(item => item.original !== original);
+            saveWrongNotes();
+            renderWrongNotes();
+        }
+
+        function clearWrongNotes() {
+            if (!wrongAnswers.length) return;
+            if (!confirm('오답노트를 모두 삭제할까요?')) return;
+            wrongAnswers = [];
+            saveWrongNotes();
+            renderWrongNotes();
+        }
+
+        function startWrongReview() {
+            if (wrongAnswers.length === 0) {
+                showManagerMessage('저장된 오답이 없습니다.', 'error');
+                return;
+            }
+            const reviewData = wrongAnswers.map(({ userWrong, lastWrongAt, ...question }) => question);
+            applyQuizData(JSON.parse(JSON.stringify(reviewData)), '오답 문장만 불러왔습니다.', 'custom');
+        }
+
+        function scrollToWrongNotes() {
+            if (wrongAnswers.length === 0) {
+                showManagerMessage('저장된 오답이 없습니다. 문제를 틀리면 자동으로 오답노트에 저장됩니다.', 'info');
+                return;
+            }
+            document.getElementById('wrong-notes-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatAnalysisText(value) {
+            return escapeHtml(value).replace(/\n/g, '<br>');
+        }
+
+
+        function buildWrongAnalysisPrompt(item) {
+            return `너는 고등학생 영어 어법/문장배열 학습을 돕는 오답 분석 선생님이야.
+
+아래 오답을 한국어로 짧고 명확하게 분석해줘.
+
+[해석/힌트]
+${item.hint || '없음'}
+
+[정답 문장]
+${item.original}
+
+[학생 답안]
+${item.userWrong || '미입력'}
+
+다음 형식으로 답해줘.
+각 항목은 1~2문장 이내로 간결하게 써줘.
+1. 틀린 핵심 원인:
+2. 어순/어법 포인트:
+3. 정답 문장 구조:
+4. 다음에 주의할 한 줄 팁:`;
+        }
+
+        async function analyzeWrongAnswer(index) {
+            const item = wrongAnswers[index];
+            const analysisBox = document.getElementById(`ai-analysis-${index}`);
+            if (!item || !analysisBox) return;
+
+            analysisBox.classList.remove('hidden');
+            analysisBox.innerText = 'AI가 오답을 분석하는 중입니다...';
+            try {
+                const requestBody = {
+                    contents: [
+                        {
+                            role: 'user',
+                            parts: [{ text: buildWrongAnalysisPrompt(item) }]
+                        }
+                    ],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 2048
+                    }
+                };
+
+                const response = await fetch(ANALYZE_WRONG_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || `AI 분석 요청 실패: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const candidate = data.candidates?.[0];
+                let analysis = candidate?.content?.parts?.map(part => part.text || '').join('\n').trim();
+                if (!analysis) throw new Error('Gemini 응답에서 분석 내용을 찾을 수 없습니다.');
+                if (candidate.finishReason === 'MAX_TOKENS') {
+                    analysis += '\n\n※ 분석이 길이 제한에 걸려 일부 잘렸을 수 있습니다. [AI 분석 다시하기]를 누르면 다시 생성됩니다.';
+                }
+
+                wrongAnswers[index].aiAnalysis = analysis;
+                wrongAnswers[index].analyzedAt = new Date().toISOString();
+                saveWrongNotes();
+                analysisBox.innerHTML = formatAnalysisText(analysis);
+            } catch (error) {
+                analysisBox.innerHTML = `AI 분석 중 오류가 발생했습니다.<br><span class="text-red-600">${escapeHtml(error.message)}</span>`;
+            }
+        }
+
+        function renderWrongNotes() {
+            const container = document.getElementById('wrong-notes-container');
+            const list = document.getElementById('wrong-notes-list');
+            const count = document.getElementById('wrong-count');
+            const menuCount = document.getElementById('wrong-menu-count');
+            if (!container || !list || !count) return;
+
+            count.innerText = `${wrongAnswers.length}개`;
+            if (menuCount) menuCount.innerText = `${wrongAnswers.length}개`;
+            container.classList.toggle('hidden', wrongAnswers.length === 0);
+            list.innerHTML = "";
+            const latestWrongAnswers = wrongAnswers
+                .map((item, originalIndex) => ({ item, originalIndex }))
+                .sort((a, b) => new Date(b.item.lastWrongAt || b.item.analyzedAt || 0) - new Date(a.item.lastWrongAt || a.item.analyzedAt || 0))
+                .slice(0, 3);
+
+            latestWrongAnswers.forEach(({ item, originalIndex }, displayIndex) => {
+                const li = document.createElement('li');
+                li.className = "pb-4 border-b border-slate-100 last:border-0 last:pb-0";
+                li.innerHTML = `
+                    <p class="text-sm font-bold text-slate-500 mb-2">최신 오답 ${displayIndex + 1}</p>
+                    <p class="text-sm font-medium text-blue-700 bg-blue-50 p-2 rounded mb-2"><i class="fa-solid fa-quote-left mr-1 opacity-50"></i> ${item.hint}</p>
+                    <div class="space-y-1 mb-2">
+                        <p class="text-sm"><span class="inline-block w-12 text-slate-400">내 답:</span> <span class="line-through text-red-400">${item.userWrong || '미입력'}</span></p>
+                        <p class="text-sm font-bold text-slate-800"><span class="inline-block w-12 text-emerald-600 font-normal">정답:</span> ${item.original}</p>
+                    </div>
+                    <div id="ai-analysis-${originalIndex}" class="hidden mt-3 p-3 rounded-xl bg-violet-50 border border-violet-100 text-sm text-violet-950 leading-relaxed whitespace-pre-wrap break-words overflow-visible"></div>
+                `;
+                if (item.aiAnalysis) {
+                    const analysisBox = li.querySelector(`#ai-analysis-${originalIndex}`);
+                    analysisBox.classList.remove('hidden');
+                    analysisBox.innerHTML = formatAnalysisText(item.aiAnalysis);
+                }
+                const analyzeBtn = document.createElement('button');
+                analyzeBtn.className = 'mr-3 text-xs font-bold text-violet-600 hover:text-violet-800';
+                analyzeBtn.innerText = item.aiAnalysis ? 'AI 분석 다시하기' : 'AI 분석';
+                analyzeBtn.onclick = () => analyzeWrongAnswer(originalIndex);
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'text-xs font-bold text-red-500 hover:text-red-700';
+                removeBtn.innerText = '삭제';
+                removeBtn.onclick = () => removeWrongNote(item.original);
+                li.appendChild(analyzeBtn);
+                li.appendChild(removeBtn);
+                list.appendChild(li);
+            });
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            const wrongReviewQuestions = getWrongQuestionsForSet(activeQuestionPool);
+            if (currentSessionMode !== "wrong-review" && wrongReviewQuestions.length > 0) {
+                quizData = wrongReviewQuestions;
+                currentSessionMode = "wrong-review";
+                resetSession();
+                showManagerMessage(`모든 문제를 풀었습니다. 이제 틀린 문제 ${wrongReviewQuestions.length}개를 먼저 다시 풉니다.`, 'info');
+                return;
+            }
+
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('completion-screen').classList.remove('hidden');
+            
+            renderWrongNotes();
+        }
+
+        document.getElementById('answer-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!hasAnsweredCurrent) {
+                    checkAnswer();
+                } else if (!document.getElementById('next-btn').classList.contains('hidden')) {
+                    nextQuestion();
+                }
+            }
+        });
+
+        window.onload = () => {
+            loadKeptQuestions();
+            loadProgressRecords();
+            loadWrongNotes();
+            applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
+        };
+    </script>
+</body>
+</html>
