@@ -206,6 +206,18 @@
                     </button>
                 </div>
 
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button id="prev-question-btn" onclick="goToQuestion(-1)" class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 font-bold border border-slate-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white">
+                        <i class="fa-solid fa-arrow-left mr-2"></i>이전 문장
+                    </button>
+                    <button id="retry-question-btn" onclick="retryCurrentQuestion()" class="px-4 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold border border-orange-200 transition-colors">
+                        <i class="fa-solid fa-rotate-right mr-2"></i>다시풀기
+                    </button>
+                    <button id="jump-next-question-btn" onclick="goToQuestion(1)" class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 font-bold border border-slate-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white">
+                        다음 문장<i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+
                 <!-- Feedback Message -->
                 <div id="feedback-area" class="mt-6 p-4 rounded-xl hidden transition-all">
                     <div class="flex items-start gap-3">
@@ -2214,6 +2226,12 @@
             saveProgressRecords();
         }
 
+        function clearQuestionProgress(question) {
+            if (!question) return;
+            delete progressRecords[getQuestionKey(question)];
+            saveProgressRecords();
+        }
+
         function getUnsolvedQuestions(questions) {
             return questions.filter(question => !progressRecords[getQuestionKey(question)]);
         }
@@ -2348,6 +2366,17 @@
                       .toLowerCase();
         }
 
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prev-question-btn');
+            const nextJumpBtn = document.getElementById('jump-next-question-btn');
+            const retryBtn = document.getElementById('retry-question-btn');
+            if (!prevBtn || !nextJumpBtn || !retryBtn) return;
+
+            prevBtn.disabled = currentIndex <= 0;
+            nextJumpBtn.disabled = currentIndex >= quizData.length - 1;
+            retryBtn.disabled = !quizData.length;
+        }
+
         function loadQuestion() {
             if (!quizData.length) {
                 showManagerMessage('문제가 없습니다. 문제 관리에서 지문을 불러오세요.', 'error');
@@ -2379,6 +2408,7 @@
             scrambledWords.forEach(word => {
                 wordBank.appendChild(createWordChip(word, 'bank'));
             });
+            updateNavigationButtons();
         }
 
         function createWordChip(word, location = 'bank') {
@@ -2598,6 +2628,7 @@
             const normalizedInput = normalizeString(inputVal);
             const normalizedOriginal = normalizeString(q.original);
             const isCorrect = normalizedInput === normalizedOriginal;
+            const wasAlreadyCorrect = progressRecords[getQuestionKey(q)]?.status === 'correct';
 
             hasAnsweredCurrent = true;
             document.getElementById('answer-input').disabled = true;
@@ -2611,7 +2642,7 @@
             feedbackArea.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-800', 'bg-red-50', 'text-red-800', 'border', 'border-emerald-200', 'border-red-200');
 
             if (isCorrect) {
-                score += 20;
+                if (!wasAlreadyCorrect) score += 20;
                 document.getElementById('score-display').innerText = score;
                 
                 feedbackArea.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
@@ -2920,6 +2951,27 @@ ${item.userWrong || '미입력'}
                 li.appendChild(removeBtn);
                 list.appendChild(li);
             });
+        }
+
+        function goToQuestion(direction) {
+            const nextIndex = currentIndex + direction;
+            if (nextIndex < 0 || nextIndex >= quizData.length) return;
+            currentIndex = nextIndex;
+            loadQuestion();
+        }
+
+        function retryCurrentQuestion() {
+            const q = quizData[currentIndex];
+            if (!q) return;
+
+            const wasAlreadyCorrect = progressRecords[getQuestionKey(q)]?.status === 'correct';
+            clearQuestionProgress(q);
+            if (wasAlreadyCorrect && score >= 20) {
+                score -= 20;
+                document.getElementById('score-display').innerText = score;
+            }
+            loadQuestion();
+            showManagerMessage('현재 문장을 다시 풀 수 있게 초기화했습니다.', 'info');
         }
 
         function nextQuestion() {
