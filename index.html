@@ -18,6 +18,8 @@
 
         .word-chip {
             transition: all 0.2s ease-in-out;
+            touch-action: none;
+            user-select: none;
         }
         .word-chip:hover {
             transform: translateY(-2px);
@@ -2044,6 +2046,7 @@
         let hasAnsweredCurrent = false;
         let currentChunkLevel = "4";
         let draggedWord = null;
+        let pointerDragState = null;
         let wasDragging = false;
         let keptQuestions = [];
         let currentSessionMode = "normal";
@@ -2389,6 +2392,10 @@
             btn.innerText = word;
             btn.addEventListener('dragstart', event => handleDragStart(event, word));
             btn.addEventListener('dragend', handleDragEnd);
+            btn.addEventListener('pointerdown', event => handlePointerDown(event, word, btn));
+            btn.addEventListener('pointermove', handlePointerMove);
+            btn.addEventListener('pointerup', handlePointerUp);
+            btn.addEventListener('pointercancel', handlePointerCancel);
             btn.onclick = () => {
                 if (wasDragging) {
                     wasDragging = false;
@@ -2498,6 +2505,87 @@
                 dropzone.insertBefore(dragging, insertBefore);
             }
             syncAnswerFromChips();
+        }
+
+        function handlePointerDown(event, word, sourceButton) {
+            if (hasAnsweredCurrent || event.pointerType === 'mouse') return;
+            pointerDragState = {
+                pointerId: event.pointerId,
+                word,
+                sourceButton,
+                startX: event.clientX,
+                startY: event.clientY,
+                isDragging: false
+            };
+            try {
+                sourceButton.setPointerCapture(event.pointerId);
+            } catch (error) {
+                // Some older iPad browsers may not support pointer capture on every element.
+            }
+        }
+
+        function handlePointerMove(event) {
+            if (!pointerDragState || pointerDragState.pointerId !== event.pointerId || hasAnsweredCurrent) return;
+            const dx = event.clientX - pointerDragState.startX;
+            const dy = event.clientY - pointerDragState.startY;
+            const movedEnough = Math.hypot(dx, dy) > 8;
+            const dropzone = document.getElementById('answer-dropzone');
+
+            if (!pointerDragState.isDragging && movedEnough) {
+                pointerDragState.isDragging = true;
+                wasDragging = true;
+                pointerDragState.sourceButton.classList.add('dragging');
+            }
+
+            if (!pointerDragState.isDragging) return;
+            event.preventDefault();
+            const target = document.elementFromPoint(event.clientX, event.clientY);
+            const isOverDropzone = target && (target.closest('#answer-dropzone') || dropzone.contains(target));
+            dropzone.classList.toggle('drop-zone-active', Boolean(isOverDropzone));
+        }
+
+        function handlePointerUp(event) {
+            if (!pointerDragState || pointerDragState.pointerId !== event.pointerId) return;
+            const state = pointerDragState;
+            pointerDragState = null;
+
+            try {
+                state.sourceButton.releasePointerCapture(event.pointerId);
+            } catch (error) {
+                // Safe to ignore when pointer capture was not established.
+            }
+
+            const dropzone = document.getElementById('answer-dropzone');
+            dropzone.classList.remove('drop-zone-active');
+            state.sourceButton.classList.remove('dragging');
+
+            if (!state.isDragging || hasAnsweredCurrent) return;
+            event.preventDefault();
+            const target = document.elementFromPoint(event.clientX, event.clientY);
+            const isOverDropzone = target && (target.closest('#answer-dropzone') || dropzone.contains(target));
+            if (!isOverDropzone) {
+                setTimeout(() => { wasDragging = false; }, 120);
+                return;
+            }
+
+            const insertBefore = getDragInsertBefore(dropzone, event.clientX, event.clientY);
+            if (state.sourceButton.closest('#word-bank')) {
+                const answerChip = createWordChip(state.word, 'answer');
+                dropzone.insertBefore(answerChip, insertBefore);
+                state.sourceButton.remove();
+            } else if (state.sourceButton.closest('#answer-dropzone')) {
+                dropzone.insertBefore(state.sourceButton, insertBefore);
+            }
+            syncAnswerFromChips();
+            setTimeout(() => { wasDragging = false; }, 120);
+        }
+
+        function handlePointerCancel(event) {
+            if (!pointerDragState || pointerDragState.pointerId !== event.pointerId) return;
+            pointerDragState.sourceButton.classList.remove('dragging');
+            document.getElementById('answer-dropzone').classList.remove('drop-zone-active');
+            pointerDragState = null;
+            setTimeout(() => { wasDragging = false; }, 120);
         }
 
         function checkAnswer() {
