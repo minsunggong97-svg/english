@@ -46,6 +46,16 @@
         </div>
 
         <div class="rounded-2xl bg-white p-5 shadow border border-slate-100">
+          <h2 class="font-extrabold text-slate-800">대분류 선택</h2>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-sm">
+            <button onclick="setMajorCategory('all')" id="major-all" class="major-btn rounded-xl bg-emerald-600 px-3 py-2 font-bold text-white">전체</button>
+            <button onclick="setMajorCategory('인체의 면역반응')" id="major-immune" class="major-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600">인체의 면역반응</button>
+            <button onclick="setMajorCategory('유전정보와 생식세포')" id="major-genetics" class="major-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600">유전정보와 생식세포</button>
+            <button onclick="setMajorCategory('생물의 진화와 다양성')" id="major-evolution" class="major-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600">생물의 진화와 다양성</button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-5 shadow border border-slate-100">
           <h2 class="font-extrabold text-slate-800">문제 필터</h2>
           <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
             <button onclick="setFilter('all')" id="filter-all" class="filter-btn rounded-xl bg-emerald-600 px-3 py-2 font-bold text-white">전체</button>
@@ -127,6 +137,8 @@
     const STORAGE_KEY = 'biologyEssayGraderProgress';
     const LOW_SCORE_THRESHOLD = 75;
     const gradeEndpoint = '/api/grade-answer';
+
+    const MAJOR_CATEGORIES = ['인체의 면역반응', '유전정보와 생식세포', '생물의 진화와 다양성'];
 
     const questions = [
       {
@@ -354,12 +366,20 @@
         rubric: ['모든 감염성 질환에 대한 백신이 개발된 것은 아님을 쓴다.', '감기/독감처럼 병원체 종류가 다양하거나 항원 부위 변이가 빠른 경우를 설명한다.', 'AIDS처럼 면역계를 침투하거나 발병 기작이 복잡한 경우를 설명한다.', '백신이 집단 면역, 전파 차단, 사망률 감소에 필요함을 쓴다.'],
         modelAnswer: '백신으로 많은 감염성 질환을 예방할 수 있지만 모든 감염성 질환의 백신이 개발된 것은 아니다. 감기처럼 병원체가 다양하거나 독감처럼 병원체의 항원 부위 변이가 빠르게 일어나는 질병은 새로운 백신을 계속 개발해야 하므로 예방이 어렵다. 또한 AIDS처럼 병원체가 면역계에 침투하여 인체의 방어작용을 피하거나 발병 기작이 완전히 밝혀지지 않은 질환도 백신 개발이 어렵다. 그럼에도 백신은 감염성 질환을 예방하고 집단 면역을 형성해 병의 전파를 차단하며 사망률을 낮출 수 있으므로 지속적인 개발과 연구가 필요하다.'
       }
-    ];
+    ].map(question => ({ majorCategory: '인체의 면역반응', ...question }));
 
     let currentIndex = 0;
+    let currentMajorCategory = 'all';
     let currentFilter = 'all';
     let progress = {};
     let visibleIndexes = questions.map((_, index) => index);
+
+    const majorCategoryButtonIds = {
+      all: 'major-all',
+      '인체의 면역반응': 'major-immune',
+      '유전정보와 생식세포': 'major-genetics',
+      '생물의 진화와 다양성': 'major-evolution'
+    };
 
     function loadProgress() {
       try {
@@ -373,10 +393,19 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
     }
 
+    function questionMatchesMajorCategory(question) {
+      return currentMajorCategory === 'all' || question.majorCategory === currentMajorCategory;
+    }
+
+    function getMajorFilteredQuestions() {
+      return questions.filter(questionMatchesMajorCategory);
+    }
+
     function getVisibleIndexes() {
       return questions
         .map((question, index) => ({ question, index }))
         .filter(({ question }) => {
+          if (!questionMatchesMajorCategory(question)) return false;
           const saved = progress[question.id];
           if (currentFilter === 'unanswered') return !saved?.grading;
           if (currentFilter === 'review') return saved?.grading && Number(saved.grading.score) < LOW_SCORE_THRESHOLD;
@@ -385,13 +414,30 @@
         .map(item => item.index);
     }
 
+    function setMajorCategory(category) {
+      currentMajorCategory = category;
+      visibleIndexes = getVisibleIndexes();
+      currentIndex = visibleIndexes[0] ?? -1;
+      updateMajorCategoryButtons();
+      renderQuestionList();
+      renderQuestion();
+    }
+
     function setFilter(filter) {
       currentFilter = filter;
       visibleIndexes = getVisibleIndexes();
-      currentIndex = visibleIndexes[0] ?? 0;
+      currentIndex = visibleIndexes[0] ?? -1;
       updateFilterButtons();
       renderQuestionList();
       renderQuestion();
+    }
+
+    function updateMajorCategoryButtons() {
+      document.querySelectorAll('.major-btn').forEach(button => {
+        button.className = 'major-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600';
+      });
+      const active = document.getElementById(majorCategoryButtonIds[currentMajorCategory]);
+      if (active) active.className = 'major-btn rounded-xl bg-emerald-600 px-3 py-2 font-bold text-white';
     }
 
     function updateFilterButtons() {
@@ -403,14 +449,15 @@
     }
 
     function renderStats() {
-      const graded = questions.filter(question => progress[question.id]?.grading);
+      const scopedQuestions = getMajorFilteredQuestions();
+      const graded = scopedQuestions.filter(question => progress[question.id]?.grading);
       const low = graded.filter(question => Number(progress[question.id].grading.score) < LOW_SCORE_THRESHOLD);
       const avg = graded.length
         ? Math.round(graded.reduce((sum, question) => sum + Number(progress[question.id].grading.score || 0), 0) / graded.length)
         : '-';
 
-      document.getElementById('progress-label').innerText = `${graded.length} / ${questions.length}`;
-      document.getElementById('progress-bar').style.width = `${(graded.length / questions.length) * 100}%`;
+      document.getElementById('progress-label').innerText = `${graded.length} / ${scopedQuestions.length}`;
+      document.getElementById('progress-bar').style.width = `${scopedQuestions.length ? (graded.length / scopedQuestions.length) * 100 : 0}%`;
       document.getElementById('avg-score').innerText = avg;
       document.getElementById('low-count').innerText = low.length;
       document.getElementById('done-count').innerText = graded.length;
@@ -439,7 +486,7 @@
         };
         button.innerHTML = `
           <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-bold text-slate-400">${index + 1}. ${question.category}</span>
+            <span class="text-xs font-bold text-slate-400">${index + 1}. ${question.majorCategory} · ${question.category}</span>
             <span class="rounded-full ${score === undefined ? 'bg-slate-100 text-slate-500' : Number(score) < LOW_SCORE_THRESHOLD ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'} px-2 py-0.5 text-xs font-black">${score === undefined ? '미채점' : `${score}점`}</span>
           </div>
           <p class="mt-1 text-sm font-extrabold text-slate-800">${question.title}</p>
@@ -450,27 +497,41 @@
 
     function renderQuestion() {
       visibleIndexes = getVisibleIndexes();
+      if (!visibleIndexes.includes(currentIndex) && visibleIndexes.length) {
+        currentIndex = visibleIndexes[0];
+      }
       const question = questions[currentIndex];
       if (!question) {
+        const scopedQuestions = getMajorFilteredQuestions();
+        const selectedCategory = currentMajorCategory === 'all' ? '전체 대분류' : currentMajorCategory;
+        document.getElementById('category-label').innerText = selectedCategory;
         document.getElementById('question-title').innerText = '표시할 문제가 없습니다.';
-        document.getElementById('question-text').innerText = '필터 조건에 맞는 문제가 없습니다. 전체 필터로 돌아가거나 기록을 초기화하세요.';
+        document.getElementById('question-counter').innerText = `0 / ${scopedQuestions.length}`;
+        document.getElementById('question-text').innerText = scopedQuestions.length
+          ? '현재 상태 필터에 맞는 문제가 없습니다. 전체 필터로 돌아가거나 기록을 초기화하세요.'
+          : '이 대분류에는 아직 추가된 문제가 없습니다. 학습지를 추가하면 여기에 표시됩니다.';
         document.getElementById('student-answer').value = '';
         document.getElementById('keyword-list').innerHTML = '';
+        document.getElementById('model-answer-box').classList.add('hidden');
         document.getElementById('feedback-box').classList.add('hidden');
+        document.getElementById('prev-btn').disabled = true;
+        document.getElementById('next-btn').disabled = true;
+        renderStats();
         return;
       }
 
       const saved = progress[question.id] || {};
-      document.getElementById('category-label').innerText = question.category;
+      const visiblePosition = visibleIndexes.indexOf(currentIndex);
+      document.getElementById('category-label').innerText = `${question.majorCategory} · ${question.category}`;
       document.getElementById('question-title').innerText = question.title;
-      document.getElementById('question-counter').innerText = `문제 ${currentIndex + 1} / ${questions.length}`;
+      document.getElementById('question-counter').innerText = `문제 ${visiblePosition + 1} / ${visibleIndexes.length}`;
       document.getElementById('question-text').innerText = question.question;
       document.getElementById('student-answer').value = saved.answer || '';
       document.getElementById('model-answer-text').innerText = question.modelAnswer;
       document.getElementById('model-answer-box').classList.add('hidden');
       document.getElementById('keyword-list').innerHTML = question.keywords.map(keyword => `<span class="rounded-full bg-white px-3 py-1 text-sm font-bold text-blue-700 shadow-sm">${keyword}</span>`).join('');
-      document.getElementById('prev-btn').disabled = currentIndex <= 0;
-      document.getElementById('next-btn').disabled = currentIndex >= questions.length - 1;
+      document.getElementById('prev-btn').disabled = visiblePosition <= 0;
+      document.getElementById('next-btn').disabled = visiblePosition >= visibleIndexes.length - 1;
 
       if (saved.grading) {
         renderFeedback(saved.grading);
@@ -481,9 +542,11 @@
     }
 
     function goToQuestion(direction) {
-      const nextIndex = currentIndex + direction;
-      if (nextIndex < 0 || nextIndex >= questions.length) return;
-      currentIndex = nextIndex;
+      visibleIndexes = getVisibleIndexes();
+      const currentPosition = visibleIndexes.indexOf(currentIndex);
+      const nextPosition = currentPosition + direction;
+      if (nextPosition < 0 || nextPosition >= visibleIndexes.length) return;
+      currentIndex = visibleIndexes[nextPosition];
       renderQuestion();
       renderQuestionList();
     }
@@ -604,6 +667,7 @@
     window.onload = () => {
       loadProgress();
       visibleIndexes = getVisibleIndexes();
+      updateMajorCategoryButtons();
       updateFilterButtons();
       renderQuestionList();
       renderQuestion();
