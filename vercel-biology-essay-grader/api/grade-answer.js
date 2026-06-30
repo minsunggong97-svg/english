@@ -54,6 +54,30 @@ function parseJsonResponse(text) {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
+function buildRequestBody(payload, model) {
+  const generationConfig = {
+    temperature: 0.15,
+    maxOutputTokens: 2048,
+    responseMimeType: 'application/json'
+  };
+
+  if (model.includes('2.5')) {
+    generationConfig.thinkingConfig = {
+      thinkingBudget: 0
+    };
+  }
+
+  return {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: buildPrompt(payload) }]
+      }
+    ],
+    generationConfig
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -69,28 +93,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: '문제, 모범 답안, 학생 답안이 필요합니다.' });
   }
 
-  const requestBody = {
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: buildPrompt({ question, modelAnswer, keywords, rubric, studentAnswer }) }]
-      }
-    ],
-    generationConfig: {
-      temperature: 0.15,
-      maxOutputTokens: 1024,
-      responseMimeType: 'application/json'
-    }
-  };
-
   try {
     let lastError = '';
+    const payload = { question, modelAnswer, keywords, rubric, studentAnswer };
 
     for (const model of GEMINI_MODELS) {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(buildRequestBody(payload, model))
       });
 
       const responseText = await response.text();
