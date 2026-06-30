@@ -1,4 +1,4 @@
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
 function buildPrompt({ question, modelAnswer, keywords, rubric, studentAnswer }) {
   return `너는 고등학교 생명과학 서술형 답안을 채점하는 교사야.
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     ],
     generationConfig: {
       temperature: 0.15,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
       responseMimeType: 'application/json'
     }
   };
