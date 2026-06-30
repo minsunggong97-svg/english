@@ -16,7 +16,7 @@
     <header class="rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 p-6 sm:p-8 text-white shadow-xl">
       <p class="text-sm font-bold uppercase tracking-[0.2em] text-emerald-100">Biology Essay Grader</p>
       <h1 class="mt-2 text-3xl sm:text-4xl font-black">생명과학 서술형 AI 채점기</h1>
-      <p class="mt-3 max-w-3xl text-emerald-50">인체의 면역반응 학습지 내용을 바탕으로 서술형 답안을 직접 쓰고, AI가 내신형 기준으로 점수·감점 사유·누락 키워드·개념 오류를 깐깐하게 피드백합니다.</p>
+      <p class="mt-3 max-w-3xl text-emerald-50">생명과학 학습지 내용을 바탕으로 서술형 답안을 직접 쓰고, AI가 내신형 기준으로 점수·감점 사유·보완할 점을 깐깐하게 피드백합니다.</p>
     </header>
 
     <section class="grid gap-4 lg:grid-cols-[320px,1fr]">
@@ -817,21 +817,11 @@
     function renderFeedback(grading) {
       document.getElementById('feedback-box').classList.remove('hidden');
       document.getElementById('score-badge').innerText = `${grading.score ?? '-'}점`;
-      document.getElementById('grade-label').innerText = grading.gradeLabel || '채점';
+      document.getElementById('grade-label').innerText = '채점 완료';
       document.getElementById('feedback-content').innerHTML = `
         <div class="grid gap-4 md:grid-cols-2">
-          ${renderList('잘한 점', grading.strengths, '인정된 핵심 내용이 아직 적습니다.')}
           ${renderList('감점 사유', grading.deductions, '뚜렷한 감점 사유는 없습니다.')}
-          ${renderList('누락 키워드', grading.missingKeywords, '큰 누락 키워드는 없습니다.')}
-          ${renderList('잘못된 개념', grading.conceptErrors, '뚜렷한 개념 오류는 없습니다.')}
           ${renderList('보완할 점', grading.improvements, '현재 답안을 조금 더 구체화하면 좋습니다.')}
-        </div>
-        <div class="rounded-xl bg-white p-4">
-          <h4 class="font-black text-slate-800">다듬은 모범 답안</h4>
-          <p class="mt-2 text-sm leading-relaxed text-slate-700">${escapeHtml(grading.modelAnswer || '')}</p>
-        </div>
-        <div class="rounded-xl bg-emerald-100 p-4 text-sm font-bold text-emerald-900">
-          ${escapeHtml(grading.studyTip || '핵심 용어와 과정의 순서를 함께 암기하세요.')}
         </div>
       `;
       renderStats();
