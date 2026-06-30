@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>생명과학 서술형 AI 채점기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .feedback-card { white-space: pre-wrap; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <main class="mx-auto max-w-6xl p-4 sm:p-6 space-y-5">
+    <header class="rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 p-6 sm:p-8 text-white shadow-xl">
+      <p class="text-sm font-bold uppercase tracking-[0.2em] text-emerald-100">Biology Essay Grader</p>
+      <h1 class="mt-2 text-3xl sm:text-4xl font-black">생명과학 서술형 AI 채점기</h1>
+      <p class="mt-3 max-w-3xl text-emerald-50">인체의 면역반응 학습지 내용을 바탕으로 서술형 답안을 직접 쓰고, AI가 점수·누락 키워드·개념 오류·보완 포인트를 피드백합니다.</p>
+    </header>
+
+    <section class="grid gap-4 lg:grid-cols-[320px,1fr]">
+      <aside class="space-y-4">
+        <div class="rounded-2xl bg-white p-5 shadow border border-slate-100">
+          <div class="flex items-center justify-between">
+            <h2 class="font-extrabold text-slate-800">학습 현황</h2>
+            <span id="progress-label" class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">0 / 14</span>
+          </div>
+          <div class="mt-4 h-3 rounded-full bg-slate-100 overflow-hidden">
+            <div id="progress-bar" class="h-full bg-emerald-500 transition-all" style="width: 0%"></div>
+          </div>
+          <div class="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+            <div class="rounded-xl bg-slate-50 p-3">
+              <div id="avg-score" class="text-xl font-black text-slate-800">-</div>
+              <div class="text-xs font-semibold text-slate-500">평균</div>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-3">
+              <div id="low-count" class="text-xl font-black text-orange-600">0</div>
+              <div class="text-xs font-semibold text-slate-500">복습</div>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-3">
+              <div id="done-count" class="text-xl font-black text-emerald-600">0</div>
+              <div class="text-xs font-semibold text-slate-500">채점</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-5 shadow border border-slate-100">
+          <h2 class="font-extrabold text-slate-800">문제 필터</h2>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <button onclick="setFilter('all')" id="filter-all" class="filter-btn rounded-xl bg-emerald-600 px-3 py-2 font-bold text-white">전체</button>
+            <button onclick="setFilter('unanswered')" id="filter-unanswered" class="filter-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600">미완료</button>
+            <button onclick="setFilter('review')" id="filter-review" class="filter-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600">복습 필요</button>
+            <button onclick="resetProgress()" class="rounded-xl bg-red-50 px-3 py-2 font-bold text-red-600">기록 초기화</button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-4 shadow border border-slate-100">
+          <h2 class="px-1 font-extrabold text-slate-800">문제 목록</h2>
+          <div id="question-list" class="mt-3 max-h-[520px] space-y-2 overflow-y-auto pr-1"></div>
+        </div>
+      </aside>
+
+      <section class="rounded-2xl bg-white shadow-xl border border-slate-100 overflow-hidden">
+        <div class="border-b border-slate-100 bg-slate-50 p-5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p id="category-label" class="text-sm font-bold text-emerald-700"></p>
+              <h2 id="question-title" class="mt-1 text-2xl font-black text-slate-900"></h2>
+            </div>
+            <span id="question-counter" class="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600 shadow-sm"></span>
+          </div>
+          <p id="question-text" class="mt-4 text-lg font-bold leading-relaxed text-slate-800"></p>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-5">
+          <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <h3 class="font-extrabold text-blue-800"><i class="fa-solid fa-key mr-2"></i>핵심 키워드</h3>
+            <div id="keyword-list" class="mt-3 flex flex-wrap gap-2"></div>
+          </div>
+
+          <div>
+            <label for="student-answer" class="block text-sm font-extrabold text-slate-700">내 답안</label>
+            <textarea id="student-answer" rows="9" class="mt-2 w-full rounded-2xl border-2 border-slate-200 p-4 text-base leading-relaxed outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" placeholder="여기에 서술형 답안을 직접 작성하세요. 핵심 용어와 원인-과정-결과를 함께 쓰면 점수가 잘 나옵니다."></textarea>
+          </div>
+
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex gap-2">
+              <button onclick="goToQuestion(-1)" id="prev-btn" class="rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40">
+                <i class="fa-solid fa-arrow-left mr-2"></i>이전
+              </button>
+              <button onclick="goToQuestion(1)" id="next-btn" class="rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40">
+                다음<i class="fa-solid fa-arrow-right ml-2"></i>
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="showModelAnswer()" class="rounded-xl bg-slate-100 px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-200">
+                모범답안 보기
+              </button>
+              <button onclick="gradeCurrentAnswer()" id="grade-btn" class="rounded-xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700">
+                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI 채점
+              </button>
+            </div>
+          </div>
+
+          <div id="model-answer-box" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <h3 class="font-extrabold text-slate-800">모범답안</h3>
+            <p id="model-answer-text" class="mt-2 leading-relaxed text-slate-700"></p>
+          </div>
+
+          <div id="feedback-box" class="hidden rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 class="text-xl font-black text-emerald-900">AI 피드백</h3>
+              <div class="flex items-center gap-2">
+                <span id="score-badge" class="rounded-full bg-white px-4 py-2 text-lg font-black text-emerald-700 shadow-sm">-</span>
+                <span id="grade-label" class="rounded-full bg-emerald-600 px-3 py-2 text-sm font-bold text-white">-</span>
+              </div>
+            </div>
+            <div id="feedback-content" class="feedback-card mt-4 space-y-4"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'biologyEssayGraderProgress';
+    const LOW_SCORE_THRESHOLD = 75;
+    const gradeEndpoint = '/api/grade-answer';
+
+    const questions = [
+      {
+        id: 'q01',
+        category: '질병과 병원체',
+        title: '감염성 질환과 비감염성 질환',
+        question: '질병을 병원체의 유무에 따라 구분하고, 감염성 질환이 발생하는 과정을 설명하시오.',
+        keywords: ['비감염성질환', '감염성질환', '병원체', '침입', '증식', '세포 파괴', '독소'],
+        rubric: ['병원체 유무에 따른 질병 구분을 설명한다.', '감염성 질환이 병원체 감염으로 발생함을 쓴다.', '병원체가 침입 후 증식해 세포를 파괴하거나 독소를 분비한다는 과정을 포함한다.'],
+        modelAnswer: '질병은 병원체의 유무에 따라 병원체 없이 생활습관, 유전, 환경 등으로 발생하는 비감염성질환과 병원체 감염으로 발생하는 감염성질환으로 나뉜다. 감염성 질환은 병원체가 인체에 침입한 뒤 증식하여 세포를 파괴하거나 독소를 분비해 몸의 정상적인 기능을 방해하면서 발생한다.'
+      },
+      {
+        id: 'q02',
+        category: '병원체',
+        title: '세균과 바이러스의 차이',
+        question: '세균과 바이러스의 구조와 증식 방식 차이를 설명하고, 항생제가 바이러스성 질환에 효과적이지 않은 이유를 쓰시오.',
+        keywords: ['세균', '원핵생물', '세포벽', '분열법', '바이러스', '핵산', '단백질 껍질', '숙주세포', '항생제'],
+        rubric: ['세균이 단세포 원핵생물이며 세포벽을 가진다는 점을 쓴다.', '바이러스가 세포 구조가 아니며 핵산과 단백질 껍질로 구성됨을 쓴다.', '바이러스는 숙주세포가 있어야 증식함을 쓴다.', '항생제는 세균의 특징을 방해하므로 바이러스에는 효과가 작거나 없음을 설명한다.'],
+        modelAnswer: '세균은 핵막이 없는 단세포 원핵생물로 세포막 바깥에 세포벽이 있고 분열법으로 번식한다. 바이러스는 세포 구조가 아니라 핵산과 단백질 껍질로 이루어져 있으며 스스로 물질대사를 하지 못하고 숙주세포 안에서만 증식한다. 항생제는 세균의 세포벽 형성이나 생명 활동처럼 세균의 특징을 방해해 작용하므로, 세균과 구조와 증식 방식이 다른 바이러스성 질환에는 효과적이지 않다.'
+      },
+      {
+        id: 'q03',
+        category: '병원체',
+        title: '곰팡이와 원생생물',
+        question: '곰팡이와 원생생물이 사람에게 질병을 일으키는 방식과 대표 질병을 각각 설명하시오.',
+        keywords: ['곰팡이', '균사', '포자', '무좀', '만성폐질환', '원생생물', '기생', '말라리아', '수면병'],
+        rubric: ['곰팡이가 균사와 포자로 번식한다는 특징을 쓴다.', '곰팡이 질환 예를 든다.', '원생생물이 단세포 진핵생물이며 기생할 수 있음을 쓴다.', '원생생물 질환 예를 든다.'],
+        modelAnswer: '곰팡이는 대부분 균사로 이루어진 다세포 생물로 습한 환경에서 포자로 번식하며, 피부에서 번식하면 무좀을 일으키고 포자가 호흡기로 들어가 만성폐질환을 일으킬 수 있다. 원생생물은 대부분 단세포 진핵생물이고 다른 생물에 기생하면서 질병을 일으키며, 말라리아원충은 말라리아를, 트리파노소마는 수면병을 일으킨다.'
+      },
+      {
+        id: 'q04',
+        category: '감염성 질환의 예방',
+        title: '감염 경로와 예방',
+        question: '감염성 질환의 주요 감염 경로 세 가지를 제시하고, 각 경로를 차단하는 예방 방법을 예와 함께 설명하시오.',
+        keywords: ['직접 감염', '비말', '물과 음식', '매개 생물', '손 씻기', '가열', '마스크', '모기 퇴치'],
+        rubric: ['접촉/비말 등 직접 감염을 설명한다.', '물이나 음식으로 감염되는 경로를 설명한다.', '매개 생물에 의한 감염을 설명한다.', '각 경로에 맞는 예방 방법을 연결한다.'],
+        modelAnswer: '감염성 질환은 환자와의 접촉이나 기침, 재채기의 비말을 통해 직접 감염될 수 있으므로 손 씻기, 마스크 착용, 사회적 거리 두기가 필요하다. 또 병원체에 오염된 물이나 음식을 통해 감염될 수 있으므로 물과 음식을 충분히 가열해 섭취해야 한다. 모기나 파리 같은 매개 생물이 병원체를 옮기기도 하므로 말라리아 같은 질환은 모기 퇴치와 물리지 않도록 하는 방법으로 예방한다.'
+      },
+      {
+        id: 'q05',
+        category: '면역의 구분',
+        title: '선천성 면역과 후천성 면역',
+        question: '선천성 면역과 후천성 면역의 차이를 병원체 인식 방식과 예를 중심으로 비교하시오.',
+        keywords: ['선천성면역', '비특이적', '태어날 때부터', '피부', '점막', '식세포작용', '염증반응', '후천성면역', '특이적', '세포성면역', '체액성면역'],
+        rubric: ['선천성 면역이 비특이적이고 태어날 때부터 있음을 쓴다.', '선천성 면역의 예를 든다.', '후천성 면역이 특정 병원체에 특이적으로 작용함을 쓴다.', '후천성 면역의 예를 든다.'],
+        modelAnswer: '선천성 면역은 태어날 때부터 가지고 있는 비특이적 방어작용으로 병원체 종류를 구분하지 않고 같은 방식으로 일어난다. 예로 피부와 점막 같은 외부 방어벽, 식세포작용, 염증반응이 있다. 후천성 면역은 병원체에 노출되면서 발달하고 항원의 종류에 따라 특이적으로 일어나며, 세포독성 T림프구가 감염 세포를 제거하는 세포성 면역과 B림프구가 만든 항체로 항원을 제거하는 체액성 면역이 있다.'
+      },
+      {
+        id: 'q06',
+        category: '선천성 면역',
+        title: '피부와 점막의 방어',
+        question: '피부와 점막이 병원체 침입을 막는 원리를 구체적 예와 함께 설명하시오.',
+        keywords: ['피부', '물리적 장벽', '땀', '라이소자임', '점막', '점액', '위산', '섬모운동'],
+        rubric: ['피부가 물리적 장벽 역할을 함을 쓴다.', '땀의 라이소자임을 언급한다.', '점막과 점액의 방어 작용을 쓴다.', '위산 또는 섬모운동 사례를 포함한다.'],
+        modelAnswer: '피부는 병원체가 몸속으로 들어오는 것을 막는 물리적 장벽 역할을 하며, 땀에 들어 있는 라이소자임은 세균 침입을 막는 데 도움을 준다. 점막은 눈, 코, 소화관, 호흡기 등을 덮고 끈끈한 점액을 분비해 병원체를 붙잡으며, 점액에도 라이소자임이 들어 있다. 위에서는 강한 산성의 위산이 음식물 속 병원체를 제거하고, 호흡기의 섬모와 점액은 병원체를 가래로 밖으로 내보낸다.'
+      },
+      {
+        id: 'q07',
+        category: '선천성 면역',
+        title: '식세포작용과 항원 정보',
+        question: '식세포작용의 과정을 설명하고, 이 작용이 후천성 면역과 연결되는 이유를 쓰시오.',
+        keywords: ['식세포작용', '백혈구', '병원체', '세포 안으로 끌어들임', '효소', '분해', '항원 정보', '후천성면역'],
+        rubric: ['백혈구가 병원체를 세포 안으로 끌어들인다는 점을 쓴다.', '효소로 분해해 제거함을 쓴다.', '병원체 정보를 제공한다는 점을 쓴다.', '항원 제시를 통해 후천성 면역이 시작됨을 연결한다.'],
+        modelAnswer: '식세포작용은 백혈구가 병원체를 세포 안으로 끌어들인 뒤 효소를 이용해 분해하는 작용이다. 이 과정은 병원체를 직접 제거할 뿐 아니라 병원체의 항원 정보를 제공한다. 특히 큰포식세포가 병원체를 분해한 뒤 항원을 세포 표면에 제시하면 특정 림프구가 이를 인식해 후천성 면역이 시작된다.'
+      },
+      {
+        id: 'q08',
+        category: '염증반응',
+        title: '염증반응 과정',
+        question: '상처 부위에서 염증반응이 일어나 병원체가 제거되는 과정을 히스타민, 모세혈관, 백혈구를 포함하여 설명하시오.',
+        keywords: ['비만세포', '히스타민', '모세혈관 확장', '혈류량 증가', '혈관 투과성 증가', '백혈구', '식세포작용', '부종'],
+        rubric: ['손상 부위 비만세포가 히스타민을 분비함을 쓴다.', '모세혈관 확장과 혈관 투과성 증가를 설명한다.', '백혈구가 상처 부위로 모임을 쓴다.', '식세포작용으로 병원체가 제거됨을 쓴다.'],
+        modelAnswer: '상처로 병원체가 들어오면 손상된 부위의 비만세포가 히스타민을 분비한다. 히스타민은 주변 모세혈관을 확장시키고 혈류량과 혈관 투과성을 증가시킨다. 그 결과 혈장과 백혈구가 모세혈관 밖으로 쉽게 빠져나와 상처 부위에 모이고, 모인 백혈구가 식세포작용을 하여 병원체를 제거한다. 이때 혈장이 조직으로 이동해 부종과 통증이 나타날 수 있다.'
+      },
+      {
+        id: 'q09',
+        category: '후천성 면역',
+        title: '림프구의 생성과 분화',
+        question: 'B림프구와 T림프구가 생성되고 성숙하는 장소를 구분하여 설명하시오.',
+        keywords: ['림프구', '백혈구', '골수', 'B림프구', '가슴샘', 'T림프구', '성숙', '분화'],
+        rubric: ['림프구가 백혈구의 일종이며 골수에서 만들어짐을 쓴다.', 'B림프구가 골수에서 성숙함을 쓴다.', 'T림프구가 가슴샘에서 성숙함을 쓴다.', '성숙 후 후천성 면역에 관여함을 연결한다.'],
+        modelAnswer: '림프구는 백혈구의 일종으로 골수에서 만들어진다. 미성숙 림프구 중 일부는 골수에서 성숙 과정을 거쳐 B림프구로 분화하고, 다른 일부는 혈액을 따라 가슴샘으로 이동해 성숙 과정을 거쳐 T림프구로 분화한다. 이렇게 성숙한 B림프구와 T림프구는 후천성 면역에서 항원을 인식하고 반응한다.'
+      },
+      {
+        id: 'q10',
+        category: '후천성 면역',
+        title: '항원 제시와 항원 인식',
+        question: '큰포식세포의 항원 제시 과정과 그 결과 후천성 면역이 시작되는 원리를 설명하시오.',
+        keywords: ['큰포식세포', '식세포작용', '병원체 분해', '항원 제시', '세포 표면', '특정 림프구', '항원 인식', '증식'],
+        rubric: ['큰포식세포가 병원체를 식세포작용으로 분해함을 쓴다.', '분해한 항원을 세포 표면에 제시함을 쓴다.', '특정 림프구가 항원을 인식함을 쓴다.', '림프구가 증식하며 후천성 면역이 시작됨을 설명한다.'],
+        modelAnswer: '큰포식세포는 침입한 병원체를 식세포작용으로 세포 안에 끌어들여 분해한다. 이후 병원체의 항원을 세포 표면에 제시한다. 이 항원에 특이적으로 반응하는 특정 림프구가 항원의 종류를 인식하고 활성화되어 증식하면서 후천성 면역이 시작된다.'
+      },
+      {
+        id: 'q11',
+        category: '후천성 면역',
+        title: '세포성 면역과 체액성 면역',
+        question: '세포성 면역과 체액성 면역의 작용 주체와 병원체 제거 방식을 비교하시오.',
+        keywords: ['세포성면역', '세포독성 T림프구', '감염 세포', '직접 제거', '체액성면역', 'B림프구', '형질세포', '항체', '항원항체반응'],
+        rubric: ['세포성 면역의 주체와 제거 대상을 쓴다.', '세포독성 T림프구가 감염 세포를 직접 제거함을 쓴다.', '체액성 면역에서 B림프구와 형질세포를 쓴다.', '항체와 항원항체반응으로 항원을 제거함을 쓴다.'],
+        modelAnswer: '세포성 면역은 세포독성 T림프구가 주로 작용하여 병원체에 감염된 세포를 직접 공격해 제거하는 면역이다. 반면 체액성 면역은 항원을 인식한 B림프구가 보조 T림프구의 도움을 받아 증식하고 형질세포로 분화한 뒤 항체를 생성하는 면역이다. 생성된 항체는 항원과 결합하는 항원항체반응을 통해 병원체나 독소를 제거한다.'
+      },
+      {
+        id: 'q12',
+        category: '후천성 면역',
+        title: '세포독성 T림프구의 감염 세포 제거',
+        question: '세포독성 T림프구가 감염 세포를 제거하는 과정을 퍼포린과 그랜자임을 포함하여 설명하시오.',
+        keywords: ['세포독성 T림프구', '감염 세포', '항원 제시', 'CD8', '퍼포린', '구멍', '그랜자임', '세포 자살'],
+        rubric: ['감염 세포가 항원을 표면에 제시함을 쓴다.', '세포독성 T림프구가 이를 인식하고 결합함을 쓴다.', '퍼포린이 감염 세포에 구멍을 만든다는 점을 쓴다.', '그랜자임이 들어가 세포 자살을 유도함을 쓴다.'],
+        modelAnswer: '감염 세포가 항원을 세포 표면에 제시하면 세포독성 T림프구는 항원 수용체와 CD8 단백질을 통해 이를 인식하고 감염 세포에 결합한다. 이후 세포독성 T림프구는 퍼포린과 그랜자임을 분비한다. 퍼포린은 감염 세포막에 구멍을 만들고, 그 구멍으로 그랜자임이 들어가 감염 세포의 세포 자살을 유도하여 감염 세포가 제거된다.'
+      },
+      {
+        id: 'q13',
+        category: '면역 기억',
+        title: '1차 면역반응과 2차 면역반응',
+        question: '항원 A가 두 번째 침입했을 때 항체 A가 빠르게 많이 생성되는 이유를 1차 면역반응과 2차 면역반응의 차이로 설명하시오.',
+        keywords: ['1차 면역반응', '항원 첫 침입', 'B림프구', '형질세포', '기억세포', '2차 면역반응', '빠른 증식', '다량의 항체'],
+        rubric: ['1차 면역반응에서 기억세포가 생성됨을 쓴다.', '2차 침입 시 기억세포가 빠르게 증식·분화함을 쓴다.', '형질세포가 많이 만들어짐을 쓴다.', '다량의 항체가 빠르게 생성됨을 설명한다.'],
+        modelAnswer: '항원 A가 처음 침입하면 1차 면역반응이 일어나 B림프구가 활성화되어 형질세포와 기억세포로 분화한다. 이때 만들어진 기억세포는 같은 항원 A가 다시 침입했을 때 빠르게 증식하고 분화한다. 그 결과 많은 형질세포가 빠르게 만들어져 항체 A를 짧은 시간 안에 다량 생성하므로 2차 면역반응은 1차 면역반응보다 빠르고 강하게 일어난다.'
+      },
+      {
+        id: 'q14',
+        category: 'HIV와 면역 질환',
+        title: 'HIV와 후천성면역결핍증',
+        question: 'HIV가 감염 후 시간이 지날수록 후천성 면역을 약화시키는 이유를 보조 T림프구의 역할과 관련지어 설명하시오.',
+        keywords: ['HIV', '보조 T림프구', '파괴', 'B림프구 활성화', '세포독성 T림프구 활성화', '후천성면역', 'AIDS', '면역 결핍'],
+        rubric: ['HIV가 보조 T림프구를 감염·파괴함을 쓴다.', '보조 T림프구가 B림프구와 세포독성 T림프구 활성화에 중요함을 쓴다.', '보조 T림프구 감소로 후천성 면역이 약해짐을 설명한다.', 'AIDS 또는 면역 결핍과 연결한다.'],
+        modelAnswer: 'HIV는 후천성 면역에서 중요한 역할을 하는 보조 T림프구를 감염시켜 파괴한다. 보조 T림프구는 B림프구가 형질세포로 분화해 항체를 만들도록 돕고 세포독성 T림프구의 활성화에도 관여한다. 따라서 시간이 지날수록 보조 T림프구 수가 감소하면 체액성 면역과 세포성 면역이 모두 제대로 일어나지 못해 후천성 면역이 약화되고, 결국 후천성면역결핍증(AIDS)이 나타날 수 있다.'
+      }
+    ];
+
+    let currentIndex = 0;
+    let currentFilter = 'all';
+    let progress = {};
+    let visibleIndexes = questions.map((_, index) => index);
+
+    function loadProgress() {
+      try {
+        progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch (error) {
+        progress = {};
+      }
+    }
+
+    function saveProgress() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    }
+
+    function getVisibleIndexes() {
+      return questions
+        .map((question, index) => ({ question, index }))
+        .filter(({ question }) => {
+          const saved = progress[question.id];
+          if (currentFilter === 'unanswered') return !saved?.grading;
+          if (currentFilter === 'review') return saved?.grading && Number(saved.grading.score) < LOW_SCORE_THRESHOLD;
+          return true;
+        })
+        .map(item => item.index);
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      visibleIndexes = getVisibleIndexes();
+      currentIndex = visibleIndexes[0] ?? 0;
+      updateFilterButtons();
+      renderQuestionList();
+      renderQuestion();
+    }
+
+    function updateFilterButtons() {
+      document.querySelectorAll('.filter-btn').forEach(button => {
+        button.className = 'filter-btn rounded-xl bg-slate-100 px-3 py-2 font-bold text-slate-600';
+      });
+      const active = document.getElementById(`filter-${currentFilter}`);
+      if (active) active.className = 'filter-btn rounded-xl bg-emerald-600 px-3 py-2 font-bold text-white';
+    }
+
+    function renderStats() {
+      const graded = questions.filter(question => progress[question.id]?.grading);
+      const low = graded.filter(question => Number(progress[question.id].grading.score) < LOW_SCORE_THRESHOLD);
+      const avg = graded.length
+        ? Math.round(graded.reduce((sum, question) => sum + Number(progress[question.id].grading.score || 0), 0) / graded.length)
+        : '-';
+
+      document.getElementById('progress-label').innerText = `${graded.length} / ${questions.length}`;
+      document.getElementById('progress-bar').style.width = `${(graded.length / questions.length) * 100}%`;
+      document.getElementById('avg-score').innerText = avg;
+      document.getElementById('low-count').innerText = low.length;
+      document.getElementById('done-count').innerText = graded.length;
+    }
+
+    function renderQuestionList() {
+      const list = document.getElementById('question-list');
+      list.innerHTML = '';
+      visibleIndexes = getVisibleIndexes();
+      const listIndexes = visibleIndexes.length ? visibleIndexes : [];
+      if (!listIndexes.length) {
+        list.innerHTML = '<div class="rounded-xl bg-slate-50 p-4 text-sm font-bold text-slate-500">필터 조건에 맞는 문제가 없습니다.</div>';
+        return;
+      }
+      listIndexes.forEach(index => {
+        const question = questions[index];
+        const saved = progress[question.id];
+        const button = document.createElement('button');
+        const isCurrent = index === currentIndex;
+        const score = saved?.grading?.score;
+        button.className = `w-full rounded-xl border p-3 text-left transition ${isCurrent ? 'border-emerald-300 bg-emerald-50' : 'border-slate-100 bg-white hover:bg-slate-50'}`;
+        button.onclick = () => {
+          currentIndex = index;
+          renderQuestion();
+          renderQuestionList();
+        };
+        button.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-bold text-slate-400">${index + 1}. ${question.category}</span>
+            <span class="rounded-full ${score === undefined ? 'bg-slate-100 text-slate-500' : Number(score) < LOW_SCORE_THRESHOLD ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'} px-2 py-0.5 text-xs font-black">${score === undefined ? '미채점' : `${score}점`}</span>
+          </div>
+          <p class="mt-1 text-sm font-extrabold text-slate-800">${question.title}</p>
+        `;
+        list.appendChild(button);
+      });
+    }
+
+    function renderQuestion() {
+      visibleIndexes = getVisibleIndexes();
+      const question = questions[currentIndex];
+      if (!question) {
+        document.getElementById('question-title').innerText = '표시할 문제가 없습니다.';
+        document.getElementById('question-text').innerText = '필터 조건에 맞는 문제가 없습니다. 전체 필터로 돌아가거나 기록을 초기화하세요.';
+        document.getElementById('student-answer').value = '';
+        document.getElementById('keyword-list').innerHTML = '';
+        document.getElementById('feedback-box').classList.add('hidden');
+        return;
+      }
+
+      const saved = progress[question.id] || {};
+      document.getElementById('category-label').innerText = question.category;
+      document.getElementById('question-title').innerText = question.title;
+      document.getElementById('question-counter').innerText = `문제 ${currentIndex + 1} / ${questions.length}`;
+      document.getElementById('question-text').innerText = question.question;
+      document.getElementById('student-answer').value = saved.answer || '';
+      document.getElementById('model-answer-text').innerText = question.modelAnswer;
+      document.getElementById('model-answer-box').classList.add('hidden');
+      document.getElementById('keyword-list').innerHTML = question.keywords.map(keyword => `<span class="rounded-full bg-white px-3 py-1 text-sm font-bold text-blue-700 shadow-sm">${keyword}</span>`).join('');
+      document.getElementById('prev-btn').disabled = currentIndex <= 0;
+      document.getElementById('next-btn').disabled = currentIndex >= questions.length - 1;
+
+      if (saved.grading) {
+        renderFeedback(saved.grading);
+      } else {
+        document.getElementById('feedback-box').classList.add('hidden');
+      }
+      renderStats();
+    }
+
+    function goToQuestion(direction) {
+      const nextIndex = currentIndex + direction;
+      if (nextIndex < 0 || nextIndex >= questions.length) return;
+      currentIndex = nextIndex;
+      renderQuestion();
+      renderQuestionList();
+    }
+
+    function showModelAnswer() {
+      document.getElementById('model-answer-box').classList.toggle('hidden');
+    }
+
+    function saveCurrentAnswerOnly() {
+      const question = questions[currentIndex];
+      if (!question) return '';
+      const answer = document.getElementById('student-answer').value.trim();
+      progress[question.id] = {
+        ...(progress[question.id] || {}),
+        answer,
+        updatedAt: new Date().toISOString()
+      };
+      saveProgress();
+      return answer;
+    }
+
+    function renderList(title, items, emptyText) {
+      const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
+      if (!safeItems.length) return `<div><h4 class="font-black text-slate-800">${title}</h4><p class="mt-1 text-sm text-slate-600">${emptyText}</p></div>`;
+      return `<div><h4 class="font-black text-slate-800">${title}</h4><ul class="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-slate-700">${safeItems.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>`;
+    }
+
+    function renderFeedback(grading) {
+      document.getElementById('feedback-box').classList.remove('hidden');
+      document.getElementById('score-badge').innerText = `${grading.score ?? '-'}점`;
+      document.getElementById('grade-label').innerText = grading.gradeLabel || '채점';
+      document.getElementById('feedback-content').innerHTML = `
+        <div class="grid gap-4 md:grid-cols-2">
+          ${renderList('잘한 점', grading.strengths, '인정된 핵심 내용이 아직 적습니다.')}
+          ${renderList('누락 키워드', grading.missingKeywords, '큰 누락 키워드는 없습니다.')}
+          ${renderList('잘못된 개념', grading.conceptErrors, '뚜렷한 개념 오류는 없습니다.')}
+          ${renderList('보완할 점', grading.improvements, '현재 답안을 조금 더 구체화하면 좋습니다.')}
+        </div>
+        <div class="rounded-xl bg-white p-4">
+          <h4 class="font-black text-slate-800">다듬은 모범 답안</h4>
+          <p class="mt-2 text-sm leading-relaxed text-slate-700">${escapeHtml(grading.modelAnswer || '')}</p>
+        </div>
+        <div class="rounded-xl bg-emerald-100 p-4 text-sm font-bold text-emerald-900">
+          ${escapeHtml(grading.studyTip || '핵심 용어와 과정의 순서를 함께 암기하세요.')}
+        </div>
+      `;
+      renderStats();
+      renderQuestionList();
+    }
+
+    async function gradeCurrentAnswer() {
+      const question = questions[currentIndex];
+      const answer = saveCurrentAnswerOnly();
+      if (!answer) {
+        alert('먼저 답안을 입력해 주세요.');
+        return;
+      }
+
+      const button = document.getElementById('grade-btn');
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>채점 중...';
+
+      try {
+        const response = await fetch(gradeEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: question.question,
+            modelAnswer: question.modelAnswer,
+            keywords: question.keywords,
+            rubric: question.rubric,
+            studentAnswer: answer
+          })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `채점 요청 실패: ${response.status}`);
+        }
+
+        const grading = await response.json();
+        progress[question.id] = {
+          answer,
+          grading,
+          gradedAt: new Date().toISOString()
+        };
+        saveProgress();
+        renderFeedback(grading);
+      } catch (error) {
+        alert(`AI 채점 중 오류가 발생했습니다.\n${error.message}`);
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI 채점';
+      }
+    }
+
+    function resetProgress() {
+      if (!confirm('저장된 답안과 AI 피드백을 모두 삭제할까요?')) return;
+      progress = {};
+      saveProgress();
+      renderQuestion();
+      renderQuestionList();
+      renderStats();
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    document.getElementById('student-answer').addEventListener('input', saveCurrentAnswerOnly);
+
+    window.onload = () => {
+      loadProgress();
+      visibleIndexes = getVisibleIndexes();
+      updateFilterButtons();
+      renderQuestionList();
+      renderQuestion();
+    };
+  </script>
+</body>
+</html>
