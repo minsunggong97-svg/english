@@ -16,7 +16,7 @@
     <header class="rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 p-6 sm:p-8 text-white shadow-xl">
       <p class="text-sm font-bold uppercase tracking-[0.2em] text-emerald-100">Biology Essay Grader</p>
       <h1 class="mt-2 text-3xl sm:text-4xl font-black">생명과학 서술형 AI 채점기</h1>
-      <p class="mt-3 max-w-3xl text-emerald-50">인체의 면역반응 학습지 내용을 바탕으로 서술형 답안을 직접 쓰고, AI가 점수·누락 키워드·개념 오류·보완 포인트를 피드백합니다.</p>
+      <p class="mt-3 max-w-3xl text-emerald-50">인체의 면역반응 학습지 내용을 바탕으로 서술형 답안을 직접 쓰고, AI가 내신형 기준으로 점수·감점 사유·누락 키워드·개념 오류를 깐깐하게 피드백합니다.</p>
     </header>
 
     <section class="grid gap-4 lg:grid-cols-[320px,1fr]">
@@ -24,7 +24,7 @@
         <div class="rounded-2xl bg-white p-5 shadow border border-slate-100">
           <div class="flex items-center justify-between">
             <h2 class="font-extrabold text-slate-800">학습 현황</h2>
-            <span id="progress-label" class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">0 / 14</span>
+            <span id="progress-label" class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">0 / 25</span>
           </div>
           <div class="mt-4 h-3 rounded-full bg-slate-100 overflow-hidden">
             <div id="progress-bar" class="h-full bg-emerald-500 transition-all" style="width: 0%"></div>
@@ -518,6 +518,7 @@
       document.getElementById('feedback-content').innerHTML = `
         <div class="grid gap-4 md:grid-cols-2">
           ${renderList('잘한 점', grading.strengths, '인정된 핵심 내용이 아직 적습니다.')}
+          ${renderList('감점 사유', grading.deductions, '뚜렷한 감점 사유는 없습니다.')}
           ${renderList('누락 키워드', grading.missingKeywords, '큰 누락 키워드는 없습니다.')}
           ${renderList('잘못된 개념', grading.conceptErrors, '뚜렷한 개념 오류는 없습니다.')}
           ${renderList('보완할 점', grading.improvements, '현재 답안을 조금 더 구체화하면 좋습니다.')}
