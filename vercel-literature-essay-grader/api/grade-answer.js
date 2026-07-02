@@ -39,8 +39,14 @@ ${studentAnswer}
 반드시 아래 JSON 형식으로만 답해. 마크다운 코드블록은 쓰지 마.
 {
   "score": 0,
+  "gradeLabel": "상/중/하 중 하나",
+  "strengths": ["잘한 점 1", "잘한 점 2"],
   "deductions": ["감점 사유 1", "감점 사유 2"],
-  "improvements": ["보완할 점 1", "보완할 점 2"]
+  "missingKeywords": ["누락 키워드 1", "누락 키워드 2"],
+  "conceptErrors": ["잘못된 개념 1"],
+  "improvements": ["보완할 점 1", "보완할 점 2"],
+  "modelAnswer": "학생 수준에 맞게 다듬은 모범 답안",
+  "studyTip": "다음에 기억할 한 줄 팁"
 }`;
 }
 
@@ -57,7 +63,7 @@ function parseJsonResponse(text) {
 function buildRequestBody(payload, model) {
   const generationConfig = {
     temperature: 0.15,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 4096,
     responseMimeType: 'application/json'
   };
 
