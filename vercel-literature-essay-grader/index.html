@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문학 서술형 AI 채점기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .feedback-card { white-space: pre-wrap; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-50 text-slate-800">
+  <main class="mx-auto max-w-6xl p-4 sm:p-6 space-y-5">
+    <header class="rounded-3xl bg-gradient-to-br from-amber-700 to-orange-800 p-6 sm:p-8 text-white shadow-xl">
+      <p class="text-sm font-bold uppercase tracking-[0.2em] text-amber-100">Literature Essay Grader</p>
+      <h1 class="mt-2 text-3xl sm:text-4xl font-black">문학 서술형 AI 채점기</h1>
+      <p class="mt-3 max-w-3xl text-amber-50">중세 문학 학습지 내용을 바탕으로 서술형 답안을 직접 쓰고, AI가 내신형 기준으로 점수·감점 사유·보완할 점을 깐깐하게 피드백합니다.</p>
+    </header>
+
+    <section class="grid gap-4 lg:grid-cols-[320px,1fr]">
+      <aside class="space-y-4">
+        <div class="rounded-2xl bg-white p-5 shadow border border-stone-100">
+          <div class="flex items-center justify-between">
+            <h2 class="font-extrabold text-slate-800">학습 현황</h2>
+            <span id="progress-label" class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">0 / 15</span>
+          </div>
+          <div class="mt-4 h-3 overflow-hidden rounded-full bg-stone-100">
+            <div id="progress-bar" class="h-full bg-amber-600 transition-all" style="width: 0%"></div>
+          </div>
+          <div class="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+            <div class="rounded-xl bg-stone-50 p-3">
+              <div id="avg-score" class="text-xl font-black text-slate-800">-</div>
+              <div class="text-xs font-semibold text-slate-500">평균</div>
+            </div>
+            <div class="rounded-xl bg-stone-50 p-3">
+              <div id="low-count" class="text-xl font-black text-orange-600">0</div>
+              <div class="text-xs font-semibold text-slate-500">복습</div>
+            </div>
+            <div class="rounded-xl bg-stone-50 p-3">
+              <div id="done-count" class="text-xl font-black text-amber-700">0</div>
+              <div class="text-xs font-semibold text-slate-500">채점</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-5 shadow border border-stone-100">
+          <h2 class="font-extrabold text-slate-800">대분류 선택</h2>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-sm">
+            <button onclick="setMajorCategory('all')" id="major-all" class="major-btn rounded-xl bg-amber-700 px-3 py-2 font-bold text-white">전체</button>
+            <button onclick="setMajorCategory('중세 전기 문학')" id="major-early" class="major-btn rounded-xl bg-stone-100 px-3 py-2 font-bold text-slate-600">중세 전기 문학</button>
+            <button onclick="setMajorCategory('중세 후기 문학')" id="major-late" class="major-btn rounded-xl bg-stone-100 px-3 py-2 font-bold text-slate-600">중세 후기 문학</button>
+            <button onclick="setMajorCategory('이행기 문학')" id="major-transition" class="major-btn rounded-xl bg-stone-100 px-3 py-2 font-bold text-slate-600">이행기 문학</button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-5 shadow border border-stone-100">
+          <h2 class="font-extrabold text-slate-800">문제 필터</h2>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <button onclick="setFilter('all')" id="filter-all" class="filter-btn rounded-xl bg-amber-700 px-3 py-2 font-bold text-white">전체</button>
+            <button onclick="setFilter('unanswered')" id="filter-unanswered" class="filter-btn rounded-xl bg-stone-100 px-3 py-2 font-bold text-slate-600">미완료</button>
+            <button onclick="setFilter('review')" id="filter-review" class="filter-btn rounded-xl bg-stone-100 px-3 py-2 font-bold text-slate-600">복습 필요</button>
+            <button onclick="resetProgress()" class="rounded-xl bg-red-50 px-3 py-2 font-bold text-red-600">기록 초기화</button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-4 shadow border border-stone-100">
+          <h2 class="px-1 font-extrabold text-slate-800">문제 목록</h2>
+          <div id="question-list" class="mt-3 max-h-[520px] space-y-2 overflow-y-auto pr-1"></div>
+        </div>
+      </aside>
+
+      <section class="overflow-hidden rounded-2xl bg-white shadow-xl border border-stone-100">
+        <div class="border-b border-stone-100 bg-stone-50 p-5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p id="category-label" class="text-sm font-bold text-amber-700"></p>
+              <h2 id="question-title" class="mt-1 text-2xl font-black text-slate-900"></h2>
+            </div>
+            <span id="question-counter" class="rounded-full bg-white px-3 py-1 text-sm font-bold text-slate-600 shadow-sm"></span>
+          </div>
+          <p id="question-text" class="mt-4 text-lg font-bold leading-relaxed text-slate-800"></p>
+        </div>
+
+        <div class="p-5 sm:p-6 space-y-5">
+          <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+            <h3 class="font-extrabold text-amber-800"><i class="fa-solid fa-key mr-2"></i>핵심 키워드</h3>
+            <div id="keyword-list" class="mt-3 flex flex-wrap gap-2"></div>
+          </div>
+
+          <div>
+            <label for="student-answer" class="block text-sm font-extrabold text-slate-700">내 답안</label>
+            <textarea id="student-answer" rows="9" class="mt-2 w-full rounded-2xl border-2 border-stone-200 p-4 text-base leading-relaxed outline-none transition focus:border-amber-600 focus:ring-4 focus:ring-amber-100" placeholder="여기에 서술형 답안을 직접 작성하세요. 시대, 갈래, 형식 특징, 작품 예를 함께 쓰면 점수가 잘 나옵니다."></textarea>
+          </div>
+
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex gap-2">
+              <button onclick="goToQuestion(-1)" id="prev-btn" class="rounded-xl border border-stone-200 bg-white px-4 py-3 font-bold text-slate-600 transition hover:bg-stone-50 disabled:opacity-40">
+                <i class="fa-solid fa-arrow-left mr-2"></i>이전
+              </button>
+              <button onclick="goToQuestion(1)" id="next-btn" class="rounded-xl border border-stone-200 bg-white px-4 py-3 font-bold text-slate-600 transition hover:bg-stone-50 disabled:opacity-40">
+                다음<i class="fa-solid fa-arrow-right ml-2"></i>
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="showModelAnswer()" class="rounded-xl bg-stone-100 px-4 py-3 font-bold text-slate-700 transition hover:bg-stone-200">
+                모범답안 보기
+              </button>
+              <button onclick="gradeCurrentAnswer()" id="grade-btn" class="rounded-xl bg-amber-700 px-5 py-3 font-black text-white shadow-lg shadow-amber-100 transition hover:bg-amber-800">
+                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI 채점
+              </button>
+            </div>
+          </div>
+
+          <div id="model-answer-box" class="hidden rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            <h3 class="font-extrabold text-slate-800">모범답안</h3>
+            <p id="model-answer-text" class="mt-2 leading-relaxed text-slate-700"></p>
+          </div>
+
+          <div id="feedback-box" class="hidden rounded-2xl border border-amber-100 bg-amber-50 p-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 class="text-xl font-black text-amber-950">AI 피드백</h3>
+              <div class="flex items-center gap-2">
+                <span id="score-badge" class="rounded-full bg-white px-4 py-2 text-lg font-black text-amber-700 shadow-sm">-</span>
+                <span id="grade-label" class="rounded-full bg-amber-700 px-3 py-2 text-sm font-bold text-white">-</span>
+              </div>
+            </div>
+            <div id="feedback-content" class="feedback-card mt-4 space-y-4"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'literatureEssayGraderProgress';
+    const LOW_SCORE_THRESHOLD = 75;
+    const gradeEndpoint = '/api/grade-answer';
+
+    const majorCategoryButtonIds = {
+      all: 'major-all',
+      '중세 전기 문학': 'major-early',
+      '중세 후기 문학': 'major-late',
+      '이행기 문학': 'major-transition'
+    };
+
+    const questions = [
+      {
+        id: 'q01',
+        majorCategory: '중세 전기 문학',
+        category: '문학사 흐름',
+        title: '중세 문학의 흐름과 시대 구분',
+        question: '중세 문학의 기록 방식, 작가층과 독자층의 변화, 중세 전기와 중세 후기의 구분 기준 및 대표 갈래를 설명하시오.',
+        keywords: ['구비 문학', '한문', '차자 표기', '한글', '무신 정변', '몽골의 침입', '중세 전기', '중세 후기', '향가', '경기체가', '시조', '가사', '신흥 사대부'],
+        rubric: ['구비 문학 외에 한문, 차자 표기, 한글 기록 문학이 등장했음을 쓴다.', '다양한 갈래 형성과 작가층·독자층 확대를 설명한다.', '무신 정변과 몽골 침입을 경계로 중세 전기와 후기를 구분한다.', '전기에는 향가와 한문학, 후기에는 신흥 사대부와 경기체가·시조·가사 등 갈래를 연결한다.'],
+        modelAnswer: '중세에는 구비 문학 이외에 한문, 차자 표기, 한글로 표기하는 기록 문학이 등장하였다. 다양한 문학 갈래가 형성되면서 작가층과 독자층도 확대되었다. 중세 문학은 무신 정변과 몽골의 침입을 경계로 중세 전기 문학과 중세 후기 문학으로 나눌 수 있다. 중세 전기에는 향가와 한문학이 등장하였고, 중세 후기에는 신흥 사대부가 새로운 작가층으로 등장하면서 경기체가, 시조, 가사 등의 갈래가 새롭게 나타났다.'
+      },
+      {
+        id: 'q02',
+        majorCategory: '중세 전기 문학',
+        category: '향가',
+        title: '향가의 형식과 작품 예',
+        question: '향가의 표기 방식, 형식 구분, 10구체 향가의 특징, 전승 작품 수와 대표 작품 예를 설명하시오.',
+        keywords: ['향가', '국문 정형 시가', '향찰', '4구체', '8구체', '10구체', '제9행 감탄구', '25수', '서동요', '처용가', '찬기파랑가', '제망매가'],
+        rubric: ['향가가 처음 확인되는 국문 정형 시가이며 향찰로 기록되었음을 쓴다.', '행 수에 따라 4구체, 8구체, 10구체로 나뉨을 쓴다.', '10구체의 제9행 첫머리 감탄구와 정형적 서정시의 형식미를 설명한다.', '고려 시대 작품까지 포함해 25수가 전하며 대표 작품 예를 정확히 제시한다.'],
+        modelAnswer: '향가는 처음 확인되는 국문 정형 시가로, 향찰로 기록되었다. 행의 수에 따라 4구체, 8구체, 10구체로 나뉘며, 10구체는 제9행 첫머리에 감탄구를 두는 등 정형적 서정시로서의 형식미를 갖추었다고 평가된다. 향가는 고려 시대 작품까지 포함하여 모두 25수가 전한다. 4구체에는 서동요, 풍요, 헌화가, 도솔가가 있고, 8구체에는 모죽지랑가와 처용가가 있으며, 찬기파랑가와 제망매가를 비롯한 나머지 작품들은 10구체이다.'
+      },
+      {
+        id: 'q03',
+        majorCategory: '중세 전기 문학',
+        category: '한문학과 구비 문학',
+        title: '중세 전기의 한문학과 구비 문학',
+        question: '중세 전기 한문학과 구비 문학의 전개 양상을 최치원 및 관련 작품을 포함하여 설명하시오.',
+        keywords: ['한문 유입', '최치원', '격황소서', '한시', '양태사', '정지상', '구비 문학', '향악잡영', '민속극 공연'],
+        rubric: ['한문 유입 이후 규범적 문장을 구사한 산문이 창작되었음을 쓴다.', '최치원의 격황소서를 예로 든다.', '최치원, 양태사, 정지상 등의 한시 작품을 언급한다.', '구비 문학의 창작·전승과 향악잡영의 민속극 공연 기록을 설명한다.'],
+        modelAnswer: '한문이 유입되면서 최치원의 격황소서처럼 중세의 규범적 문장을 구사한 산문이 창작되었다. 또한 최치원, 양태사, 정지상 등이 문학성이 뛰어난 한시 작품을 남겼다. 구비 문학도 활발하게 창작되고 전승되었으며, 그 일부는 여러 문헌에 실려 오늘날까지 전한다. 특히 최치원의 향악잡영에는 민속극 공연에 관한 기록이 남아 있어 당시 구비 문학과 공연 문화의 전개를 보여 준다.'
+      },
+      {
+        id: 'q04',
+        majorCategory: '중세 후기 문학',
+        category: '고려 속요',
+        title: '고려 속요의 특징과 평가',
+        question: '고려 속요의 형성 배경, 형식적 특징, 내용상 특징, 조선 시대의 평가와 대표 작품을 설명하시오.',
+        keywords: ['고려 속요', '민간의 노래', '궁중 음악', '후렴구', '연장체', '3음보', '정형성 없음', '자연스러운 감정', '남녀상열지사', '청산별곡', '서경별곡', '가시리'],
+        rubric: ['고려 시대 민간 노래 일부가 궁중 음악에 흡수되어 조선 시대까지 향유되었음을 쓴다.', '후렴구를 갖춘 연장체의 3음보 형식이 많지만 고유한 정형성은 없음을 설명한다.', '자연스러운 감정과 삶의 모습을 담았음을 쓴다.', '조선 시대에 남녀상열지사로 비판받은 점과 대표 작품을 포함한다.'],
+        modelAnswer: '고려 속요는 고려 시대 민간의 노래 가운데 일부가 궁중 음악에 흡수되어 조선 시대까지 향유된 노래이다. 후렴구를 갖춘 연장체의 3음보 형식 작품이 많지만, 갈래 고유의 정형성은 나타나지 않는다. 주로 자연스러운 감정과 삶의 모습을 담았기 때문에 조선 시대에는 남녀상열지사로 비판받기도 했다. 대표 작품으로 청산별곡, 서경별곡, 가시리 등이 있다.'
+      },
+      {
+        id: 'q05',
+        majorCategory: '중세 후기 문학',
+        category: '경기체가',
+        title: '경기체가의 등장과 형식',
+        question: '경기체가가 등장한 배경과 작가층, 표현 방식, 결구와 구성상의 형식적 특징, 대표 작품을 설명하시오.',
+        keywords: ['경기체가', '신흥 사대부', '구체적 사물 나열', '감흥', '위 경 긔 엇더하니잇고', '여러 장', '한림별곡', '조선 시대'],
+        rubric: ['경기체가가 신흥 사대부의 등장과 함께 나타났음을 쓴다.', '구체적 사물을 나열하면서 감흥을 드러내는 표현 방식을 설명한다.', '위 경 긔 엇더하니잇고라는 결구와 여러 장 구성의 형식 특징을 쓴다.', '최초 작품 한림별곡과 조선 시대까지 창작되었음을 포함한다.'],
+        modelAnswer: '경기체가는 신흥 사대부의 등장과 함께 나타난 문학 갈래이다. 이 갈래는 구체적 사물을 나열하면서 그에 대한 감흥을 드러내는 방식으로 전개된다. 형식적으로는 위 경 긔 엇더하니잇고라는 결구를 갖추고 여러 장으로 구성된다는 특징이 있다. 최초 작품인 한림별곡이 창작된 이후 조선 시대까지 여러 작품이 창작되었다.'
+      },
+      {
+        id: 'q06',
+        majorCategory: '중세 후기 문학',
+        category: '시조와 가사',
+        title: '시조와 가사의 발생 및 형식 비교',
+        question: '중세 후기 시조와 가사의 발생, 형식, 율격, 길이, 대표 작가와 작품을 비교하여 설명하시오.',
+        keywords: ['시조', '향가 이후', '서정시', '3장', '4음보', '종장 첫 구 감탄구', '우탁', '이조년', '성삼문', '이황', '황진이', '홍랑', '가사', '4음보 연속체', '상춘곡', '관동별곡'],
+        rubric: ['시조가 향가가 사라진 이후 생겨난 서정시 갈래임을 쓴다.', '시조의 3장 형식과 4음보 율격, 종장 첫 구 감탄구를 설명한다.', '가사가 4음보 연속체이고 음보와 결구 형식은 시조와 유사하지만 길이가 훨씬 길다는 점을 비교한다.', '시조 작가와 가사 작품 예를 정확히 제시한다.'],
+        modelAnswer: '시조와 가사는 중세 후기에 짓기 시작하여 오랜 기간 향유되었다. 시조는 향가가 사라진 이후 생겨난 서정시 갈래로, 3장의 형식과 4음보의 율격을 갖추었으며 10구체 향가처럼 종장 첫 구에 감탄구를 두기도 했다. 고려의 우탁과 이조년, 조선의 성삼문, 이황, 황진이, 홍랑 등의 작품이 전한다. 가사는 4음보 연속체의 형식을 지닌 갈래로 음보와 결구 형식은 시조와 유사하지만 길이는 시조보다 훨씬 길다. 정극인의 상춘곡, 정철의 관동별곡 등이 대표적이다.'
+      },
+      {
+        id: 'q07',
+        majorCategory: '중세 후기 문학',
+        category: '한문 산문',
+        title: '가전과 민족 문화에 대한 관심',
+        question: '중세 후기 한문 산문의 새로운 경향을 가전, 삼국유사, 동명왕편을 중심으로 설명하시오.',
+        keywords: ['한문 산문', '가전', '임춘', '공방전', '사물 의인화', '전기 형식', '일연', '삼국유사', '이규보', '동명왕편', '민족 문화', '역사'],
+        rubric: ['가전이 사물을 의인화하여 전기 형식으로 서술하는 갈래임을 쓴다.', '임춘의 공방전을 예로 든다.', '일연의 삼국유사와 이규보의 동명왕편을 제시한다.', '우리 민족의 문화와 역사에 대한 관심이 드러났음을 설명한다.'],
+        modelAnswer: '중세 후기에는 한문 산문에서 새로운 경향이 나타났다. 임춘의 공방전처럼 사물을 의인화하여 전기 형식으로 서술하는 가전이 새롭게 등장하였다. 또한 일연의 삼국유사와 이규보의 동명왕편처럼 우리 민족의 문화와 역사에 대한 관심을 드러낸 작품도 나타났다. 이는 한문 산문이 단순한 규범적 글쓰기를 넘어 문학적 실험과 민족적 관심을 담아내기 시작했음을 보여 준다.'
+      },
+      {
+        id: 'q08',
+        majorCategory: '중세 후기 문학',
+        category: '한글과 악장',
+        title: '한글 창제와 악장 문학',
+        question: '한글 창제가 어문 생활과 문학에 미친 영향과 중세 시기 한글의 한계, 악장 문학의 특징과 작품 예를 설명하시오.',
+        keywords: ['한글 창제', '어문 생활', '획기적 변화', '한문', '영향력 제한', '악장 문학', '용비어천가', '월인천강지곡', '기능적 문학'],
+        rubric: ['한글 창제가 어문 생활에 획기적 변화를 가져왔음을 쓴다.', '중세에는 한문의 지위가 굳건하여 한글의 영향력이 제한적이었음을 설명한다.', '용비어천가와 월인천강지곡 같은 악장 문학 작품을 예로 든다.', '악장 문학이 기능적 문학의 한계를 벗어나지 못했다는 평가를 포함한다.'],
+        modelAnswer: '한글 창제는 어문 생활에 획기적인 변화를 가져왔다. 그러나 한문의 지위가 굳건하던 중세에는 한글의 영향력이 제한적이었다. 이 시기에 용비어천가나 월인천강지곡과 같은 악장 문학 작품이 창작되었다. 다만 이러한 작품들은 특정한 기능과 목적을 지닌 문학으로서 기능적 문학의 한계를 벗어나지 못했다고 평가된다.'
+      },
+      {
+        id: 'q09',
+        majorCategory: '중세 후기 문학',
+        category: '소설의 발생',
+        title: '한문학, 설화 문학과 소설의 발생',
+        question: '고려에서 조선으로 이어지는 한문학의 변화와 구비 문학에 대한 관심, 소설의 발생 과정을 금오신화를 포함하여 설명하시오.',
+        keywords: ['한문학', '상층 남성', '사대부', '학문적 정치적 분화', '여성', '하층민', '설화집', '한문 산문', '설화 문학', '소설의 발생', '김시습', '금오신화'],
+        rubric: ['고려 시대 한문학이 상층 남성 중심으로 발달했음을 쓴다.', '조선 시대 사대부의 분화와 작가층이 여성·하층민까지 확대되었음을 설명한다.', '사대부의 구비 문학 관심과 설화집 편찬을 언급한다.', '한문 산문과 설화 문학의 발달이 소설 발생으로 이어지고 금오신화를 첫 소설적 작품으로 제시한다.'],
+        modelAnswer: '고려 시대에 상층 남성 중심으로 발달한 한문학은 조선 시대에 이르러 사대부가 학문적·정치적으로 분화하고 작가층이 여성과 하층민까지 확대되면서 더욱 다양한 면모를 지니게 되었다. 이 시기 사대부들은 구비 문학에도 관심을 가져 설화집이 편찬되기도 하였다. 한문 산문과 설화 문학의 발달은 소설의 발생으로 이어졌다. 일반적으로 김시습의 금오신화를 소설의 특징을 온전히 갖춘 첫 작품으로 든다.'
+      },
+      {
+        id: 'q10',
+        majorCategory: '이행기 문학',
+        category: '문학사 흐름',
+        title: '중세에서 근대로의 이행기 문학',
+        question: '중세에서 근대로의 이행기 문학이 중세 문학에 가까운 점과 근대 문학에 가까운 점을 사회적 배경과 함께 설명하시오.',
+        keywords: ['임진왜란', '병자호란', '사회적 변화', '이행기', '한문학', '국문 문학', '구비 문학', '작가층 확대', '국문 문학 비중', '근대적 가치관'],
+        rubric: ['임진왜란과 병자호란이 사회와 문학에 영향을 주었음을 쓴다.', '이 시기를 중세에서 근대로의 이행기라고 부름을 쓴다.', '한문학, 국문 문학, 구비 문학이 공존한다는 점에서 중세 문학에 가까움을 설명한다.', '작가층 확대, 국문 문학 비중 증가, 근대와 유사한 가치관 표현을 근대 문학에 가까운 점으로 설명한다.'],
+        modelAnswer: '임진왜란과 병자호란이 가져온 사회적 변화는 문학에도 영향을 주었고, 이 시기를 중세에서 근대로의 이행기라고 부른다. 이행기 문학은 한문학, 국문 문학, 구비 문학이 공존한다는 점에서는 중세 문학에 가깝다. 그러나 작가층이 확대되고 국문 문학의 비중이 커지며 근대와 유사한 가치관이 표현된다는 점에서는 근대 문학에 가깝다. 따라서 이 시기의 문학은 중세적 성격과 근대적 성격이 함께 나타나는 과도기적 문학이다.'
+      },
+      {
+        id: 'q11',
+        majorCategory: '이행기 문학',
+        category: '소설 문학',
+        title: '이행기 소설 문학의 발전',
+        question: '홍길동전 이후 소설 문학의 발전 양상을 군담 소설, 국문·한문 소설, 판소리계 소설, 독서 문화의 변화와 관련지어 설명하시오.',
+        keywords: ['홍길동전', '소대성전', '군담 소설', '구운몽', '사씨남정기', '창선감의록', '유충렬전', '흥보전', '춘향전', '심청전', '판소리계 소설', '전문 이야기꾼', '세책가'],
+        rubric: ['홍길동전 이후 군담 소설과 다양한 국문·한문 소설이 등장했음을 쓴다.', '소대성전, 구운몽, 사씨남정기 등 작품 예를 포함한다.', '흥보전, 춘향전, 심청전 같은 판소리계 소설의 향유를 설명한다.', '전문 이야기꾼과 세책가의 등장으로 소설의 인기를 설명한다.'],
+        modelAnswer: '홍길동전 이후 소대성전과 같은 군담 소설이 나타났고, 김만중의 구운몽과 사씨남정기, 창선감의록, 유충렬전 등 다양한 국문 및 한문 소설이 등장하였다. 또한 흥보전, 춘향전, 심청전처럼 판소리에서 기원한 판소리계 소설도 널리 향유되었다. 소설을 읽어 주는 전문 이야기꾼이나 소설책을 빌려주는 세책가가 등장한 것은 당시 소설의 인기가 높았음을 보여 준다. 이처럼 이행기에는 소설 갈래가 다양해지고 독서 문화도 확대되었다.'
+      },
+      {
+        id: 'q12',
+        majorCategory: '이행기 문학',
+        category: '시가 문학',
+        title: '이행기 시가 문학의 변화',
+        question: '중세에서 근대로의 이행기 시가 문학에서 시조와 가사에 나타난 형식 변화와 여성 작가의 활동, 개화 가사의 등장을 설명하시오.',
+        keywords: ['시가 문학', '형식 변화', '사설시조', '장편 가사', '변격 가사', '여성 작가', '허난설헌', '규원가', '규방 가사', '동심가', '개화 가사'],
+        rubric: ['시가 문학에서 갈래 내부의 형식 변화가 나타났음을 쓴다.', '시조에서 사설시조가 유행했음을 쓴다.', '가사에서 장편 가사와 변격 가사가 등장했음을 설명한다.', '허난설헌의 규원가 등 규방 가사와 동심가 같은 개화 가사를 포함한다.'],
+        modelAnswer: '중세에서 근대로의 이행기 시가 문학에서는 갈래 내부에서 형식 변화가 나타났다. 시조에서는 사설시조가 유행하였고, 가사에서는 장편의 가사와 변격 가사가 등장하였다. 또한 가사에서는 여성 작가가 활발히 활동하여 허난설헌의 규원가를 비롯한 여러 규방 가사가 창작되었다. 동심가처럼 전통적 형식에 새로운 내용과 주제 의식을 담은 개화 가사도 등장하였다.'
+      },
+      {
+        id: 'q13',
+        majorCategory: '이행기 문학',
+        category: '판소리와 구비 문학',
+        title: '판소리와 구비 문학의 전개',
+        question: '중세에서 근대로의 이행기 구비 문학과 공연 예술의 전개, 신재효의 역할과 판소리 여섯 마당을 설명하시오.',
+        keywords: ['구비 문학', '설화', '민요', '판소리', '탈춤', '공연 예술', '신재효', '흥보가', '춘향가', '적벽가', '수궁가', '심청가', '변강쇠가', '소리꾼 후원'],
+        rubric: ['민간에서 설화와 민요 같은 구비 문학이 창작·전승되었음을 쓴다.', '판소리와 탈춤 같은 공연 예술이 성행했음을 설명한다.', '신재효가 판소리 열두 마당 중 여섯 마당을 정리했음을 쓴다.', '여섯 마당의 작품명과 소리꾼 후원·양성을 포함한다.'],
+        modelAnswer: '이행기 민간에서는 설화나 민요와 같은 구비 문학 작품이 창작되고 전승되었으며, 판소리나 탈춤 같은 공연 예술이 성행하였다. 신재효는 판소리 열두 마당 중에서 흥보가, 춘향가, 적벽가, 수궁가, 심청가, 변강쇠가의 여섯 마당을 정리하였다. 또한 그는 소리꾼을 후원하고 양성하였다. 이 가운데 다섯 마당은 오늘날에도 널리 공연되고 있다.'
+      },
+      {
+        id: 'q14',
+        majorCategory: '이행기 문학',
+        category: '한문학',
+        title: '이행기 한문학의 전개',
+        question: '중세에서 근대로의 이행기 한문학의 작가층 변화와 내용 및 형식상의 특징을 설명하시오.',
+        keywords: ['한문학', '여성', '중인 계층', '작가 활동', '시선집', '사회 현실 비판', '새로운 형식', '주제 의식'],
+        rubric: ['중세에 꾸준히 창작되던 한문학이 이행기에 계속 전개되었음을 쓴다.', '여성과 중인 계층 작가들의 활동이 활발해졌음을 설명한다.', '중인 계층이 독자적으로 시선집을 간행한 점을 포함한다.', '사회 현실 비판 경향과 새로운 형식·주제 의식의 등장을 설명한다.'],
+        modelAnswer: '중세에 꾸준히 창작되었던 한문학은 중세에서 근대로의 이행기에 이르러 여성과 중인 계층 작가들의 활동이 활발해지면서 새로운 양상을 보였다. 특히 중인 계층은 독자적으로 시선집을 간행하기도 하였다. 내용적으로는 사회 현실을 비판하는 경향의 작품이 많아졌다. 또한 새로운 형식과 주제 의식을 보인 작품이 등장한 점도 이 시기 한문학의 특징이다.'
+      },
+      {
+        id: 'q15',
+        majorCategory: '이행기 문학',
+        category: '근대 문학의 전조',
+        title: '신소설과 신체시의 등장',
+        question: '근대 문학으로 진입하던 시기에 등장한 신소설과 신체시의 성격과 대표 작품을 설명하시오.',
+        keywords: ['근대 문학', '과도기적 성격', '신소설', '이인직', '혈의 누', '이해조', '자유종', '구마검', '신체시', '최남선', '해에게서 소년에게'],
+        rubric: ['신소설과 신체시가 근대 문학으로 진입하던 시기의 새로운 형식임을 쓴다.', '두 갈래가 과도기적 성격을 지녔음을 설명한다.', '신소설의 대표 작가와 작품을 제시한다.', '신체시의 대표 작품으로 최남선의 해에게서 소년에게를 제시한다.'],
+        modelAnswer: '근대 문학으로 진입하던 시기에는 신소설과 신체시 같은 새로운 문학 갈래가 등장하였다. 이들은 전통 문학에서 근대 문학으로 넘어가는 과정에서 나타난 과도기적 성격을 지닌 형식이다. 신소설에는 이인직의 혈의 누, 이해조의 자유종과 구마검 등이 있다. 신체시는 최남선의 해에게서 소년에게를 대표적인 작품으로 들 수 있다.'
+      }
+    ];
+
+    let currentIndex = 0;
+    let currentMajorCategory = 'all';
+    let currentFilter = 'all';
+    let progress = {};
+    let visibleIndexes = questions.map((_, index) => index);
+
+    function loadProgress() {
+      try {
+        progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      } catch (error) {
+        progress = {};
+      }
+    }
+
+    function saveProgress() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    }
+
+    function questionMatchesMajorCategory(question) {
+      return currentMajorCategory === 'all' || question.majorCategory === currentMajorCategory;
+    }
+
+    function getMajorFilteredQuestions() {
+      return questions.filter(questionMatchesMajorCategory);
+    }
+
+    function getVisibleIndexes() {
+      return questions
+        .map((question, index) => ({ question, index }))
+        .filter(({ question }) => questionMatchesMajorCategory(question))
+        .filter(({ question }) => {
+          const saved = progress[question.id];
+          if (currentFilter === 'unanswered') return !saved?.grading;
+          if (currentFilter === 'review') return saved?.grading && Number(saved.grading.score) < LOW_SCORE_THRESHOLD;
+          return true;
+        })
+        .map(({ index }) => index);
+    }
+
+    function setMajorCategory(category) {
+      saveCurrentAnswerOnly();
+      currentMajorCategory = category;
+      currentIndex = questions.findIndex(question => questionMatchesMajorCategory(question));
+      if (currentIndex < 0) currentIndex = 0;
+      renderAll();
+    }
+
+    function setFilter(filter) {
+      saveCurrentAnswerOnly();
+      currentFilter = filter;
+      const indexes = getVisibleIndexes();
+      currentIndex = indexes.length ? indexes[0] : 0;
+      renderAll();
+    }
+
+    function updateMajorCategoryButtons() {
+      Object.entries(majorCategoryButtonIds).forEach(([category, id]) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        const isActive = currentMajorCategory === category;
+        button.className = `major-btn rounded-xl px-3 py-2 font-bold ${isActive ? 'bg-amber-700 text-white' : 'bg-stone-100 text-slate-600'}`;
+      });
+    }
+
+    function updateFilterButtons() {
+      ['all', 'unanswered', 'review'].forEach(filter => {
+        const button = document.getElementById(`filter-${filter}`);
+        const isActive = currentFilter === filter;
+        button.className = `filter-btn rounded-xl px-3 py-2 font-bold ${isActive ? 'bg-amber-700 text-white' : 'bg-stone-100 text-slate-600'}`;
+      });
+    }
+
+    function renderStats() {
+      const scopedQuestions = getMajorFilteredQuestions();
+      const graded = scopedQuestions.filter(question => progress[question.id]?.grading);
+      const low = graded.filter(question => Number(progress[question.id].grading.score) < LOW_SCORE_THRESHOLD);
+      const avg = graded.length
+        ? Math.round(graded.reduce((sum, question) => sum + Number(progress[question.id].grading.score || 0), 0) / graded.length)
+        : '-';
+
+      document.getElementById('progress-label').innerText = `${graded.length} / ${scopedQuestions.length}`;
+      document.getElementById('progress-bar').style.width = `${scopedQuestions.length ? (graded.length / scopedQuestions.length) * 100 : 0}%`;
+      document.getElementById('avg-score').innerText = avg;
+      document.getElementById('low-count').innerText = low.length;
+      document.getElementById('done-count').innerText = graded.length;
+    }
+
+    function renderQuestionList() {
+      visibleIndexes = getVisibleIndexes();
+      const list = document.getElementById('question-list');
+      if (!visibleIndexes.length) {
+        list.innerHTML = '<p class="rounded-xl bg-stone-50 p-4 text-sm font-bold text-slate-500">조건에 맞는 문제가 없습니다.</p>';
+        return;
+      }
+
+      list.innerHTML = visibleIndexes.map(index => {
+        const question = questions[index];
+        const saved = progress[question.id];
+        const isActive = index === currentIndex;
+        const score = saved?.grading?.score;
+        return `
+          <button onclick="selectQuestion(${index})" class="w-full rounded-xl p-3 text-left transition ${isActive ? 'bg-amber-700 text-white' : 'bg-stone-50 text-slate-700 hover:bg-amber-50'}">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="text-xs font-bold opacity-80">${question.majorCategory} · ${question.category}</p>
+                <p class="mt-1 text-sm font-black">${question.title}</p>
+              </div>
+              <span class="shrink-0 rounded-full ${isActive ? 'bg-white/20' : 'bg-white'} px-2 py-1 text-xs font-black">${score !== undefined ? `${score}점` : '미완료'}</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderQuestion() {
+      visibleIndexes = getVisibleIndexes();
+      if (!visibleIndexes.includes(currentIndex)) {
+        currentIndex = visibleIndexes.length ? visibleIndexes[0] : 0;
+      }
+
+      if (!visibleIndexes.length) {
+        document.getElementById('category-label').innerText = '문제 없음';
+        document.getElementById('question-title').innerText = '조건에 맞는 문제가 없습니다.';
+        document.getElementById('question-counter').innerText = '0 / 0';
+        document.getElementById('question-text').innerText = '필터를 변경하거나 기록을 초기화해 주세요.';
+        document.getElementById('keyword-list').innerHTML = '';
+        document.getElementById('student-answer').value = '';
+        document.getElementById('feedback-box').classList.add('hidden');
+        document.getElementById('model-answer-box').classList.add('hidden');
+        return;
+      }
+
+      const question = questions[currentIndex];
+      const position = visibleIndexes.indexOf(currentIndex) + 1;
+      const saved = progress[question.id] || {};
+
+      document.getElementById('category-label').innerText = `${question.majorCategory} · ${question.category}`;
+      document.getElementById('question-title').innerText = question.title;
+      document.getElementById('question-counter').innerText = `${position} / ${visibleIndexes.length}`;
+      document.getElementById('question-text').innerText = question.question;
+      document.getElementById('keyword-list').innerHTML = question.keywords.map(keyword => `<span class="rounded-full bg-white px-3 py-1 text-sm font-bold text-amber-800 shadow-sm">${escapeHtml(keyword)}</span>`).join('');
+      document.getElementById('student-answer').value = saved.answer || '';
+      document.getElementById('model-answer-text').innerText = question.modelAnswer;
+      document.getElementById('model-answer-box').classList.add('hidden');
+
+      const feedback = document.getElementById('feedback-box');
+      if (saved.grading) {
+        renderFeedback(saved.grading);
+      } else {
+        feedback.classList.add('hidden');
+      }
+
+      document.getElementById('prev-btn').disabled = position <= 1;
+      document.getElementById('next-btn').disabled = position >= visibleIndexes.length;
+    }
+
+    function renderAll() {
+      updateMajorCategoryButtons();
+      updateFilterButtons();
+      renderStats();
+      renderQuestionList();
+      renderQuestion();
+    }
+
+    function selectQuestion(index) {
+      saveCurrentAnswerOnly();
+      currentIndex = index;
+      renderAll();
+    }
+
+    function goToQuestion(direction) {
+      saveCurrentAnswerOnly();
+      visibleIndexes = getVisibleIndexes();
+      const currentPosition = visibleIndexes.indexOf(currentIndex);
+      const nextIndex = visibleIndexes[currentPosition + direction];
+      if (nextIndex === undefined) return;
+      currentIndex = nextIndex;
+      renderAll();
+    }
+
+    function saveCurrentAnswerOnly() {
+      const question = questions[currentIndex];
+      if (!question) return '';
+      const answer = document.getElementById('student-answer').value.trim();
+      if (answer || progress[question.id]) {
+        progress[question.id] = {
+          ...(progress[question.id] || {}),
+          answer
+        };
+        saveProgress();
+      }
+      return answer;
+    }
+
+    function showModelAnswer() {
+      document.getElementById('model-answer-box').classList.toggle('hidden');
+    }
+
+    function renderList(title, items, emptyText) {
+      const safeItems = Array.isArray(items) ? items.filter(Boolean) : [];
+      if (!safeItems.length) return `<div><h4 class="font-black text-slate-800">${title}</h4><p class="mt-1 text-sm text-slate-600">${emptyText}</p></div>`;
+      return `<div><h4 class="font-black text-slate-800">${title}</h4><ul class="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-slate-700">${safeItems.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>`;
+    }
+
+    function renderFeedback(grading) {
+      document.getElementById('feedback-box').classList.remove('hidden');
+      document.getElementById('score-badge').innerText = `${grading.score ?? '-'}점`;
+      document.getElementById('grade-label').innerText = '채점 완료';
+      document.getElementById('feedback-content').innerHTML = `
+        <div class="grid gap-4 md:grid-cols-2">
+          ${renderList('감점 사유', grading.deductions, '뚜렷한 감점 사유는 없습니다.')}
+          ${renderList('보완할 점', grading.improvements, '현재 답안을 조금 더 구체화하면 좋습니다.')}
+        </div>
+      `;
+      renderStats();
+      renderQuestionList();
+    }
+
+    async function gradeCurrentAnswer() {
+      const question = questions[currentIndex];
+      const answer = saveCurrentAnswerOnly();
+      if (!answer) {
+        alert('먼저 답안을 입력해 주세요.');
+        return;
+      }
+
+      const button = document.getElementById('grade-btn');
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>채점 중...';
+
+      try {
+        const response = await fetch(gradeEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: question.question,
+            modelAnswer: question.modelAnswer,
+            keywords: question.keywords,
+            rubric: question.rubric,
+            studentAnswer: answer
+          })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `채점 요청 실패: ${response.status}`);
+        }
+
+        const grading = await response.json();
+        progress[question.id] = {
+          answer,
+          grading,
+          gradedAt: new Date().toISOString()
+        };
+        saveProgress();
+        renderFeedback(grading);
+      } catch (error) {
+        alert(`AI 채점 중 오류가 발생했습니다.\n${error.message}`);
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI 채점';
+      }
+    }
+
+    function resetProgress() {
+      if (!confirm('저장된 답안과 AI 피드백을 모두 삭제할까요?')) return;
+      progress = {};
+      saveProgress();
+      renderAll();
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    window.onload = () => {
+      loadProgress();
+      renderAll();
+    };
+  </script>
+</body>
+</html>
