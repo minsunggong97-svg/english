@@ -62,7 +62,7 @@
             <h1 class="text-3xl font-extrabold text-emerald-600 sm:text-4xl">
                 <i class="fa-solid fa-language mr-2"></i>Grammar Sentence Builder
             </h1>
-            <p class="mt-3 text-lg text-slate-600">핵심 어법 문장 배열 연습기 <span id="total-count-label">(총 161문장)</span></p>
+            <p class="mt-3 text-lg text-slate-600">핵심 어법 문장 배열 연습기 <span id="total-count-label">(총 210문장)</span></p>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl border border-amber-100 overflow-hidden">
@@ -153,10 +153,10 @@
                 <!-- Status & Hint -->
                 <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
                     <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 161</span>
+                        <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 210</span>
                         <label for="passage-select" class="text-sm font-semibold text-slate-500">지문 선택</label>
                         <select id="passage-select" onchange="handlePassageChange()" class="text-sm font-semibold border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
-                            <option value="all">전체 기본 세트 (161문장)</option>
+                            <option value="all">전체 기본 세트 (210문장)</option>
                             <option value="romantic-road">Romantic Road (48문장)</option>
                             <option value="can-ai">Can AI Think... (19문장)</option>
                             <option value="day3-1">Day 03-1 (14문장)</option>
@@ -170,6 +170,7 @@
                             <option value="day4-4">Day 04-4 (9문장)</option>
                             <option value="day4-5">Day 04-5 (6문장)</option>
                             <option value="day4-6">Day 04-6 (7문장)</option>
+                            <option value="sports-fandom">Theories and Practices of Sports Fandom (49문장)</option>
                             <option value="custom">사용자 가져오기 문제</option>
                         </select>
                         <label for="chunk-level-select" class="text-sm font-semibold text-slate-500 ml-0 sm:ml-2">청킹</label>
@@ -2045,6 +2046,26 @@
 
         ];
 
+        const sportsFandomText = `Playing sports is one of the most common hobbies, but people also love to watch live sports games. If you go to any sports stadium, you will be able to find fans cheering wildly, crying with joy. In the case of football, some famous matches are accompanied by extreme fans, whose overly aggressive support of their team sometimes leads to confrontations with fans from opposition teams. If someone’s joy, sadness, and even anger emerge from the love of their team, what makes them so loyal? What does it mean for an individual to be a sports fan? And would their passion and cheering actually influence the performance of their team? These questions can be addressed from both an evolutionary and a social psychological perspective.
+
+From an evolutionary perspective, sports fandom emerged from our tribal hunter-gatherer ancestors tens of thousands of years ago. At that time, a person was far more likely to survive as a member of a group than as an isolated individual. People could help each other in groups when dealing with difficult tasks, such as carrying hunted animals that were too heavy for one person to handle. This mutual cooperation built trust and fostered relationships among group members. In fact, group membership was so important that tribes with a stronger sense of community were likely to defeat tribes whose members were less closely allied. Because of this, community membership was a survival mechanism for our ancestors, and the instinct to find one’s own tribe or group has been passed down to modern people. This may be how community membership influences our choice of a sports team and our sense of loyalty to that team.
+
+There are also two social psychological theories that might explain why we cheer for a sports team: optimal distinctiveness and basking in reflected glory. Though it may be human nature to form a group and feel a sense of belonging to that group, being a fan of a sports team is different from just having friends. Optimal distinctiveness theory states that everyone has a need for inclusion and differentiation. That is, individuals want to be included somewhere, but they also want to be different and unique. These two basic but competing needs can be satisfied through group membership. Sports team supporters are one such group. For example, if you are a fan of a football team based in your city, you can satisfy your need for inclusion by supporting the same team with other in-group members. This can also make you feel unique because your team’s fans are different from the fans of other teams. This feeling of uniqueness is reinforced by sports teams’ deliberate use of their team colors and songs.
+
+Another explanation for sports fandom is a phenomenon called “basking in reflected glory.” This means that you feel successful by associating yourself with others’ success, especially when you are connected to them in some way. This phenomenon is closely related to people’s love for their sports teams. People feel proud when their team wins the game or performs well. Even though a team’s triumph may not offer its fans any immediate benefits, the mere act of watching the game brings them satisfaction. This connection with sports teams can sometimes grow so strong among some passionate supporters that they even identify themselves with their teams. Because of this identification, they often consider criticism toward their team as a personal attack and become violent in extreme cases. However, as long as the behavior of sports fans does not go too far and harm others, cheering can become a means for them to express their emotions. Supporting a team passionately can help people forget about their daily life challenges. It can also have positive effects on our brains. For instance, when you cheer for a team and your team wins the game, your brain may release dopamine. Dopamine, a chemical known as the “happy hormone,” makes you feel pleasure when you reach a goal. If you have pursued the goal for a long time, the effect is greater. So it is a particular thrill when a team achieves victory following a series of back-to-back losses. While you are cheering, your brain may also release oxytocin, a hormone that contributes to feelings of bonding between people.
+
+Sports fandom brings benefits not only to individual fans but also to the performance of sports teams. When a team competes in their home stadium, their fans gather to watch the game. Typically, the cheers from the home team’s fans are louder than those from the visiting team’s supporters. This dynamic has an impact on the performance of the home team, as confirmed by a study in 2021. The study examined the relationship between cheering and goals scored in matches. It compared home matches in an Italian football league from 2013 to 2019 with matches during the pandemic when crowds were banned from entering stadiums. It was found that the home team’s performance decreased by eight percent on average without crowds. This means that cheering helps the team’s performance to some extent, although it may not be the determining factor.
+
+Sports fandom can be analyzed using both evolutionary and social psychological approaches. Through these perspectives, we can understand why people have loyalty and support for their teams. Given that sports fandom has become more and more common in modern times, we should think about our role as fans. We should establish a healthy culture of fandom and seek ways to practice fandom that can have a positive influence on society.`;
+
+        const sportsFandomQuizData = splitIntoSentences(sportsFandomText).map((sentence, index) => ({
+            hint: `문장 ${index + 1}: 단어를 올바른 순서로 배열하세요.`,
+            original: sentence,
+            words: chunkSentence(sentence)
+        }));
+
+        quizData = quizData.concat(sportsFandomQuizData);
+
         const defaultQuizData = JSON.parse(JSON.stringify(quizData));
         const defaultPassages = [
             { id: "all", label: "전체 기본 세트", start: 0, end: defaultQuizData.length },
@@ -2060,7 +2081,8 @@
             { id: "day4-3", label: "Day 04-3", start: 130, end: 139 },
             { id: "day4-4", label: "Day 04-4", start: 139, end: 148 },
             { id: "day4-5", label: "Day 04-5", start: 148, end: 154 },
-            { id: "day4-6", label: "Day 04-6", start: 154, end: 161 }
+            { id: "day4-6", label: "Day 04-6", start: 154, end: 161 },
+            { id: "sports-fandom", label: "Theories and Practices of Sports Fandom", start: 161, end: 210 }
         ];
         const STORAGE_KEY = "romanticRoadQuizData";
         const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
