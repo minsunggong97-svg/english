@@ -735,11 +735,114 @@
 
         ];
 
+        const blankTranslations = {
+            "p1-b1": "이다",
+            "p1-b2": "취미들",
+            "p1-b3": "만약",
+            "p1-b4": "응원하는",
+            "p1-b5": "우는",
+            "p1-b6": "~을 동반한다",
+            "p1-b7": "그들의",
+            "p1-b8": "~로 이어진다",
+            "p1-b9": "나온다",
+            "p1-b10": "영향을 미치다",
+            "p2-b1": "~에서 생겨났다",
+            "p2-b2": "생존할 가능성이 있다",
+            "p2-b3": "~보다",
+            "p2-b4": "~을 다룰 때",
+            "p2-b5": "나르는 것",
+            "p2-b6": "~이었다",
+            "p2-b7": "다루기에",
+            "p2-b8": "너무나",
+            "p2-b9": "그들의 구성원들이",
+            "p2-b10": "찾으려는",
+            "p3-b1": "있다",
+            "p3-b2": "~하는",
+            "p3-b3": "비록",
+            "p3-b4": "~이 되는 것",
+            "p3-b5": "말한다",
+            "p3-b6": "포함된",
+            "p3-b7": "충족될 수 있다",
+            "p3-b8": "~에 기반을 둔",
+            "p3-b9": "지지함으로써",
+            "p3-b10": "~에 의해 강화된다",
+            "p4-b1": "~라고 불리는",
+            "p4-b2": "연관시킴으로써",
+            "p4-b3": "연결되어 있다",
+            "p4-b4": "~할 때",
+            "p4-b5": "제공하다",
+            "p4-b6": "가져다준다",
+            "p4-b7": "너무",
+            "p4-b8": "동일시하다",
+            "p4-b9": "~로서",
+            "p5-b1": "~하는 한",
+            "p5-b2": "표현하기 위해",
+            "p5-b3": "지지하는 것",
+            "p5-b4": "잊게 하다",
+            "p5-b5": "~에",
+            "p5-b6": "분비하다",
+            "p5-b7": "~로 알려진",
+            "p5-b8": "느끼게 하다",
+            "p5-b9": "~에 이어서",
+            "p5-b10": "기여한다",
+            "p6-b1": "뿐만 아니라",
+            "p6-b2": "~할 때",
+            "p6-b3": "더 큰",
+            "p6-b4": "확인된",
+            "p6-b5": "~사이의",
+            "p6-b6": "~와",
+            "p6-b7": "금지된",
+            "p6-b8": "감소했다",
+            "p6-b9": "비록",
+            "p6-b10": "사용하여",
+            "p6-b11": "~을 고려하면",
+            "p6-b12": "가지다",
+            "w1-b1": "스포츠를 하는 것은 가장 흔한 취미들 중 하나이다",
+            "w1-b2": "만약 네가 어떤 스포츠 경기장에 가면",
+            "w1-b3": "팬들이 열광적으로 응원하고 기쁨에 우는 것",
+            "w1-b4": "그들의 팀에 대한 지나치게 공격적인 지지가 때때로 상대 팀 팬들과의 충돌로 이어지는",
+            "w1-b5": "한 개인이 스포츠 팬이라는 것은 무엇을 의미하는가",
+            "w1-b6": "이러한 질문들은 진화론적 관점과 사회심리학적 관점 모두에서 다루어질 수 있다",
+            "w2-b1": "진화론적 관점에서 스포츠 팬덤은 수만 년 전 부족 단위 수렵채집 조상들에게서 생겨났다",
+            "w2-b2": "한 사람은 고립된 개인으로서보다 집단의 구성원으로서 생존할 가능성이 훨씬 더 높았다",
+            "w2-b3": "사람들은 어려운 과업을 다룰 때 집단 안에서 서로 도울 수 있었다",
+            "w2-b4": "집단 소속은 너무 중요해서 공동체 의식이 더 강한 부족들이 구성원들이 덜 긴밀하게 연합된 부족들을 물리칠 가능성이 있었다",
+            "w2-b5": "공동체 소속은 조상들에게 생존 기제였고 자신의 부족이나 집단을 찾으려는 본능은 현대인에게 전해져 왔다",
+            "w3-b1": "우리가 왜 스포츠 팀을 응원하는지 설명할 수 있는 두 가지 사회심리학 이론도 있다",
+            "w3-b2": "집단을 형성하고 그 집단에 대한 소속감을 느끼는 것이 인간의 본성일 수 있지만 스포츠 팀의 팬이 되는 것은 단지 친구를 갖는 것과 다르다",
+            "w3-b3": "모든 사람은 포함과 차별화에 대한 욕구를 가지고 있다",
+            "w3-b4": "이 두 가지 기본적이지만 경쟁하는 욕구는 집단 소속을 통해 충족될 수 있다",
+            "w3-b5": "당신은 다른 내부 집단 구성원들과 같은 팀을 지지함으로써 포함 욕구를 충족할 수 있다",
+            "w3-b6": "이 독특함의 느낌은 스포츠 팀들이 팀 색과 노래를 의도적으로 사용하는 것에 의해 강화된다",
+            "w4-b1": "스포츠 팬덤에 대한 또 다른 설명은 반사된 영광 누리기라고 불리는 현상이다",
+            "w4-b2": "이것은 특히 어떤 방식으로든 그들과 연결되어 있을 때 자신을 다른 사람들의 성공과 연관시킴으로써 성공했다고 느낀다는 뜻이다",
+            "w4-b3": "팀의 승리가 팬들에게 즉각적인 이익을 제공하지 않을지라도 경기를 보는 행위 자체가 그들에게 만족감을 준다",
+            "w4-b4": "스포츠 팀과의 이러한 연결은 때때로 일부 열정적인 지지자들 사이에서 너무 강해져서 그들이 자신을 팀과 동일시하기까지 한다",
+            "w4-b5": "이러한 동일시 때문에 그들은 종종 팀에 대한 비판을 개인적 공격으로 여기고 극단적인 경우 폭력적이 된다",
+            "w5-b1": "스포츠 팬들의 행동이 너무 지나치지 않고 다른 사람을 해치지 않는 한",
+            "w5-b2": "응원은 그들이 감정을 표현하는 수단이 될 수 있다",
+            "w5-b3": "팀을 열정적으로 지지하는 것은 사람들이 일상생활의 어려움을 잊도록 도울 수 있다",
+            "w5-b4": "네가 팀을 응원하고 네 팀이 경기에서 이기면 뇌는 도파민을 분비할 수 있다",
+            "w5-b5": "행복 호르몬으로 알려진 화학물질인 도파민은 목표에 도달했을 때 즐거움을 느끼게 한다",
+            "w5-b6": "응원하는 동안 뇌는 사람들 사이의 유대감에 기여하는 호르몬인 옥시토신도 분비할 수 있다",
+            "w6-b1": "스포츠 팬덤은 개인 팬들에게뿐만 아니라 스포츠 팀의 경기력에도 이익을 가져온다",
+            "w6-b2": "팀이 홈구장에서 경기할 때 팬들은 경기를 보기 위해 모인다",
+            "w6-b3": "홈팀 팬들의 응원 소리는 방문 팀 지지자들의 응원 소리보다 더 크다",
+            "w6-b4": "이러한 역학은 2021년 연구에서 확인되었듯이 홈팀의 경기력에 영향을 미친다",
+            "w6-b5": "그 연구는 2013년부터 2019년까지 이탈리아 축구 리그의 홈경기를 팬데믹 기간 관중 입장이 금지되었을 때의 경기와 비교했다",
+            "w6-b6": "관중이 없을 때 홈팀의 경기력은 평균 8퍼센트 감소한 것으로 밝혀졌다",
+            "w6-b7": "이것은 응원이 결정적 요인은 아닐지라도 팀의 경기력에 어느 정도 도움이 된다는 뜻이다",
+            "w6-b8": "스포츠 팬덤은 진화론적 접근법과 사회심리학적 접근법 모두를 사용하여 분석될 수 있다",
+            "w6-b9": "현대에 스포츠 팬덤이 점점 더 흔해졌다는 점을 고려하면 우리는 팬으로서의 역할을 생각해야 한다",
+            "w6-b10": "우리는 건강한 팬덤 문화를 확립하고 사회에 긍정적인 영향을 미칠 수 있는 팬덤 실천 방법을 찾아야 한다"
+        };
+
         let currentMode = "grammar";
         let currentSetIndex = 0;
         let activeBlankId = null;
         let activeChoiceBlankId = null;
         let activeExplanationBlankId = null;
+        let activeHintBlankId = null;
         let blankAnswers = {};
         let isGraded = false;
         let draggedChoice = null;
@@ -756,6 +859,10 @@
 
         function getBlank(blankId) {
             return getCurrentSet().blanks[blankId];
+        }
+
+        function getBlankTranslation(blankId) {
+            return blankTranslations[blankId] || getBlank(blankId).answer.join(' ');
         }
 
         function getBlankIds() {
@@ -981,6 +1088,8 @@
             if (!position) return;
 
             const current = blankAnswers[blankId] || [];
+            const isHintOpen = activeHintBlankId === blankId;
+            const translation = getBlankTranslation(blankId);
             const popover = document.createElement('div');
             popover.id = 'choice-popover';
             popover.className = 'choice-popover fixed rounded-2xl border border-emerald-200 bg-white p-4 text-left text-sm leading-relaxed shadow-2xl';
@@ -991,11 +1100,13 @@
             popover.style.overflow = 'visible';
             popover.innerHTML = `
                 <div class="mb-2 flex justify-end gap-1">
+                    <button type="button" id="toggle-choice-hint" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100">힌트</button>
                     <button type="button" id="clear-choice-blank" class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50">비우기</button>
                     <button type="button" id="close-choice-popover" class="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="보기창 닫기">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
+                ${isHintOpen ? `<p class="mb-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-semibold leading-relaxed text-amber-800">해석: ${escapeHtml(translation)} / ${blank.answer.length}어절</p>` : ''}
                 <div id="popup-choice-list" class="flex flex-wrap gap-2 overflow-y-auto rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
             `;
 
@@ -1036,6 +1147,11 @@
             document.getElementById('clear-choice-blank').onclick = (event) => {
                 event.stopPropagation();
                 clearActiveBlank();
+            };
+            document.getElementById('toggle-choice-hint').onclick = (event) => {
+                event.stopPropagation();
+                activeHintBlankId = isHintOpen ? null : blankId;
+                renderPassage();
             };
         }
 
@@ -1194,6 +1310,7 @@
         }
 
         function selectBlank(blankId) {
+            if (activeBlankId !== blankId) activeHintBlankId = null;
             activeBlankId = blankId;
             activeChoiceBlankId = isGraded ? null : blankId;
             activeExplanationBlankId = isGraded ? blankId : null;
@@ -1264,6 +1381,7 @@
             activeBlankId = null;
             activeChoiceBlankId = null;
             activeExplanationBlankId = null;
+            activeHintBlankId = null;
             blankAnswers = {};
             isGraded = false;
             draggedChoice = null;
