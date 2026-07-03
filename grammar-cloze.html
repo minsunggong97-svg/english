@@ -1383,7 +1383,7 @@
                 .replace(/```/g, '')
                 .replace(/^["']|["']$/g, '')
                 .trim();
-            return cleaned.length > 300 ? `${cleaned.slice(0, 300)}…` : cleaned;
+            return cleaned.length > 500 ? `${cleaned.slice(0, 500)}…` : cleaned;
         }
 
         function didGeminiFinishCleanly(data) {
@@ -1416,27 +1416,19 @@
             const comparison = compareAnswerTokens(userTokens, blank.answer);
             const userAnswer = userTokens.join(' ') || '미입력';
             const correctAnswer = blank.answer.join(' ');
-            const positionDiff = buildPositionDiff(userTokens, blank.answer);
             aiFeedbackLoadingId = blankId;
             renderResult();
 
             const prompt = [
                 '너는 고등학교 영어 내신 어법 선생님이다.',
-                '학생이 문법 빈칸/서술형 배열 문제를 틀렸다.',
-                '내 답과 정답을 직접 비교해, 어디가 다른지와 왜 틀렸는지 한국어 2~3문장으로 설명하라.',
-                '300자 이내, 평문 한 단락만 출력하라. JSON, 목록, 제목은 쓰지 마라.',
-                '반드시 포함할 것: (1) 다른 단어/블록 (2) 정답 표현 (3) 문법적 이유.',
-                '"아쉽게도 틀렸습니다"처럼 이유 없이 끝내지 마라.',
-                '',
-                '좋은 예: 내 답 are는 정답 is와 다릅니다. 동명사구 Playing sports가 주어이므로 단수 동사 is를 써야 합니다. sports가 복수형이라 are를 고르기 쉬우나, 주어 전체는 단수입니다.',
+                '학생이 문법 빈칸/서술형 배열 문제에서 작성한 답과 원래 정답을 비교해 자연스럽게 분석하라.',
+                '정해진 형식, 제목, 목록, JSON 없이 한국어 평문으로만 답하라.',
+                '500자 이내로, 학생이 무엇을 어떻게 고쳐야 하는지 이해할 수 있게 설명하라.',
                 '',
                 `문제 유형: ${set.type === 'writing' ? '서술형 배열' : '어법 빈칸'}`,
                 `문법 포인트: ${blank.grammarPoint}`,
-                `내 답: ${userAnswer}`,
-                `정답: ${correctAnswer}`,
-                `위치별 차이: ${positionDiff.join(' / ') || '없음'}`,
-                `빠진 블록: ${comparison.missing.join(', ') || '없음'}`,
-                `불필요하거나 잘못 고른 블록: ${comparison.extra.join(', ') || '없음'}`,
+                `사용자가 적은 답: ${userAnswer}`,
+                `원래 정답: ${correctAnswer}`,
                 `참고 해설: ${blank.explanation.replace(/`/g, '')}`
             ].join('\n');
 
