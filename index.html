@@ -2806,21 +2806,13 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 return;
             }
 
-            const unsolvedQuestions = getUnsolvedQuestions(studyQuestions);
-            if (unsolvedQuestions.length > 0) {
-                quizData = unsolvedQuestions;
-            } else {
-                quizData = studyQuestions;
-            }
+            quizData = studyQuestions;
             syncPassageSelect(sourceValue);
             resetSession();
             const masteredMessage = masteredCountForSet > 0
                 ? ` 쉬움 제외 ${masteredCountForSet}개를 건너뛰었습니다.`
                 : '';
-            const progressMessage = unsolvedQuestions.length > 0
-                ? ` 안 푼 문제 ${unsolvedQuestions.length}개를 먼저 불러왔습니다.`
-                : ' 모든 문제를 푼 상태라 전체 세트를 복습합니다.';
-            showManagerMessage(`${message || `${cleaned.length}개 문제가 적용되었습니다.`}${masteredMessage}${progressMessage}`, 'success');
+            showManagerMessage(`${message || `${cleaned.length}개 문제가 적용되었습니다.`}${masteredMessage}`, 'success');
         }
 
         function shuffleArray(array) {
