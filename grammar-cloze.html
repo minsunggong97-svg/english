@@ -1361,7 +1361,10 @@
             const hasComparison = /(내 답|정답|다릅|차이|대신|→|누락|불필요)/.test(text);
             const hasReason = /(때문|써야|해야|필요|규칙|동사|명사|형태|관계|수동|분사|관사|단수|복수|주어|목적|절|구)/.test(text);
             const isVagueOnly = /^(.*?(아쉽|틀렸|잘못).*?)$/.test(text) && !hasReason;
-            return !hasComparison || !hasReason || isVagueOnly;
+            const quoteCount = (text.match(/['"]/g) || []).length;
+            const hasUnbalancedQuotes = quoteCount % 2 === 1;
+            const hasSentenceEnding = /[.!?。！？]|(다|요|죠|니다|됩니다|합니다)\.?$/.test(text.trim());
+            return !hasComparison || !hasReason || isVagueOnly || hasUnbalancedQuotes || !hasSentenceEnding;
         }
 
         function renderAiFeedback(feedback) {
@@ -1381,6 +1384,11 @@
                 .replace(/^["']|["']$/g, '')
                 .trim();
             return cleaned.length > 300 ? `${cleaned.slice(0, 300)}…` : cleaned;
+        }
+
+        function didGeminiFinishCleanly(data) {
+            const finishReason = data?.candidates?.[0]?.finishReason;
+            return !finishReason || finishReason === 'STOP';
         }
 
         function fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank) {
@@ -1457,7 +1465,7 @@
 
                 const text = normalizeFeedbackText(getGeminiText(data));
                 const fallback = fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank);
-                aiFeedbacks[blankId] = (!text || isWeakAiFeedback(text)) ? fallback : text;
+                aiFeedbacks[blankId] = (!didGeminiFinishCleanly(data) || !text || isWeakAiFeedback(text)) ? fallback : text;
             } catch (error) {
                 aiFeedbacks[blankId] = fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank);
             } finally {
