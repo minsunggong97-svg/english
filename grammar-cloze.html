@@ -49,6 +49,11 @@
             width: min(22rem, calc(100% - 2rem));
         }
 
+        .choice-popover {
+            z-index: 25;
+            width: min(24rem, calc(100% - 2rem));
+        }
+
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -127,15 +132,17 @@
                     <section class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xl">
                         <div class="mb-4 flex items-center justify-between gap-3">
                             <div>
-                                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Choice Box</p>
-                                <h3 id="choice-title" class="mt-1 text-lg font-extrabold text-slate-800">빈칸을 선택하세요</h3>
+                                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Choice Popup</p>
+                                <h3 class="mt-1 text-lg font-extrabold text-slate-800">빈칸 근처 보기창</h3>
                             </div>
                             <button onclick="clearActiveBlank()" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50">
                                 선택 빈칸 비우기
                             </button>
                         </div>
-                        <p id="choice-helper" class="mb-4 text-sm font-semibold text-slate-500">지문 속 빈칸을 누르면 여기에 정답 블록과 함정 블록이 나타납니다.</p>
-                        <div id="choice-box" class="flex min-h-[104px] flex-wrap gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4"></div>
+                        <div class="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/60 p-4">
+                            <p class="text-sm font-bold leading-relaxed text-emerald-800">지문 속 빈칸을 클릭하면 바로 근처에 보기 블록 팝업이 열립니다.</p>
+                            <p class="mt-2 text-sm font-semibold leading-relaxed text-slate-600">채점 후에는 같은 빈칸을 클릭했을 때 보기창 대신 해설창이 표시됩니다.</p>
+                        </div>
                     </section>
 
                     <section class="rounded-2xl border border-blue-100 bg-white p-5 shadow-xl">
@@ -355,6 +362,7 @@
 
         let currentSetIndex = 0;
         let activeBlankId = null;
+        let activeChoiceBlankId = null;
         let activeExplanationBlankId = null;
         let blankAnswers = {};
         let isGraded = false;
@@ -468,14 +476,88 @@
 
             if (isGraded && activeExplanationBlankId) {
                 renderExplanationPopover(activeExplanationBlankId);
+            } else if (!isGraded && activeChoiceBlankId) {
+                renderChoicePopover(activeChoiceBlankId);
             }
             updateProgress();
         }
 
-        function renderExplanationPopover(blankId) {
+        function getBlankPopoverPosition(blankId, width = 368) {
             const passageBox = document.getElementById('passage-area');
             const blankButton = passageBox.querySelector(`[data-blank-id="${blankId}"]`);
-            if (!passageBox || !blankButton) return;
+            if (!passageBox || !blankButton) return null;
+
+            const blankRect = blankButton.getBoundingClientRect();
+            const boxRect = passageBox.getBoundingClientRect();
+            const maxLeft = Math.max(16, passageBox.clientWidth - width);
+            const left = Math.min(Math.max(16, blankRect.left - boxRect.left + passageBox.scrollLeft), maxLeft);
+            const top = blankRect.bottom - boxRect.top + passageBox.scrollTop + 10;
+            return { passageBox, left, top };
+        }
+
+        function renderChoicePopover(blankId) {
+            const position = getBlankPopoverPosition(blankId, 392);
+            if (!position) return;
+
+            const blank = getBlank(blankId);
+            const current = blankAnswers[blankId] || [];
+            const popover = document.createElement('div');
+            popover.id = 'choice-popover';
+            popover.className = 'choice-popover absolute rounded-2xl border border-emerald-200 bg-white p-4 text-left text-sm leading-relaxed shadow-2xl';
+            popover.style.left = `${position.left}px`;
+            popover.style.top = `${position.top}px`;
+            popover.innerHTML = `
+                <div class="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Choices</p>
+                        <h4 class="mt-1 text-base font-extrabold text-slate-900">${escapeHtml(blank.grammarPoint)}</h4>
+                        <p class="mt-1 text-xs font-bold text-slate-500">필요 블록 ${blank.answer.length}개 / 현재 ${current.length}개</p>
+                    </div>
+                    <button type="button" id="close-choice-popover" class="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="보기창 닫기">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div id="popup-choice-list" class="flex flex-wrap gap-2 rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs font-semibold text-slate-500">블록을 클릭하거나 빈칸으로 드래그하세요.</p>
+                    <button type="button" id="clear-choice-blank" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50">이 빈칸 비우기</button>
+                </div>
+            `;
+
+            const list = popover.querySelector('#popup-choice-list');
+            blank.choices.forEach((choice) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.draggable = true;
+                chip.dataset.choice = choice;
+                chip.onclick = () => addBlockToBlank(blankId, choice);
+                chip.ondragstart = handleChoiceDragStart;
+                chip.ondragend = handleChoiceDragEnd;
+                chip.className = 'choice-chip rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:border-emerald-400 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200';
+                chip.textContent = choice;
+                list.appendChild(chip);
+            });
+
+            position.passageBox.appendChild(popover);
+            document.getElementById('close-choice-popover').onclick = (event) => {
+                event.stopPropagation();
+                hideChoicePopover();
+            };
+            document.getElementById('clear-choice-blank').onclick = (event) => {
+                event.stopPropagation();
+                clearActiveBlank();
+            };
+        }
+
+        function hideChoicePopover() {
+            activeChoiceBlankId = null;
+            const popover = document.getElementById('choice-popover');
+            if (popover) popover.remove();
+        }
+
+        function renderExplanationPopover(blankId) {
+            const position = getBlankPopoverPosition(blankId);
+            if (!position) return;
 
             const blank = getBlank(blankId);
             const userBlocks = blankAnswers[blankId] || [];
@@ -483,20 +565,14 @@
             const correctAnswer = blank.answer.join(' ');
             const isCorrect = arraysEqual(userBlocks, blank.answer);
 
-            const blankRect = blankButton.getBoundingClientRect();
-            const boxRect = passageBox.getBoundingClientRect();
-            const maxLeft = Math.max(16, passageBox.clientWidth - 368);
-            const left = Math.min(Math.max(16, blankRect.left - boxRect.left + passageBox.scrollLeft), maxLeft);
-            const top = blankRect.bottom - boxRect.top + passageBox.scrollTop + 10;
-
             const popover = document.createElement('div');
             popover.id = 'explanation-popover';
             popover.className = [
                 'explanation-popover absolute rounded-2xl border bg-white p-4 text-left text-sm leading-relaxed shadow-2xl',
                 isCorrect ? 'border-emerald-200' : 'border-red-200'
             ].join(' ');
-            popover.style.left = `${left}px`;
-            popover.style.top = `${top}px`;
+            popover.style.left = `${position.left}px`;
+            popover.style.top = `${position.top}px`;
             popover.innerHTML = `
                 <div class="mb-3 flex items-start justify-between gap-3">
                     <div>
@@ -513,7 +589,7 @@
                     <p class="rounded-xl ${isCorrect ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'} p-3 font-semibold">${escapeHtml(blank.explanation)}</p>
                 </div>
             `;
-            passageBox.appendChild(popover);
+            position.passageBox.appendChild(popover);
             document.getElementById('close-explanation-popover').onclick = (event) => {
                 event.stopPropagation();
                 hideExplanationPopover();
@@ -530,6 +606,7 @@
             const title = document.getElementById('choice-title');
             const helper = document.getElementById('choice-helper');
             const box = document.getElementById('choice-box');
+            if (!title || !helper || !box) return;
             box.innerHTML = '';
 
             if (!activeBlankId) {
@@ -618,6 +695,7 @@
 
         function selectBlank(blankId) {
             activeBlankId = blankId;
+            activeChoiceBlankId = isGraded ? null : blankId;
             activeExplanationBlankId = isGraded ? blankId : null;
             renderPassage();
             renderChoices();
@@ -632,6 +710,7 @@
             }
             blankAnswers[blankId] = [...current, value];
             isGraded = false;
+            activeChoiceBlankId = blankId;
             activeExplanationBlankId = null;
             renderPassage();
             renderChoices();
@@ -645,6 +724,7 @@
             }
             blankAnswers[activeBlankId] = [];
             isGraded = false;
+            activeChoiceBlankId = activeBlankId;
             activeExplanationBlankId = null;
             renderPassage();
             renderChoices();
@@ -653,6 +733,7 @@
 
         function resetState() {
             activeBlankId = null;
+            activeChoiceBlankId = null;
             activeExplanationBlankId = null;
             blankAnswers = {};
             isGraded = false;
@@ -672,6 +753,7 @@
                 showStatus(`아직 채우지 않은 빈칸이 ${incomplete.length}개 있습니다. 그래도 채점 결과에는 오답으로 표시됩니다.`, 'error');
             }
             isGraded = true;
+            activeChoiceBlankId = null;
             activeExplanationBlankId = null;
             renderPassage();
             renderChoices();
