@@ -1106,7 +1106,7 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                ${isHintOpen ? `<p class="mb-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-semibold leading-relaxed text-amber-800">해석: ${escapeHtml(translation)} / ${blank.answer.length}어절</p>` : ''}
+                ${isHintOpen ? `<p class="absolute right-3 top-11 z-10 max-w-[calc(100%-1.5rem)] rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold leading-relaxed text-amber-800 shadow-lg shadow-amber-100/60">해석: ${escapeHtml(translation)} / ${blank.answer.length}어절</p>` : ''}
                 <div id="popup-choice-list" class="flex flex-wrap gap-2 overflow-y-auto rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
             `;
 
