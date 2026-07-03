@@ -844,6 +844,8 @@
         let activeExplanationBlankId = null;
         let activeHintBlankId = null;
         let blankAnswers = {};
+        let aiFeedbacks = {};
+        let aiFeedbackLoadingId = null;
         let isGraded = false;
         let draggedChoice = null;
         let draggedBlankBlock = null;
@@ -1261,6 +1263,8 @@
                     const blank = set.blanks[id];
                     const user = (blankAnswers[id] || []).join(' ') || '미입력';
                     const answer = blank.answer.join(' ');
+                    const feedback = aiFeedbacks[id];
+                    const isLoading = aiFeedbackLoadingId === id;
                     return `
                         <article class="rounded-xl border border-red-100 bg-red-50/60 p-4">
                             <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -1269,6 +1273,12 @@
                             </div>
                             <p class="mt-2 text-sm font-semibold text-slate-600">내 답: ${escapeHtml(user)}</p>
                             <p class="mt-3 text-sm font-medium leading-relaxed text-slate-700">${escapeHtml(blank.explanation)}</p>
+                            <div class="mt-3 flex flex-wrap items-center gap-2">
+                                <button type="button" onclick="requestAiFeedback('${id}')" class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-extrabold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60" ${isLoading ? 'disabled' : ''}>
+                                    ${isLoading ? 'AI 피드백 생성 중...' : 'AI 피드백 받기'}
+                                </button>
+                            </div>
+                            ${feedback ? `<p class="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm font-semibold leading-relaxed text-amber-900">${escapeHtml(feedback)}</p>` : ''}
                         </article>
                     `;
                 }).join('');
@@ -1284,6 +1294,69 @@
                 </div>
                 <div class="space-y-3">${wrongHtml}</div>
             `;
+        }
+
+        function getGeminiText(data) {
+            return data?.candidates?.[0]?.content?.parts
+                ?.map((part) => part.text || '')
+                .join('')
+                .trim() || '';
+        }
+
+        async function requestAiFeedback(blankId) {
+            const set = getCurrentSet();
+            const blank = set.blanks[blankId];
+            if (!blank) return;
+
+            const userAnswer = (blankAnswers[blankId] || []).join(' ') || '미입력';
+            const correctAnswer = blank.answer.join(' ');
+            aiFeedbackLoadingId = blankId;
+            renderResult();
+
+            const prompt = [
+                '너는 고등학교 영어 내신 어법 선생님이다.',
+                '학생이 문법 빈칸/서술형 배열 문제를 틀렸다.',
+                '학생이 정확히 무엇을 잘못 골랐는지 한두 문장으로 아주 간단히 설명하라.',
+                '정답을 다시 길게 해설하지 말고, 학생 답과 정답의 차이를 중심으로 말하라.',
+                '한국어로 답하고, 최대 3문장으로 제한하라.',
+                '',
+                `문제 유형: ${set.type === 'writing' ? '서술형 배열' : '어법 빈칸'}`,
+                `문법 포인트: ${blank.grammarPoint}`,
+                `내 답: ${userAnswer}`,
+                `정답: ${correctAnswer}`,
+                `기본 해설: ${blank.explanation}`
+            ].join('\\n');
+
+            try {
+                const response = await fetch('/api/analyze-wrong', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                role: 'user',
+                                parts: [{ text: prompt }]
+                            }
+                        ],
+                        generationConfig: {
+                            temperature: 0.2,
+                            maxOutputTokens: 220
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'AI 피드백 요청에 실패했습니다.');
+                }
+
+                aiFeedbacks[blankId] = getGeminiText(data) || 'AI 피드백을 생성하지 못했습니다. 정답과 내 답의 단어 차이를 다시 확인해 보세요.';
+            } catch (error) {
+                aiFeedbacks[blankId] = `AI 피드백을 불러오지 못했습니다: ${error.message}`;
+            } finally {
+                aiFeedbackLoadingId = null;
+                renderResult();
+            }
         }
 
         function updateProgress() {
@@ -1383,6 +1456,8 @@
             activeExplanationBlankId = null;
             activeHintBlankId = null;
             blankAnswers = {};
+            aiFeedbacks = {};
+            aiFeedbackLoadingId = null;
             isGraded = false;
             draggedChoice = null;
             draggedBlankBlock = null;
