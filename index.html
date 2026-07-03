@@ -144,7 +144,26 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden" id="app-container">
+        <div class="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]" id="app-container">
+            <aside class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden lg:sticky lg:top-6 lg:self-start">
+                <div class="bg-emerald-600 px-5 py-4 text-white">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Passages</p>
+                    <h2 class="mt-1 text-xl font-extrabold">지문 선택</h2>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div id="passage-group-list" class="grid gap-2">
+                        <!-- Passage group buttons will be injected here -->
+                    </div>
+                    <div class="border-t border-slate-100 pt-4">
+                        <p id="passage-group-title" class="mb-3 text-sm font-extrabold text-slate-500">세부 지문</p>
+                        <div id="passage-button-list" class="space-y-3">
+                            <!-- Passage buttons will be injected here -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden min-w-0">
             <div class="bg-slate-100 h-2 w-full">
                 <div id="progress-bar" class="bg-emerald-500 h-2 transition-all duration-500 ease-in-out" style="width: 0%;"></div>
             </div>
@@ -154,16 +173,7 @@
                 <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 260</span>
-                        <label for="passage-select" class="text-sm font-semibold text-slate-500">지문 선택</label>
-                        <select id="passage-select" onchange="handlePassageChange()" class="text-sm font-semibold border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
-                            <option value="all">전체 기본 세트 (260문장)</option>
-                            <option value="sports-fandom">Theories and Practices of Sports Fandom (49문장)</option>
-                            <option value="getbol">Getbol, a Symbol of Biodiversity (45문장)</option>
-                            <option value="model-millionaire">The Model Millionaire (65문장)</option>
-                            <option value="what-if-science">What-if Science (48문장)</option>
-                            <option value="inspiring-words">Inspiring Words for Moving Forward (53문장)</option>
-                            <option value="custom">사용자 가져오기 문제</option>
-                        </select>
+                        <input id="passage-select" type="hidden" value="all">
                         <label for="chunk-level-select" class="text-sm font-semibold text-slate-500 ml-0 sm:ml-2">청킹</label>
                         <select id="chunk-level-select" onchange="handleChunkLevelChange()" class="text-sm font-semibold border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
                             <option value="saved">저장된 청크</option>
@@ -245,6 +255,7 @@
                     </button>
                 </div>
             </div>
+        </div>
         </div>
 
         <div id="wrong-notes-container" class="bg-white rounded-2xl shadow-xl border border-red-100 overflow-hidden hidden">
@@ -2439,6 +2450,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             { id: "what-if-science", label: "What-if Science", start: sportsFandomQuizData.length + getbolQuizData.length + modelMillionaireQuizData.length, end: sportsFandomQuizData.length + getbolQuizData.length + modelMillionaireQuizData.length + whatIfScienceQuizData.length },
             { id: "inspiring-words", label: "Inspiring Words for Moving Forward", start: sportsFandomQuizData.length + getbolQuizData.length + modelMillionaireQuizData.length + whatIfScienceQuizData.length, end: defaultQuizData.length }
         ];
+        const passageGroups = [
+            { id: "textbook", label: "교과서", description: "수업 지문", passageIds: ["sports-fandom", "getbol", "model-millionaire", "what-if-science", "inspiring-words"] },
+            { id: "mock-exam", label: "모의고사", description: "기출/실전 지문", passageIds: [] },
+            { id: "supplement", label: "부교재", description: "추가 학습 지문", passageIds: [] }
+        ];
         const STORAGE_KEY = "romanticRoadQuizData";
         const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
         const WRONG_STORAGE_KEY = "sentenceBuilderWrongNotes";
@@ -2459,6 +2475,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let keptQuestions = [];
         let masteredQuestions = [];
         let currentSessionMode = "normal";
+        let activePassageGroup = "textbook";
 
         function toggleManager() {
             const manager = document.getElementById('data-manager');
@@ -2484,9 +2501,108 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             document.getElementById('total-count-label').innerText = `(총 ${quizData.length}문장)`;
         }
 
+        function getPassageCount(passage) {
+            return Math.max(0, passage.end - passage.start);
+        }
+
+        function getPassageById(passageId) {
+            return defaultPassages.find(item => item.id === passageId);
+        }
+
+        function getPassagesForGroup(group) {
+            return group.passageIds.map(getPassageById).filter(Boolean);
+        }
+
+        function getPassageGroupCount(group) {
+            return getPassagesForGroup(group).reduce((total, passage) => total + getPassageCount(passage), 0);
+        }
+
+        function getGroupForPassage(passageId) {
+            return passageGroups.find(group => group.passageIds.includes(passageId)) || passageGroups[0];
+        }
+
+        function renderPassageGroups(activeId = document.getElementById('passage-select')?.value || 'all') {
+            const list = document.getElementById('passage-group-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            passageGroups.forEach((group) => {
+                const isActive = group.id === activePassageGroup;
+                const count = getPassageGroupCount(group);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.onclick = () => selectPassageGroup(group.id);
+                button.className = [
+                    'w-full rounded-2xl border px-4 py-3 text-left transition-all active:scale-[0.99]',
+                    isActive
+                        ? 'border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-100'
+                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                ].join(' ');
+                button.setAttribute('aria-pressed', String(isActive));
+                button.innerHTML = `
+                    <span class="flex items-center justify-between gap-3">
+                        <span class="text-lg font-extrabold ${isActive ? 'text-emerald-800' : 'text-slate-800'}">${group.label}</span>
+                        <span class="rounded-full px-2.5 py-1 text-xs font-black ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${count}문장</span>
+                    </span>
+                    <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${group.description}</span>
+                `;
+                list.appendChild(button);
+            });
+        }
+
+        function renderPassageButtons(activeId = document.getElementById('passage-select')?.value || 'all') {
+            const list = document.getElementById('passage-button-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            const activeGroup = passageGroups.find(group => group.id === activePassageGroup) || passageGroups[0];
+            const groupTitle = document.getElementById('passage-group-title');
+            if (groupTitle) {
+                groupTitle.innerText = `${activeGroup.label} 세부 지문`;
+            }
+
+            const allPassage = getPassageById('all');
+            const groupPassages = getPassagesForGroup(activeGroup);
+            const passagesToRender = activeGroup.id === 'textbook' && allPassage
+                ? [allPassage, ...groupPassages]
+                : groupPassages;
+
+            if (passagesToRender.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500';
+                empty.innerText = '아직 이 카테고리에 등록된 지문이 없습니다.';
+                list.appendChild(empty);
+                return;
+            }
+
+            passagesToRender.forEach((passage) => {
+                const isActive = passage.id === activeId;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.onclick = () => selectPassage(passage.id);
+                button.className = [
+                    'w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.99]',
+                    isActive
+                        ? 'border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-100'
+                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                ].join(' ');
+                button.setAttribute('aria-pressed', String(isActive));
+                button.innerHTML = `
+                    <span class="block text-base font-extrabold ${isActive ? 'text-emerald-800' : 'text-slate-800'}">${passage.label}</span>
+                    <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${getPassageCount(passage)}문장</span>
+                `;
+                list.appendChild(button);
+            });
+        }
+
         function syncPassageSelect(value) {
             const select = document.getElementById('passage-select');
             if (select) select.value = value;
+            if (value !== 'all') {
+                activePassageGroup = getGroupForPassage(value).id;
+            }
+            renderPassageGroups(value);
+            renderPassageButtons(value);
         }
 
         function getDefaultPassageData(passageId) {
@@ -2500,6 +2616,18 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (passageId === 'custom') return;
             const passage = defaultPassages.find(item => item.id === passageId) || defaultPassages[0];
             applyQuizData(getDefaultPassageData(passageId), `${passage.label} 문제를 불러왔습니다.`, passageId);
+        }
+
+        function selectPassage(passageId) {
+            if (passageId === 'custom') return;
+            const passage = defaultPassages.find(item => item.id === passageId) || defaultPassages[0];
+            applyQuizData(getDefaultPassageData(passage.id), `${passage.label} 문제를 불러왔습니다.`, passage.id);
+        }
+
+        function selectPassageGroup(groupId) {
+            activePassageGroup = groupId;
+            renderPassageGroups();
+            renderPassageButtons();
         }
 
         function resetSession() {
