@@ -65,84 +65,7 @@
             <p class="mt-3 text-lg text-slate-600">핵심 어법 문장 배열 연습기 <span id="total-count-label">(총 260문장)</span></p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl border border-amber-100 overflow-hidden">
-            <button onclick="toggleManager()" class="w-full bg-amber-50 hover:bg-amber-100 px-5 py-4 flex items-center justify-between text-left transition-colors">
-                <span class="font-bold text-amber-800"><i class="fa-solid fa-database mr-2"></i>문제 관리 / 지문 불러오기</span>
-                <i id="manager-toggle-icon" class="fa-solid fa-chevron-down text-amber-600"></i>
-            </button>
-            <div id="data-manager" class="hidden p-5 sm:p-6 space-y-4 border-t border-amber-100">
-                <div class="grid sm:grid-cols-2 gap-3 text-sm">
-                    <button onclick="loadDefaultQuestions()" class="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700 transition-colors">
-                        <i class="fa-solid fa-rotate-left mr-1"></i>기본 문제 세트 복원
-                    </button>
-                    <button onclick="loadSavedQuestions()" class="px-4 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 font-semibold text-emerald-700 transition-colors">
-                        <i class="fa-solid fa-folder-open mr-1"></i>저장된 문제 불러오기
-                    </button>
-                </div>
-
-                <div class="p-4 rounded-2xl bg-red-50 border border-red-100">
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-bold text-red-800"><i class="fa-solid fa-book-journal-whills mr-1"></i>오답노트</h3>
-                                <span id="wrong-menu-count" class="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full">0개</span>
-                            </div>
-                            <p class="mt-1 text-xs text-red-700/80">틀린 문장을 저장하고 오답만 다시 풀 수 있습니다.</p>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
-                            <button onclick="scrollToWrongNotes()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-100 text-red-700 font-bold border border-red-100 transition-colors">
-                                오답노트 보기
-                            </button>
-                            <button onclick="startWrongReview()" class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-bold transition-colors">
-                                오답만 다시 풀기
-                            </button>
-                            <button onclick="clearWrongNotes()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-100 text-red-500 font-bold border border-red-100 transition-colors">
-                                전체 삭제
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-bold text-indigo-800"><i class="fa-solid fa-filter-circle-xmark mr-1"></i>쉬운 문장 제외</h3>
-                                <span id="mastered-menu-count" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">0개</span>
-                            </div>
-                            <p class="mt-1 text-xs text-indigo-700/80">이미 충분히 쉬운 문장은 앞으로 나오지 않게 제외할 수 있습니다.</p>
-                        </div>
-                        <button onclick="clearMasteredQuestions()" class="px-3 py-2 rounded-lg bg-white hover:bg-indigo-100 text-indigo-700 text-sm font-bold border border-indigo-100 transition-colors">
-                            제외 문장 복구
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <label for="import-text" class="block text-sm font-bold text-slate-700 mb-2">새 지문 또는 JSON 붙여넣기</label>
-                    <textarea id="import-text" rows="7" class="w-full p-4 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm resize-y" placeholder="영어 지문을 붙여넣으면 문장별 문제를 자동 생성합니다.
-또는 내보낸 JSON을 붙여넣고 'JSON 가져오기'를 누르세요."></textarea>
-                    <p class="mt-2 text-xs text-slate-500">텍스트 자동 생성은 문장 단위로 나누고, 단어 칩은 2~4단어 단위로 자동 묶습니다. 해석 힌트는 필요하면 JSON으로 직접 수정할 수 있습니다.</p>
-                </div>
-
-                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                    <button onclick="buildQuestionsFromText()" class="px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 font-bold text-white shadow-sm transition-colors">
-                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>텍스트로 문제 생성
-                    </button>
-                    <button onclick="importQuestionsFromJson()" class="px-4 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 font-bold text-white shadow-sm transition-colors">
-                        <i class="fa-solid fa-file-import mr-1"></i>JSON 가져오기
-                    </button>
-                    <button onclick="exportQuestionsToJson()" class="px-4 py-3 rounded-xl bg-violet-500 hover:bg-violet-600 font-bold text-white shadow-sm transition-colors">
-                        <i class="fa-solid fa-file-export mr-1"></i>현재 문제 내보내기
-                    </button>
-                    <button onclick="saveQuestionsToBrowser()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-900 font-bold text-white shadow-sm transition-colors">
-                        <i class="fa-solid fa-floppy-disk mr-1"></i>브라우저에 저장
-                    </button>
-                </div>
-
-                <div id="manager-message" class="hidden p-3 rounded-lg text-sm font-semibold"></div>
-            </div>
-        </div>
+        <div id="manager-message" class="hidden p-3 rounded-lg text-sm font-semibold"></div>
 
         <div class="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]" id="app-container">
             <aside class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden lg:sticky lg:top-6 lg:self-start">
@@ -154,6 +77,9 @@
                     <div id="passage-group-list" class="grid gap-2">
                         <!-- Passage group buttons will be injected here -->
                     </div>
+                    <button onclick="clearMasteredQuestions()" class="w-full rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-100">
+                        <i class="fa-solid fa-filter-circle-xmark mr-1"></i>제외 문장 복구
+                    </button>
                 </div>
             </aside>
 
@@ -252,29 +178,6 @@
         </div>
         </div>
 
-        <div id="wrong-notes-container" class="bg-white rounded-2xl shadow-xl border border-red-100 overflow-hidden hidden">
-            <div class="bg-red-50 p-4 border-b border-red-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-book-journal-whills text-red-500 text-xl"></i>
-                    <h2 class="text-lg font-bold text-red-800">나의 오답 노트</h2>
-                    <span id="wrong-count" class="text-xs font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full">0개</span>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="startWrongReview()" class="px-3 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors">
-                        오답만 다시 풀기
-                    </button>
-                    <button onclick="clearWrongNotes()" class="px-3 py-2 rounded-lg bg-white hover:bg-red-50 text-red-500 text-sm font-bold border border-red-100 transition-colors">
-                        전체 삭제
-                    </button>
-                </div>
-            </div>
-            <div class="p-6">
-                <ul id="wrong-notes-list" class="space-y-6">
-                    <!-- Wrong items will be injected here -->
-                </ul>
-            </div>
-        </div>
-
         <div id="kept-notes-container" class="bg-white rounded-2xl shadow-xl border border-yellow-100 overflow-hidden hidden">
             <div class="bg-yellow-50 p-4 border-b border-yellow-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-2">
@@ -299,7 +202,7 @@
         <div id="completion-screen" class="bg-white rounded-2xl shadow-xl border border-emerald-100 p-10 text-center hidden">
             <i class="fa-solid fa-trophy text-6xl text-yellow-400 mb-4"></i>
             <h2 class="text-3xl font-bold text-slate-800 mb-2">학습 완료!</h2>
-            <p class="text-slate-600 mb-6">모든 문장 배열 연습을 마쳤습니다. 오답 노트를 확인하여 복습하세요.</p>
+            <p class="text-slate-600 mb-6">모든 문장 배열 연습을 마쳤습니다.</p>
             <button onclick="location.reload()" class="px-6 py-3 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold rounded-xl transition-all">
                 <i class="fa-solid fa-rotate-right mr-2"></i>다시 시작하기
             </button>
@@ -2449,16 +2352,12 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             { id: "mock-exam", label: "모의고사", description: "기출/실전 지문", passageIds: [] },
             { id: "supplement", label: "부교재", description: "추가 학습 지문", passageIds: [] }
         ];
-        const STORAGE_KEY = "romanticRoadQuizData";
         const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
-        const WRONG_STORAGE_KEY = "sentenceBuilderWrongNotes";
         const PROGRESS_STORAGE_KEY = "sentenceBuilderProgress";
         const MASTERED_STORAGE_KEY = "sentenceBuilderMasteredQuestions";
-        const ANALYZE_WRONG_ENDPOINT = "/api/analyze-wrong";
 
         let currentIndex = 0;
         let score = 0;
-        let wrongAnswers = [];
         let progressRecords = {};
         let activeQuestionPool = JSON.parse(JSON.stringify(quizData));
         let hasAnsweredCurrent = false;
@@ -2468,16 +2367,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let wasDragging = false;
         let keptQuestions = [];
         let masteredQuestions = [];
-        let currentSessionMode = "normal";
         let activePassageGroup = "textbook";
-
-        function toggleManager() {
-            const manager = document.getElementById('data-manager');
-            const icon = document.getElementById('manager-toggle-icon');
-            manager.classList.toggle('hidden');
-            icon.classList.toggle('fa-chevron-down');
-            icon.classList.toggle('fa-chevron-up');
-        }
 
         function showManagerMessage(message, type = 'info') {
             const box = document.getElementById('manager-message');
@@ -2627,7 +2517,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             score = 0;
             hasAnsweredCurrent = false;
             document.getElementById('score-display').innerText = score;
-            renderWrongNotes();
             document.getElementById('completion-screen').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             updateTotalCountLabel();
@@ -2791,10 +2680,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return questions.filter(question => !progressRecords[getQuestionKey(question)]);
         }
 
-        function getWrongQuestionsForSet(questions) {
-            return questions.filter(question => !isQuestionMastered(question) && progressRecords[getQuestionKey(question)]?.status === 'wrong');
-        }
-
         function handleChunkLevelChange() {
             const select = document.getElementById('chunk-level-select');
             currentChunkLevel = select.value;
@@ -2826,7 +2711,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (studyQuestions.length === 0) {
                 quizData = [];
                 currentIndex = 0;
-                currentSessionMode = "normal";
                 syncPassageSelect(sourceValue);
                 updateTotalCountLabel();
                 renderMasteredStatus();
@@ -2837,16 +2721,10 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             }
 
             const unsolvedQuestions = getUnsolvedQuestions(studyQuestions);
-            const wrongQuestions = getWrongQuestionsForSet(studyQuestions);
             if (unsolvedQuestions.length > 0) {
                 quizData = unsolvedQuestions;
-                currentSessionMode = "normal";
-            } else if (wrongQuestions.length > 0) {
-                quizData = wrongQuestions;
-                currentSessionMode = "wrong-review";
             } else {
                 quizData = studyQuestions;
-                currentSessionMode = "normal";
             }
             syncPassageSelect(sourceValue);
             resetSession();
@@ -2855,72 +2733,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 : '';
             const progressMessage = unsolvedQuestions.length > 0
                 ? ` 안 푼 문제 ${unsolvedQuestions.length}개를 먼저 불러왔습니다.`
-                : wrongQuestions.length > 0
-                    ? ` 모든 문제를 푼 상태라 틀린 문제 ${wrongQuestions.length}개를 먼저 불러왔습니다.`
-                    : ' 모든 문제를 푼 상태라 전체 세트를 복습합니다.';
+                : ' 모든 문제를 푼 상태라 전체 세트를 복습합니다.';
             showManagerMessage(`${message || `${cleaned.length}개 문제가 적용되었습니다.`}${masteredMessage}${progressMessage}`, 'success');
-        }
-
-        function buildQuestionsFromText() {
-            const raw = document.getElementById('import-text').value.trim();
-            if (!raw) {
-                showManagerMessage('먼저 영어 지문을 붙여넣어 주세요.', 'error');
-                return;
-            }
-            const sentences = splitIntoSentences(raw);
-            const generated = sentences.map((sentence, index) => ({
-                hint: `문장 ${index + 1}: 단어를 올바른 순서로 배열하세요.`,
-                original: sentence,
-                words: chunkSentence(sentence)
-            }));
-            applyQuizData(generated, `${generated.length}개 문장을 문제로 생성했습니다.`);
-        }
-
-        function importQuestionsFromJson() {
-            const raw = document.getElementById('import-text').value.trim();
-            if (!raw) {
-                showManagerMessage('가져올 JSON을 붙여넣어 주세요.', 'error');
-                return;
-            }
-            try {
-                const parsed = JSON.parse(raw);
-                applyQuizData(parsed, `${parsed.length}개 문제를 JSON에서 가져왔습니다.`);
-            } catch (error) {
-                showManagerMessage('JSON 형식이 올바르지 않습니다.', 'error');
-            }
-        }
-
-        function exportQuestionsToJson() {
-            const json = JSON.stringify(quizData, null, 2);
-            const importText = document.getElementById('import-text');
-            importText.value = json;
-            navigator.clipboard?.writeText(json).then(() => {
-                showManagerMessage('현재 문제 JSON을 아래 입력창에 넣고 클립보드에도 복사했습니다.', 'success');
-            }).catch(() => {
-                showManagerMessage('현재 문제 JSON을 아래 입력창에 넣었습니다.', 'info');
-            });
-        }
-
-        function saveQuestionsToBrowser() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(quizData));
-            showManagerMessage(`${quizData.length}개 문제를 이 브라우저에 저장했습니다.`, 'success');
-        }
-
-        function loadSavedQuestions() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) {
-                showManagerMessage('저장된 문제가 없습니다.', 'error');
-                return;
-            }
-            try {
-                applyQuizData(JSON.parse(saved), '저장된 문제를 불러왔습니다.');
-            } catch (error) {
-                showManagerMessage('저장된 데이터가 손상되어 불러올 수 없습니다.', 'error');
-            }
-        }
-
-        function loadDefaultQuestions() {
-            applyQuizData(getDefaultPassageData('all'), '기본 문제 세트를 복원했습니다.', 'all');
         }
 
         function shuffleArray(array) {
@@ -2957,7 +2771,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function loadQuestion() {
             if (!quizData.length) {
-                showManagerMessage('문제가 없습니다. 문제 관리에서 지문을 불러오세요.', 'error');
+                showManagerMessage('문제가 없습니다. 왼쪽 지문 목록에서 지문을 선택해 주세요.', 'error');
                 return;
             }
             hasAnsweredCurrent = false;
@@ -3233,7 +3047,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 feedbackTitle.innerText = "틀렸습니다.";
                 feedbackDesc.innerHTML = `<span class="block mt-1 text-slate-600">올바른 문장:</span><strong class="text-red-700">${q.original}</strong>`;
                 
-                addWrongNote(q, inputVal);
             }
 
             document.getElementById('check-btn').classList.add('hidden');
@@ -3343,198 +3156,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             updateKeepButton();
         }
 
-        function saveWrongNotes() {
-            localStorage.setItem(WRONG_STORAGE_KEY, JSON.stringify(wrongAnswers));
-        }
-
-        function loadWrongNotes() {
-            try {
-                wrongAnswers = JSON.parse(localStorage.getItem(WRONG_STORAGE_KEY) || '[]');
-            } catch (error) {
-                wrongAnswers = [];
-            }
-            renderWrongNotes();
-        }
-
-        function addWrongNote(questionObj, userWrongInput) {
-            const existing = wrongAnswers.find(item => item.original === questionObj.original);
-            if (existing) {
-                existing.userWrong = userWrongInput;
-                existing.lastWrongAt = new Date().toISOString();
-            } else {
-                wrongAnswers.push({ ...JSON.parse(JSON.stringify(questionObj)), userWrong: userWrongInput, lastWrongAt: new Date().toISOString() });
-            }
-            saveWrongNotes();
-            renderWrongNotes();
-        }
-
-        function removeWrongNote(original) {
-            wrongAnswers = wrongAnswers.filter(item => item.original !== original);
-            saveWrongNotes();
-            renderWrongNotes();
-        }
-
-        function clearWrongNotes() {
-            if (!wrongAnswers.length) return;
-            if (!confirm('오답노트를 모두 삭제할까요?')) return;
-            wrongAnswers = [];
-            saveWrongNotes();
-            renderWrongNotes();
-        }
-
-        function startWrongReview() {
-            const reviewItems = wrongAnswers.filter(item => !isQuestionMastered(item));
-            if (reviewItems.length === 0) {
-                const message = wrongAnswers.length > 0
-                    ? '오답 문장이 모두 쉬움 제외 상태입니다. 복구 후 다시 시도하세요.'
-                    : '저장된 오답이 없습니다.';
-                showManagerMessage(message, wrongAnswers.length > 0 ? 'info' : 'error');
-                return;
-            }
-            const reviewData = reviewItems.map(({ userWrong, lastWrongAt, ...question }) => question);
-            applyQuizData(JSON.parse(JSON.stringify(reviewData)), '오답 문장만 불러왔습니다.', 'custom');
-        }
-
-        function scrollToWrongNotes() {
-            if (wrongAnswers.length === 0) {
-                showManagerMessage('저장된 오답이 없습니다. 문제를 틀리면 자동으로 오답노트에 저장됩니다.', 'info');
-                return;
-            }
-            document.getElementById('wrong-notes-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function escapeHtml(value) {
-            return String(value || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function formatAnalysisText(value) {
-            return escapeHtml(value).replace(/\n/g, '<br>');
-        }
-
-
-        function buildWrongAnalysisPrompt(item) {
-            return `너는 고등학생 영어 어법/문장배열 학습을 돕는 오답 분석 선생님이야.
-
-아래 오답을 한국어로 짧고 명확하게 분석해줘.
-
-[해석/힌트]
-${item.hint || '없음'}
-
-[정답 문장]
-${item.original}
-
-[학생 답안]
-${item.userWrong || '미입력'}
-
-다음 형식으로 답해줘.
-각 항목은 1~2문장 이내로 간결하게 써줘.
-1. 틀린 핵심 원인:
-2. 어순/어법 포인트:
-3. 정답 문장 구조:
-4. 다음에 주의할 한 줄 팁:`;
-        }
-
-        async function analyzeWrongAnswer(index) {
-            const item = wrongAnswers[index];
-            const analysisBox = document.getElementById(`ai-analysis-${index}`);
-            if (!item || !analysisBox) return;
-
-            analysisBox.classList.remove('hidden');
-            analysisBox.innerText = 'AI가 오답을 분석하는 중입니다...';
-            try {
-                const requestBody = {
-                    contents: [
-                        {
-                            role: 'user',
-                            parts: [{ text: buildWrongAnalysisPrompt(item) }]
-                        }
-                    ],
-                    generationConfig: {
-                        temperature: 0.2,
-                        maxOutputTokens: 2048
-                    }
-                };
-
-                const response = await fetch(ANALYZE_WRONG_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(errorText || `AI 분석 요청 실패: ${response.status}`);
-                }
-
-                const data = await response.json();
-                const candidate = data.candidates?.[0];
-                let analysis = candidate?.content?.parts?.map(part => part.text || '').join('\n').trim();
-                if (!analysis) throw new Error('Gemini 응답에서 분석 내용을 찾을 수 없습니다.');
-                if (candidate.finishReason === 'MAX_TOKENS') {
-                    analysis += '\n\n※ 분석이 길이 제한에 걸려 일부 잘렸을 수 있습니다. [AI 분석 다시하기]를 누르면 다시 생성됩니다.';
-                }
-
-                wrongAnswers[index].aiAnalysis = analysis;
-                wrongAnswers[index].analyzedAt = new Date().toISOString();
-                saveWrongNotes();
-                analysisBox.innerHTML = formatAnalysisText(analysis);
-            } catch (error) {
-                analysisBox.innerHTML = `AI 분석 중 오류가 발생했습니다.<br><span class="text-red-600">${escapeHtml(error.message)}</span>`;
-            }
-        }
-
-        function renderWrongNotes() {
-            const container = document.getElementById('wrong-notes-container');
-            const list = document.getElementById('wrong-notes-list');
-            const count = document.getElementById('wrong-count');
-            const menuCount = document.getElementById('wrong-menu-count');
-            if (!container || !list || !count) return;
-
-            count.innerText = `${wrongAnswers.length}개`;
-            if (menuCount) menuCount.innerText = `${wrongAnswers.length}개`;
-            container.classList.toggle('hidden', wrongAnswers.length === 0);
-            list.innerHTML = "";
-            const latestWrongAnswers = wrongAnswers
-                .map((item, originalIndex) => ({ item, originalIndex }))
-                .sort((a, b) => new Date(b.item.lastWrongAt || b.item.analyzedAt || 0) - new Date(a.item.lastWrongAt || a.item.analyzedAt || 0))
-                .slice(0, 3);
-
-            latestWrongAnswers.forEach(({ item, originalIndex }, displayIndex) => {
-                const li = document.createElement('li');
-                li.className = "pb-4 border-b border-slate-100 last:border-0 last:pb-0";
-                li.innerHTML = `
-                    <p class="text-sm font-bold text-slate-500 mb-2">최신 오답 ${displayIndex + 1}</p>
-                    <p class="text-sm font-medium text-blue-700 bg-blue-50 p-2 rounded mb-2"><i class="fa-solid fa-quote-left mr-1 opacity-50"></i> ${item.hint}</p>
-                    <div class="space-y-1 mb-2">
-                        <p class="text-sm"><span class="inline-block w-12 text-slate-400">내 답:</span> <span class="line-through text-red-400">${item.userWrong || '미입력'}</span></p>
-                        <p class="text-sm font-bold text-slate-800"><span class="inline-block w-12 text-emerald-600 font-normal">정답:</span> ${item.original}</p>
-                    </div>
-                    <div id="ai-analysis-${originalIndex}" class="hidden mt-3 p-3 rounded-xl bg-violet-50 border border-violet-100 text-sm text-violet-950 leading-relaxed whitespace-pre-wrap break-words overflow-visible"></div>
-                `;
-                if (item.aiAnalysis) {
-                    const analysisBox = li.querySelector(`#ai-analysis-${originalIndex}`);
-                    analysisBox.classList.remove('hidden');
-                    analysisBox.innerHTML = formatAnalysisText(item.aiAnalysis);
-                }
-                const analyzeBtn = document.createElement('button');
-                analyzeBtn.className = 'mr-3 text-xs font-bold text-violet-600 hover:text-violet-800';
-                analyzeBtn.innerText = item.aiAnalysis ? 'AI 분석 다시하기' : 'AI 분석';
-                analyzeBtn.onclick = () => analyzeWrongAnswer(originalIndex);
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'text-xs font-bold text-red-500 hover:text-red-700';
-                removeBtn.innerText = '삭제';
-                removeBtn.onclick = () => removeWrongNote(item.original);
-                li.appendChild(analyzeBtn);
-                li.appendChild(removeBtn);
-                list.appendChild(li);
-            });
-        }
-
         function goToQuestion(direction) {
             const nextIndex = currentIndex + direction;
             if (nextIndex < 0 || nextIndex >= quizData.length) return;
@@ -3591,20 +3212,9 @@ ${item.userWrong || '미입력'}
         }
 
         function finishQuiz() {
-            const wrongReviewQuestions = getWrongQuestionsForSet(activeQuestionPool);
-            if (currentSessionMode !== "wrong-review" && wrongReviewQuestions.length > 0) {
-                quizData = wrongReviewQuestions;
-                currentSessionMode = "wrong-review";
-                resetSession();
-                showManagerMessage(`모든 문제를 풀었습니다. 이제 틀린 문제 ${wrongReviewQuestions.length}개를 먼저 다시 풉니다.`, 'info');
-                return;
-            }
-
             document.getElementById('app-container').classList.add('hidden');
             document.getElementById('progress-bar').style.width = '100%';
             document.getElementById('completion-screen').classList.remove('hidden');
-            
-            renderWrongNotes();
         }
 
         document.getElementById('answer-input').addEventListener('keydown', function(e) {
@@ -3622,7 +3232,6 @@ ${item.userWrong || '미입력'}
             loadKeptQuestions();
             loadProgressRecords();
             loadMasteredQuestions();
-            loadWrongNotes();
             applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
         };
     </script>
