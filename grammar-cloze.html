@@ -1278,7 +1278,7 @@
                                     ${isLoading ? 'AI 피드백 생성 중...' : 'AI 피드백 받기'}
                                 </button>
                             </div>
-                            ${feedback ? `<p class="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm font-semibold leading-relaxed text-amber-900">${escapeHtml(feedback)}</p>` : ''}
+                            ${renderAiFeedback(feedback)}
                         </article>
                     `;
                 }).join('');
@@ -1303,12 +1303,93 @@
                 .trim() || '';
         }
 
+        function countTokens(tokens) {
+            return tokens.reduce((counts, token) => {
+                counts[token] = (counts[token] || 0) + 1;
+                return counts;
+            }, {});
+        }
+
+        function compareAnswerTokens(userTokens, answerTokens) {
+            const maxLength = Math.max(userTokens.length, answerTokens.length, 1);
+            const samePositionCount = answerTokens.filter((token, index) => userTokens[index] === token).length;
+            const matchRate = Math.round((samePositionCount / maxLength) * 100);
+            const userCounts = countTokens(userTokens);
+            const answerCounts = countTokens(answerTokens);
+            const missing = [];
+            const extra = [];
+
+            Object.entries(answerCounts).forEach(([token, count]) => {
+                const diff = count - (userCounts[token] || 0);
+                for (let i = 0; i < diff; i += 1) missing.push(token);
+            });
+
+            Object.entries(userCounts).forEach(([token, count]) => {
+                const diff = count - (answerCounts[token] || 0);
+                for (let i = 0; i < diff; i += 1) extra.push(token);
+            });
+
+            return {
+                matchRate,
+                missing,
+                extra,
+                samePositionCount,
+                total: answerTokens.length
+            };
+        }
+
+        function renderAiFeedback(feedback) {
+            if (!feedback) return '';
+            if (feedback.error) {
+                return `<p class="mt-3 rounded-xl border border-red-100 bg-white p-3 text-sm font-semibold leading-relaxed text-red-700">${escapeHtml(feedback.error)}</p>`;
+            }
+
+            return `
+                <div class="mt-3 space-y-1 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">
+                    <p><span class="font-extrabold text-amber-700">일치율</span> ${escapeHtml(feedback.matchRate)}</p>
+                    <p><span class="font-extrabold text-amber-700">문법 오류</span> ${escapeHtml(feedback.grammarError)}</p>
+                    <p><span class="font-extrabold text-amber-700">조언</span> ${escapeHtml(feedback.advice)}</p>
+                </div>
+            `;
+        }
+
+        function fallbackAiFeedback(comparison) {
+            const missingText = comparison.missing.length ? `빠진 블록: ${comparison.missing.join(', ')}` : '';
+            const extraText = comparison.extra.length ? `불필요한 블록: ${comparison.extra.join(', ')}` : '';
+            const grammarError = [missingText, extraText].filter(Boolean).join(' / ') || '단어는 비슷하지만 순서가 정답과 다릅니다.';
+            return {
+                matchRate: `${comparison.matchRate}% (${comparison.samePositionCount}/${comparison.total} 위치 일치)`,
+                grammarError,
+                advice: '관사, 소유격, 복수형, 수량 표현처럼 짧은 블록도 빠뜨리지 말고 정답 순서대로 다시 배열해 보세요.'
+            };
+        }
+
+        function parseStructuredFeedback(text, comparison) {
+            const cleaned = text
+                .replace(/```json/gi, '')
+                .replace(/```/g, '')
+                .trim();
+
+            try {
+                const parsed = JSON.parse(cleaned);
+                return {
+                    matchRate: parsed.matchRate || `${comparison.matchRate}%`,
+                    grammarError: parsed.grammarError || fallbackAiFeedback(comparison).grammarError,
+                    advice: parsed.advice || fallbackAiFeedback(comparison).advice
+                };
+            } catch {
+                return fallbackAiFeedback(comparison);
+            }
+        }
+
         async function requestAiFeedback(blankId) {
             const set = getCurrentSet();
             const blank = set.blanks[blankId];
             if (!blank) return;
 
-            const userAnswer = (blankAnswers[blankId] || []).join(' ') || '미입력';
+            const userTokens = blankAnswers[blankId] || [];
+            const comparison = compareAnswerTokens(userTokens, blank.answer);
+            const userAnswer = userTokens.join(' ') || '미입력';
             const correctAnswer = blank.answer.join(' ');
             aiFeedbackLoadingId = blankId;
             renderResult();
@@ -1316,12 +1397,16 @@
             const prompt = [
                 '너는 고등학교 영어 내신 어법 선생님이다.',
                 '학생이 문법 빈칸/서술형 배열 문제를 틀렸다.',
-                '학생이 정확히 무엇을 잘못 골랐는지 한두 문장으로 아주 간단히 설명하라.',
-                '정답을 다시 길게 해설하지 말고, 학생 답과 정답의 차이를 중심으로 말하라.',
-                '한국어로 답하고, 최대 3문장으로 제한하라.',
+                '아래 데이터를 바탕으로 학생의 문법적 오류와 전체 일치율을 간결하게 평가하라.',
+                '반드시 JSON만 출력하라. 마크다운, 코드블록, 추가 설명은 금지한다.',
+                'JSON 스키마: {\"matchRate\":\"...\", \"grammarError\":\"...\", \"advice\":\"...\"}',
+                '각 값은 한국어로 쓰고, grammarError와 advice는 각각 1문장으로 제한하라.',
                 '',
                 `문제 유형: ${set.type === 'writing' ? '서술형 배열' : '어법 빈칸'}`,
                 `문법 포인트: ${blank.grammarPoint}`,
+                `앱 계산 일치율: ${comparison.matchRate}% (${comparison.samePositionCount}/${comparison.total} 위치 일치)`,
+                `빠진 블록: ${comparison.missing.join(', ') || '없음'}`,
+                `불필요하거나 잘못 고른 블록: ${comparison.extra.join(', ') || '없음'}`,
                 `내 답: ${userAnswer}`,
                 `정답: ${correctAnswer}`,
                 `기본 해설: ${blank.explanation}`
@@ -1340,7 +1425,7 @@
                         ],
                         generationConfig: {
                             temperature: 0.2,
-                            maxOutputTokens: 220
+                            maxOutputTokens: 320
                         }
                     })
                 });
@@ -1350,9 +1435,12 @@
                     throw new Error(data.error || 'AI 피드백 요청에 실패했습니다.');
                 }
 
-                aiFeedbacks[blankId] = getGeminiText(data) || 'AI 피드백을 생성하지 못했습니다. 정답과 내 답의 단어 차이를 다시 확인해 보세요.';
+                aiFeedbacks[blankId] = parseStructuredFeedback(getGeminiText(data), comparison);
             } catch (error) {
-                aiFeedbacks[blankId] = `AI 피드백을 불러오지 못했습니다: ${error.message}`;
+                aiFeedbacks[blankId] = {
+                    ...fallbackAiFeedback(comparison),
+                    error: `AI 피드백을 불러오지 못했습니다: ${error.message}`
+                };
             } finally {
                 aiFeedbackLoadingId = null;
                 renderResult();
