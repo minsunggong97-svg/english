@@ -657,7 +657,7 @@
             popover.style.top = `${position.top}px`;
             popover.style.width = `${position.width}px`;
             popover.style.maxHeight = `${position.maxHeight}px`;
-            popover.style.overflowY = 'auto';
+            popover.style.overflow = 'visible';
             popover.innerHTML = `
                 <div class="mb-3 flex items-start justify-between gap-3">
                     <div>
@@ -669,7 +669,7 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                <div id="popup-choice-list" class="flex max-h-64 flex-wrap gap-2 overflow-y-auto rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
+                <div id="popup-choice-list" class="flex flex-wrap gap-2 overflow-y-auto rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
                 <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <p class="text-xs font-semibold text-slate-500">블록을 클릭하거나 빈칸으로 드래그하세요.</p>
                     <button type="button" id="clear-choice-blank" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50">이 빈칸 비우기</button>
@@ -677,7 +677,22 @@
             `;
 
             const list = popover.querySelector('#popup-choice-list');
-            blank.choices.forEach((choice) => {
+            const usedChoiceCounts = current.reduce((counts, choice) => {
+                counts[choice] = (counts[choice] || 0) + 1;
+                return counts;
+            }, {});
+            const remainingChoices = blank.choices.filter((choice) => {
+                if (!usedChoiceCounts[choice]) return true;
+                usedChoiceCounts[choice] -= 1;
+                return false;
+            });
+            const choiceListMaxHeight = Math.max(120, position.maxHeight - 132);
+            list.style.maxHeight = `${choiceListMaxHeight}px`;
+            list.innerHTML = remainingChoices.length === 0
+                ? '<p class="w-full text-center text-xs font-bold text-slate-400">사용 가능한 블록을 모두 넣었습니다.</p>'
+                : '';
+
+            remainingChoices.forEach((choice) => {
                 const chip = document.createElement('button');
                 chip.type = 'button';
                 chip.draggable = true;
