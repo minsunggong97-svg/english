@@ -850,6 +850,57 @@
         let draggedChoice = null;
         let draggedBlankBlock = null;
 
+        function getProgressStorageKey() {
+            return 'grammar-cloze-progress-v1';
+        }
+
+        function sanitizeSavedAnswers(savedAnswers, set) {
+            if (!savedAnswers || typeof savedAnswers !== 'object') return {};
+            return Object.entries(savedAnswers).reduce((answers, [blankId, blocks]) => {
+                if (!set.blanks[blankId] || !Array.isArray(blocks)) return answers;
+                answers[blankId] = blocks
+                    .filter((block) => typeof block === 'string')
+                    .slice(0, set.blanks[blankId].answer.length);
+                return answers;
+            }, {});
+        }
+
+        function saveProgress() {
+            try {
+                const set = getCurrentSet();
+                localStorage.setItem(getProgressStorageKey(), JSON.stringify({
+                    mode: currentMode,
+                    setId: set.id,
+                    blankAnswers,
+                    isGraded
+                }));
+            } catch (error) {
+                console.warn('Unable to save cloze progress:', error);
+            }
+        }
+
+        function loadProgress() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(getProgressStorageKey()) || 'null');
+                if (!saved || !['grammar', 'writing'].includes(saved.mode)) return false;
+
+                const visibleSets = clozeSets.filter((set) => set.type === saved.mode);
+                const savedIndex = visibleSets.findIndex((set) => set.id === saved.setId);
+                if (savedIndex < 0) return false;
+
+                currentMode = saved.mode;
+                currentSetIndex = savedIndex;
+                const set = getCurrentSet();
+                resetState();
+                blankAnswers = sanitizeSavedAnswers(saved.blankAnswers, set);
+                isGraded = Boolean(saved.isGraded);
+                return true;
+            } catch (error) {
+                console.warn('Unable to load cloze progress:', error);
+                return false;
+            }
+        }
+
         function getVisibleSets() {
             return clozeSets.filter(set => set.type === currentMode);
         }
@@ -1487,6 +1538,7 @@
         function selectSet(index) {
             currentSetIndex = index;
             resetState();
+            saveProgress();
             renderAll();
             showStatus(`${getCurrentSet().title} 지문을 불러왔습니다.`, 'success');
         }
@@ -1496,6 +1548,7 @@
             currentMode = mode;
             currentSetIndex = 0;
             resetState();
+            saveProgress();
             renderAll();
             showStatus(mode === 'writing' ? '서술형 배열 모드로 전환했습니다.' : '어법 빈칸 모드로 전환했습니다.', 'success');
         }
@@ -1520,6 +1573,7 @@
             isGraded = false;
             activeChoiceBlankId = blankId;
             activeExplanationBlankId = null;
+            saveProgress();
             renderPassage();
             renderChoices();
             renderResult();
@@ -1534,6 +1588,7 @@
             isGraded = false;
             activeChoiceBlankId = activeBlankId;
             activeExplanationBlankId = null;
+            saveProgress();
             renderPassage();
             renderChoices();
             renderResult();
@@ -1544,6 +1599,7 @@
             isGraded = false;
             activeChoiceBlankId = blankId;
             activeExplanationBlankId = null;
+            saveProgress();
             renderPassage();
             renderChoices();
             renderResult();
@@ -1583,6 +1639,7 @@
 
         function resetCurrentSet() {
             resetState();
+            saveProgress();
             renderAll();
             showStatus('현재 지문 풀이를 초기화했습니다.', 'info');
         }
@@ -1596,6 +1653,7 @@
             isGraded = true;
             activeChoiceBlankId = null;
             activeExplanationBlankId = null;
+            saveProgress();
             renderPassage();
             renderChoices();
             renderResult();
@@ -1698,7 +1756,9 @@
         }
 
         window.onload = () => {
-            resetState();
+            if (!loadProgress()) {
+                resetState();
+            }
             renderAll();
         };
     </script>
