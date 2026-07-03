@@ -54,6 +54,11 @@
             width: min(24rem, calc(100% - 2rem));
         }
 
+        .long-blank {
+            min-width: min(100%, 18rem);
+            white-space: normal;
+        }
+
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -97,7 +102,7 @@
             <aside class="rounded-2xl border border-emerald-100 bg-white shadow-xl lg:sticky lg:top-6 lg:self-start">
                 <div class="rounded-t-2xl bg-emerald-600 px-5 py-4 text-white">
                     <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Cloze Sets</p>
-                    <h2 class="mt-1 text-xl font-extrabold">어법 지문 선택</h2>
+                    <h2 id="set-list-title" class="mt-1 text-xl font-extrabold">어법 지문 선택</h2>
                 </div>
                 <div class="space-y-3 p-4" id="set-list"></div>
             </aside>
@@ -113,6 +118,14 @@
                                 <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Grammar Passage</p>
                                 <h2 id="set-title" class="mt-1 text-2xl font-extrabold text-slate-900"></h2>
                                 <p id="set-description" class="mt-2 text-sm font-semibold text-slate-500"></p>
+                                <div class="mt-4 inline-flex rounded-2xl border border-emerald-100 bg-emerald-50 p-1">
+                                    <button id="grammar-mode-btn" type="button" onclick="setMode('grammar')" class="rounded-xl px-4 py-2 text-sm font-extrabold transition-colors">
+                                        어법 빈칸
+                                    </button>
+                                    <button id="writing-mode-btn" type="button" onclick="setMode('writing')" class="rounded-xl px-4 py-2 text-sm font-extrabold transition-colors">
+                                        서술형 배열
+                                    </button>
+                                </div>
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <span id="filled-count" class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700">0 / 0</span>
@@ -328,9 +341,70 @@
                         explanation: "`the instinct to find...`에서 `to find`는 앞 명사 `instinct`의 내용을 설명하는 형용사적 용법의 to부정사입니다."
                     }
                 }
+            },
+            {
+                id: "sports-fandom-part-1-writing",
+                sourceSetId: "sports-fandom-part-1",
+                title: "Sports Fandom Part 1",
+                subtitle: "서술형 배열",
+                type: "writing",
+                description: "Part 1의 서술형 출제 가능성이 높은 구문을 긴 빈칸 배열로 연습합니다.",
+                passageParts: [
+                    { type: "blank", id: "w1-b1" },
+                    { type: "text", text: ", but people also love to watch live sports games. " },
+                    { type: "blank", id: "w1-b2" },
+                    { type: "text", text: ", you will be able to find " },
+                    { type: "blank", id: "w1-b3" },
+                    { type: "text", text: ". In the case of football, some famous matches are accompanied by extreme fans, " },
+                    { type: "blank", id: "w1-b4" },
+                    { type: "text", text: ". If someone’s joy, sadness, and even anger emerge from the love of their team, what makes them so loyal? " },
+                    { type: "blank", id: "w1-b5" },
+                    { type: "text", text: "? And would their passion and cheering actually influence the performance of their team? " },
+                    { type: "blank", id: "w1-b6" },
+                    { type: "text", text: "." }
+                ],
+                blanks: {
+                    "w1-b1": {
+                        answer: ["Playing", "sports", "is", "one", "of", "the", "most", "common", "hobbies"],
+                        choices: ["Playing", "Play", "sports", "sport", "is", "are", "one", "of", "for", "the", "most", "common", "commonly", "hobbies", "hobby"],
+                        grammarPoint: "동명사 주어 + one of the 최상급 복수명사",
+                        explanation: "`Playing sports`는 동명사구 주어라 단수 동사 `is`가 필요합니다. `one of the most common hobbies`에서는 `one of` 뒤 의미상 여러 취미 중 하나이므로 복수명사 `hobbies`를 써야 합니다."
+                    },
+                    "w1-b2": {
+                        answer: ["If", "you", "go", "to", "any", "sports", "stadium"],
+                        choices: ["If", "Although", "you", "will", "go", "go", "to", "for", "any", "some", "sports", "sport", "stadium"],
+                        grammarPoint: "조건절 If + 현재시제",
+                        explanation: "조건의 부사절에서는 미래 의미라도 현재시제 `go`를 씁니다. 따라서 `If you will go`가 아니라 `If you go to any sports stadium` 순서가 맞습니다."
+                    },
+                    "w1-b3": {
+                        answer: ["fans", "cheering", "wildly", "crying", "with", "joy"],
+                        choices: ["fans", "fan", "cheering", "cheered", "wildly", "wild", "crying", "cried", "with", "for", "joy"],
+                        grammarPoint: "목적어 + 현재분사 병렬",
+                        explanation: "`find fans cheering wildly, crying with joy`는 팬들이 응원하고 우는 상태를 발견한다는 구조입니다. `cheering`과 `crying`은 목적어 `fans`를 설명하는 능동 현재분사입니다."
+                    },
+                    "w1-b4": {
+                        answer: ["whose", "overly", "aggressive", "support", "of", "their", "team", "sometimes", "leads", "to", "confrontations", "with", "fans", "from", "opposition", "teams"],
+                        choices: ["whose", "who", "overly", "aggressive", "support", "supports", "of", "for", "their", "team", "sometimes", "leads", "lead", "to", "for", "confrontations", "confrontation", "with", "fans", "from", "opposition", "teams"],
+                        grammarPoint: "소유격 관계대명사 + 수일치 + lead to",
+                        explanation: "선행사 `extreme fans`와 `support`가 소유 관계이므로 `whose`가 필요합니다. 관계절 주어의 핵심어는 단수 `support`라 `leads`가 맞고, `lead to + 명사` 구조로 이어집니다."
+                    },
+                    "w1-b5": {
+                        answer: ["What", "does", "it", "mean", "for", "an", "individual", "to", "be", "a", "sports", "fan"],
+                        choices: ["What", "How", "does", "is", "it", "mean", "means", "for", "of", "an", "individual", "to", "be", "being", "a", "the", "sports", "fan", "fans"],
+                        grammarPoint: "의문문 어순 + 가주어 it + 의미상 주어 for",
+                        explanation: "`What does it mean ...?`은 의문문 어순입니다. `it`은 가주어이고, `for an individual to be a sports fan`은 to부정사의 의미상 주어와 진주어 구조입니다."
+                    },
+                    "w1-b6": {
+                        answer: ["These", "questions", "can", "be", "addressed", "from", "both", "an", "evolutionary", "and", "a", "social", "psychological", "perspective"],
+                        choices: ["These", "This", "questions", "question", "can", "could", "be", "addressed", "address", "from", "for", "both", "either", "an", "evolutionary", "and", "or", "a", "social", "psychological", "perspective", "perspectives"],
+                        grammarPoint: "조동사 수동태 + both A and B",
+                        explanation: "질문들이 다루어지는 대상이므로 `can be addressed` 수동태가 필요합니다. 또한 `both an evolutionary and a social psychological perspective`는 두 관점을 병렬로 연결합니다."
+                    }
+                }
             }
         ];
 
+        let currentMode = "grammar";
         let currentSetIndex = 0;
         let activeBlankId = null;
         let activeChoiceBlankId = null;
@@ -339,8 +413,13 @@
         let isGraded = false;
         let draggedChoice = null;
 
+        function getVisibleSets() {
+            return clozeSets.filter(set => set.type === currentMode);
+        }
+
         function getCurrentSet() {
-            return clozeSets[currentSetIndex];
+            const visibleSets = getVisibleSets();
+            return visibleSets[currentSetIndex] || visibleSets[0] || clozeSets[0];
         }
 
         function getBlank(blankId) {
@@ -379,7 +458,7 @@
         function renderSetList() {
             const list = document.getElementById('set-list');
             list.innerHTML = '';
-            clozeSets.forEach((set, index) => {
+            getVisibleSets().forEach((set, index) => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.onclick = () => selectSet(index);
@@ -396,6 +475,18 @@
                 `;
                 list.appendChild(button);
             });
+        }
+
+        function renderModeToggle() {
+            const grammarBtn = document.getElementById('grammar-mode-btn');
+            const writingBtn = document.getElementById('writing-mode-btn');
+            if (!grammarBtn || !writingBtn) return;
+
+            const activeClass = 'bg-white text-emerald-700 shadow-sm';
+            const inactiveClass = 'text-slate-500 hover:text-emerald-700';
+            grammarBtn.className = `rounded-xl px-4 py-2 text-sm font-extrabold transition-colors ${currentMode === 'grammar' ? activeClass : inactiveClass}`;
+            writingBtn.className = `rounded-xl px-4 py-2 text-sm font-extrabold transition-colors ${currentMode === 'writing' ? activeClass : inactiveClass}`;
+            document.getElementById('set-list-title').textContent = currentMode === 'writing' ? '서술형 지문 선택' : '어법 지문 선택';
         }
 
         function renderPassage() {
@@ -415,6 +506,7 @@
                 const isFilled = userBlocks.length > 0;
                 const isCorrect = isGraded && arraysEqual(userBlocks, blank.answer);
                 const isWrong = isGraded && !arraysEqual(userBlocks, blank.answer);
+                const isLongBlank = getCurrentSet().type === 'writing' || blank.answer.length > 4;
 
                 const button = document.createElement('button');
                 button.type = 'button';
@@ -424,7 +516,8 @@
                 button.ondragleave = handleBlankDragLeave;
                 button.ondrop = handleBlankDrop;
                 button.className = [
-                    'cloze-blank mx-1 inline-flex min-h-[2.4rem] items-center justify-center gap-1 rounded-lg border-2 border-dashed px-3 py-1 text-base font-extrabold',
+                    'cloze-blank mx-1 inline-flex min-h-[2.4rem] max-w-full flex-wrap items-center justify-center gap-1 rounded-lg border-2 border-dashed px-3 py-1 text-base font-extrabold',
+                    isLongBlank ? 'long-blank align-middle' : '',
                     isActive ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100' : 'border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50',
                     isCorrect ? 'border-emerald-500 bg-emerald-100 text-emerald-800' : '',
                     isWrong ? 'border-red-400 bg-red-50 text-red-700' : '',
@@ -439,7 +532,7 @@
                         button.appendChild(chip);
                     });
                 } else {
-                    button.textContent = '______';
+                    button.textContent = isLongBlank ? '____________________' : '______';
                 }
 
                 area.appendChild(button);
@@ -467,16 +560,18 @@
         }
 
         function renderChoicePopover(blankId) {
-            const position = getBlankPopoverPosition(blankId, 392);
+            const blank = getBlank(blankId);
+            const isWritingBlank = getCurrentSet().type === 'writing' || blank.answer.length > 4;
+            const position = getBlankPopoverPosition(blankId, isWritingBlank ? 520 : 392);
             if (!position) return;
 
-            const blank = getBlank(blankId);
             const current = blankAnswers[blankId] || [];
             const popover = document.createElement('div');
             popover.id = 'choice-popover';
             popover.className = 'choice-popover absolute rounded-2xl border border-emerald-200 bg-white p-4 text-left text-sm leading-relaxed shadow-2xl';
             popover.style.left = `${position.left}px`;
             popover.style.top = `${position.top}px`;
+            popover.style.width = `min(${isWritingBlank ? '32rem' : '24rem'}, calc(100% - 2rem))`;
             popover.innerHTML = `
                 <div class="mb-3 flex items-start justify-between gap-3">
                     <div>
@@ -488,7 +583,7 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                <div id="popup-choice-list" class="flex flex-wrap gap-2 rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
+                <div id="popup-choice-list" class="flex max-h-64 flex-wrap gap-2 overflow-y-auto rounded-xl border border-dashed border-emerald-100 bg-emerald-50/50 p-3"></div>
                 <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <p class="text-xs font-semibold text-slate-500">블록을 클릭하거나 빈칸으로 드래그하세요.</p>
                     <button type="button" id="clear-choice-blank" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50">이 빈칸 비우기</button>
@@ -664,6 +759,15 @@
             showStatus(`${getCurrentSet().title} 지문을 불러왔습니다.`, 'success');
         }
 
+        function setMode(mode) {
+            if (currentMode === mode) return;
+            currentMode = mode;
+            currentSetIndex = 0;
+            resetState();
+            renderAll();
+            showStatus(mode === 'writing' ? '서술형 배열 모드로 전환했습니다.' : '어법 빈칸 모드로 전환했습니다.', 'success');
+        }
+
         function selectBlank(blankId) {
             activeBlankId = blankId;
             activeChoiceBlankId = isGraded ? null : blankId;
@@ -766,6 +870,7 @@
             const set = getCurrentSet();
             document.getElementById('set-title').textContent = `${set.title} - ${set.subtitle}`;
             document.getElementById('set-description').textContent = set.description;
+            renderModeToggle();
             renderSetList();
             renderPassage();
             renderChoices();
