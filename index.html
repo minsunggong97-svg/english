@@ -154,12 +154,6 @@
                     <div id="passage-group-list" class="grid gap-2">
                         <!-- Passage group buttons will be injected here -->
                     </div>
-                    <div class="border-t border-slate-100 pt-4">
-                        <p id="passage-group-title" class="mb-3 text-sm font-extrabold text-slate-500">세부 지문</p>
-                        <div id="passage-button-list" class="space-y-3">
-                            <!-- Passage buttons will be injected here -->
-                        </div>
-                    </div>
                 </div>
             </aside>
 
@@ -2529,6 +2523,10 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             passageGroups.forEach((group) => {
                 const isActive = group.id === activePassageGroup;
                 const count = getPassageGroupCount(group);
+                const groupPassages = getPassagesForGroup(group);
+                const groupItem = document.createElement('div');
+                groupItem.className = 'space-y-1.5';
+
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.onclick = () => selectPassageGroup(group.id);
@@ -2546,52 +2544,48 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                     </span>
                     <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${group.description}</span>
                 `;
-                list.appendChild(button);
-            });
-        }
+                groupItem.appendChild(button);
 
-        function renderPassageButtons(activeId = document.getElementById('passage-select')?.value || 'all') {
-            const list = document.getElementById('passage-button-list');
-            if (!list) return;
-            list.innerHTML = '';
-
-            const activeGroup = passageGroups.find(group => group.id === activePassageGroup) || passageGroups[0];
-            const groupTitle = document.getElementById('passage-group-title');
-            if (groupTitle) {
-                groupTitle.innerText = `${activeGroup.label} 세부 지문`;
-            }
-
-            const allPassage = getPassageById('all');
-            const groupPassages = getPassagesForGroup(activeGroup);
-            const passagesToRender = activeGroup.id === 'textbook' && allPassage
-                ? [allPassage, ...groupPassages]
-                : groupPassages;
-
-            if (passagesToRender.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500';
-                empty.innerText = '아직 이 카테고리에 등록된 지문이 없습니다.';
-                list.appendChild(empty);
-                return;
-            }
-
-            passagesToRender.forEach((passage) => {
-                const isActive = passage.id === activeId;
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.onclick = () => selectPassage(passage.id);
-                button.className = [
-                    'w-full rounded-2xl border p-4 text-left transition-all active:scale-[0.99]',
-                    isActive
-                        ? 'border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-100'
-                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                const detailList = document.createElement('div');
+                detailList.className = [
+                    'overflow-hidden pl-3 transition-all duration-300 ease-out',
+                    isActive ? 'max-h-[720px] translate-y-0 opacity-100' : 'max-h-0 -translate-y-1 opacity-0'
                 ].join(' ');
-                button.setAttribute('aria-pressed', String(isActive));
-                button.innerHTML = `
-                    <span class="block text-base font-extrabold ${isActive ? 'text-emerald-800' : 'text-slate-800'}">${passage.label}</span>
-                    <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${getPassageCount(passage)}문장</span>
-                `;
-                list.appendChild(button);
+
+                const detailInner = document.createElement('div');
+                detailInner.className = 'mt-1 space-y-1.5 border-l border-emerald-100 pl-3 pb-1';
+
+                if (groupPassages.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500';
+                    empty.innerText = '아직 등록된 지문이 없습니다.';
+                    detailInner.appendChild(empty);
+                }
+
+                groupPassages.forEach((passage) => {
+                    const isPassageActive = passage.id === activeId;
+                    const passageButton = document.createElement('button');
+                    passageButton.type = 'button';
+                    passageButton.onclick = () => selectPassage(passage.id);
+                    passageButton.className = [
+                    'w-full rounded-xl border px-3 py-2 text-left text-sm transition-all active:scale-[0.99]',
+                    isPassageActive
+                        ? 'border-emerald-400 bg-emerald-50 text-emerald-800'
+                        : 'border-slate-100 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/40'
+                    ].join(' ');
+                    passageButton.setAttribute('aria-pressed', String(isPassageActive));
+                    passageButton.innerHTML = `
+                    <span class="flex items-center justify-between gap-2">
+                        <span class="min-w-0 flex-1 truncate font-bold">${passage.label}</span>
+                        <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black ${isPassageActive ? 'text-emerald-700' : 'text-slate-500'}">${getPassageCount(passage)}</span>
+                    </span>
+                    `;
+                    detailInner.appendChild(passageButton);
+                });
+
+                detailList.appendChild(detailInner);
+                groupItem.appendChild(detailList);
+                list.appendChild(groupItem);
             });
         }
 
@@ -2602,7 +2596,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 activePassageGroup = getGroupForPassage(value).id;
             }
             renderPassageGroups(value);
-            renderPassageButtons(value);
         }
 
         function getDefaultPassageData(passageId) {
@@ -2625,9 +2618,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         function selectPassageGroup(groupId) {
-            activePassageGroup = groupId;
+            activePassageGroup = activePassageGroup === groupId ? null : groupId;
             renderPassageGroups();
-            renderPassageButtons();
         }
 
         function resetSession() {
