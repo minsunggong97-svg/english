@@ -1338,6 +1338,32 @@
             };
         }
 
+        function buildPositionDiff(userTokens, answerTokens) {
+            const maxLen = Math.max(userTokens.length, answerTokens.length);
+            const diffs = [];
+            for (let i = 0; i < maxLen; i += 1) {
+                const user = userTokens[i];
+                const answer = answerTokens[i];
+                if (user === answer) continue;
+                if (user && answer) {
+                    diffs.push(`${i + 1}번째 블록 '${user}'(내 답) → '${answer}'(정답)`);
+                } else if (!user && answer) {
+                    diffs.push(`${i + 1}번째 블록 '${answer}' 누락`);
+                } else if (user) {
+                    diffs.push(`${i + 1}번째 블록 '${user}' 불필요`);
+                }
+            }
+            return diffs;
+        }
+
+        function isWeakAiFeedback(text) {
+            if (!text || text.length < 80) return true;
+            const hasComparison = /(내 답|정답|다릅|차이|대신|→|누락|불필요)/.test(text);
+            const hasReason = /(때문|써야|해야|필요|규칙|동사|명사|형태|관계|수동|분사|관사|단수|복수|주어|목적|절|구)/.test(text);
+            const isVagueOnly = /^(.*?(아쉽|틀렸|잘못).*?)$/.test(text) && !hasReason;
+            return !hasComparison || !hasReason || isVagueOnly;
+        }
+
         function renderAiFeedback(feedback) {
             if (!feedback) return '';
             if (typeof feedback === 'object' && feedback.error) {
@@ -1357,21 +1383,20 @@
             return cleaned.length > 300 ? `${cleaned.slice(0, 300)}…` : cleaned;
         }
 
-        function fallbackAiFeedback(comparison, userAnswer, correctAnswer, grammarPoint) {
-            const parts = [];
-            if (comparison.missing.length) {
-                parts.push(`'${comparison.missing.join(', ')}'이(가) 빠졌습니다`);
-            }
-            if (comparison.extra.length) {
-                parts.push(`'${comparison.extra.join(', ')}'은(는) 불필요하거나 잘못 고른 블록입니다`);
-            }
-            if (comparison.matchRate < 100 && !comparison.missing.length && !comparison.extra.length) {
-                parts.push('단어는 같지만 순서가 정답과 다릅니다');
-            }
-            const diff = parts.length
-                ? parts.join('. ') + '.'
-                : `정답 '${correctAnswer}'과(와) 내 답 '${userAnswer}'이(가) 다릅니다.`;
-            return normalizeFeedbackText(`${diff} ${grammarPoint} 포인트에 맞게 블록을 다시 배열해 보세요.`);
+        function fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank) {
+            const diffLines = buildPositionDiff(userTokens, blank.answer);
+            const diffPart = diffLines.length
+                ? diffLines.join('. ') + '. '
+                : '';
+            const countPart = [
+                comparison.missing.length ? `'${comparison.missing.join(', ')}' 누락` : '',
+                comparison.extra.length ? `'${comparison.extra.join(', ')}' 불필요` : ''
+            ].filter(Boolean).join(', ');
+            const comparePart = countPart
+                ? `${countPart}. `
+                : `내 답 '${userAnswer}'과 정답 '${correctAnswer}'이 다릅니다. `;
+            const reasonPart = blank.explanation.replace(/`/g, '');
+            return normalizeFeedbackText(`${comparePart}${diffPart}${reasonPart}`);
         }
 
         async function requestAiFeedback(blankId) {
@@ -1383,24 +1408,29 @@
             const comparison = compareAnswerTokens(userTokens, blank.answer);
             const userAnswer = userTokens.join(' ') || '미입력';
             const correctAnswer = blank.answer.join(' ');
+            const positionDiff = buildPositionDiff(userTokens, blank.answer);
             aiFeedbackLoadingId = blankId;
             renderResult();
 
             const prompt = [
                 '너는 고등학교 영어 내신 어법 선생님이다.',
                 '학생이 문법 빈칸/서술형 배열 문제를 틀렸다.',
-                '학생 답과 정답을 비교해, 어디가 틀렸는지 왜 틀렸는지 한국어로 서술하라.',
-                '300자 이내로만 답하라. 마크다운, JSON, 목록, 제목 없이 평문 한 단락으로만 써라.',
-                '정답 전체를 그대로 반복하지 말고, 차이점과 문법적 이유에 집중하라.',
+                '내 답과 정답을 직접 비교해, 어디가 다른지와 왜 틀렸는지 한국어 2~3문장으로 설명하라.',
+                '300자 이내, 평문 한 단락만 출력하라. JSON, 목록, 제목은 쓰지 마라.',
+                '반드시 포함할 것: (1) 다른 단어/블록 (2) 정답 표현 (3) 문법적 이유.',
+                '"아쉽게도 틀렸습니다"처럼 이유 없이 끝내지 마라.',
+                '',
+                '좋은 예: 내 답 are는 정답 is와 다릅니다. 동명사구 Playing sports가 주어이므로 단수 동사 is를 써야 합니다. sports가 복수형이라 are를 고르기 쉬우나, 주어 전체는 단수입니다.',
                 '',
                 `문제 유형: ${set.type === 'writing' ? '서술형 배열' : '어법 빈칸'}`,
                 `문법 포인트: ${blank.grammarPoint}`,
-                `빠진 블록: ${comparison.missing.join(', ') || '없음'}`,
-                `불필요하거나 잘못 고른 블록: ${comparison.extra.join(', ') || '없음'}`,
                 `내 답: ${userAnswer}`,
                 `정답: ${correctAnswer}`,
-                `기본 해설: ${blank.explanation}`
-            ].join('\\n');
+                `위치별 차이: ${positionDiff.join(' / ') || '없음'}`,
+                `빠진 블록: ${comparison.missing.join(', ') || '없음'}`,
+                `불필요하거나 잘못 고른 블록: ${comparison.extra.join(', ') || '없음'}`,
+                `참고 해설: ${blank.explanation.replace(/`/g, '')}`
+            ].join('\n');
 
             try {
                 const response = await fetch('/api/analyze-wrong', {
@@ -1415,7 +1445,7 @@
                         ],
                         generationConfig: {
                             temperature: 0.2,
-                            maxOutputTokens: 400
+                            maxOutputTokens: 512
                         }
                     })
                 });
@@ -1426,11 +1456,10 @@
                 }
 
                 const text = normalizeFeedbackText(getGeminiText(data));
-                aiFeedbacks[blankId] = text || fallbackAiFeedback(comparison, userAnswer, correctAnswer, blank.grammarPoint);
+                const fallback = fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank);
+                aiFeedbacks[blankId] = (!text || isWeakAiFeedback(text)) ? fallback : text;
             } catch (error) {
-                aiFeedbacks[blankId] = {
-                    error: `AI 피드백을 불러오지 못했습니다: ${error.message}`
-                };
+                aiFeedbacks[blankId] = fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank);
             } finally {
                 aiFeedbackLoadingId = null;
                 renderResult();
