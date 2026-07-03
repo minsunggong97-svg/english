@@ -45,12 +45,12 @@
         }
 
         .explanation-popover {
-            z-index: 30;
+            z-index: 100;
             width: min(22rem, calc(100% - 2rem));
         }
 
         .choice-popover {
-            z-index: 25;
+            z-index: 100;
             width: min(24rem, calc(100% - 2rem));
         }
 
@@ -412,6 +412,7 @@
         let blankAnswers = {};
         let isGraded = false;
         let draggedChoice = null;
+        let draggedBlankBlock = null;
 
         function getVisibleSets() {
             return clozeSets.filter(set => set.type === currentMode);
@@ -492,6 +493,9 @@
         function renderPassage() {
             const set = getCurrentSet();
             const area = document.getElementById('passage-area');
+            const previousScrollTop = area.scrollTop;
+            removePopover('choice-popover');
+            removePopover('explanation-popover');
             area.innerHTML = '';
 
             set.passageParts.forEach((part) => {
@@ -525,10 +529,35 @@
                 ].join(' ');
 
                 if (isFilled) {
-                    userBlocks.forEach((block) => {
+                    userBlocks.forEach((block, index) => {
                         const chip = document.createElement('span');
-                        chip.className = 'rounded-md bg-white px-2 py-0.5 text-sm shadow-sm';
+                        chip.role = 'button';
+                        chip.tabIndex = 0;
+                        chip.draggable = !isGraded;
+                        chip.dataset.blankId = part.id;
+                        chip.dataset.blockIndex = String(index);
+                        chip.title = isGraded ? '채점 후에는 결과를 확인하세요.' : '클릭하면 삭제, 드래그하면 순서 변경';
+                        chip.className = [
+                            'rounded-md bg-white px-2 py-0.5 text-sm shadow-sm transition-colors',
+                            isGraded ? 'cursor-default' : 'cursor-grab hover:bg-emerald-50 hover:text-emerald-700 active:cursor-grabbing'
+                        ].join(' ');
                         chip.textContent = block;
+                        chip.onclick = (event) => {
+                            if (isGraded) return;
+                            event.stopPropagation();
+                            removeBlockFromBlank(part.id, index);
+                        };
+                        chip.onkeydown = (event) => {
+                            if (isGraded || !['Enter', ' '].includes(event.key)) return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            removeBlockFromBlank(part.id, index);
+                        };
+                        chip.ondragstart = handleBlankChipDragStart;
+                        chip.ondragover = handleBlankChipDragOver;
+                        chip.ondragleave = handleBlankChipDragLeave;
+                        chip.ondrop = handleBlankChipDrop;
+                        chip.ondragend = handleBlankChipDragEnd;
                         button.appendChild(chip);
                     });
                 } else {
@@ -538,6 +567,7 @@
                 area.appendChild(button);
             });
 
+            area.scrollTop = previousScrollTop;
             if (isGraded && activeExplanationBlankId) {
                 renderExplanationPopover(activeExplanationBlankId);
             } else if (!isGraded && activeChoiceBlankId) {
@@ -552,11 +582,22 @@
             if (!passageBox || !blankButton) return null;
 
             const blankRect = blankButton.getBoundingClientRect();
-            const boxRect = passageBox.getBoundingClientRect();
-            const maxLeft = Math.max(16, passageBox.clientWidth - width);
-            const left = Math.min(Math.max(16, blankRect.left - boxRect.left + passageBox.scrollLeft), maxLeft);
-            const top = blankRect.bottom - boxRect.top + passageBox.scrollTop + 10;
-            return { passageBox, left, top };
+            const margin = 16;
+            const viewportWidth = document.documentElement.clientWidth;
+            const viewportHeight = document.documentElement.clientHeight;
+            const actualWidth = Math.min(width, viewportWidth - margin * 2);
+            const maxLeft = Math.max(margin, viewportWidth - actualWidth - margin);
+            const left = Math.min(Math.max(margin, blankRect.left), maxLeft);
+            const topBelow = blankRect.bottom + 10;
+            const topAbove = Math.max(margin, blankRect.top - 320);
+            const top = topBelow > viewportHeight - 180 ? topAbove : topBelow;
+            const maxHeight = Math.max(180, viewportHeight - top - margin);
+            return { left, top, maxHeight };
+        }
+
+        function removePopover(popoverId) {
+            const popover = document.getElementById(popoverId);
+            if (popover) popover.remove();
         }
 
         function renderChoicePopover(blankId) {
@@ -568,10 +609,12 @@
             const current = blankAnswers[blankId] || [];
             const popover = document.createElement('div');
             popover.id = 'choice-popover';
-            popover.className = 'choice-popover absolute rounded-2xl border border-emerald-200 bg-white p-4 text-left text-sm leading-relaxed shadow-2xl';
+            popover.className = 'choice-popover fixed rounded-2xl border border-emerald-200 bg-white p-4 text-left text-sm leading-relaxed shadow-2xl';
             popover.style.left = `${position.left}px`;
             popover.style.top = `${position.top}px`;
             popover.style.width = `min(${isWritingBlank ? '32rem' : '24rem'}, calc(100% - 2rem))`;
+            popover.style.maxHeight = `${position.maxHeight}px`;
+            popover.style.overflowY = 'auto';
             popover.innerHTML = `
                 <div class="mb-3 flex items-start justify-between gap-3">
                     <div>
@@ -604,7 +647,7 @@
                 list.appendChild(chip);
             });
 
-            position.passageBox.appendChild(popover);
+            document.body.appendChild(popover);
             document.getElementById('close-choice-popover').onclick = (event) => {
                 event.stopPropagation();
                 hideChoicePopover();
@@ -617,8 +660,7 @@
 
         function hideChoicePopover() {
             activeChoiceBlankId = null;
-            const popover = document.getElementById('choice-popover');
-            if (popover) popover.remove();
+            removePopover('choice-popover');
         }
 
         function renderExplanationPopover(blankId) {
@@ -634,11 +676,13 @@
             const popover = document.createElement('div');
             popover.id = 'explanation-popover';
             popover.className = [
-                'explanation-popover absolute rounded-2xl border bg-white p-4 text-left text-sm leading-relaxed shadow-2xl',
+                'explanation-popover fixed rounded-2xl border bg-white p-4 text-left text-sm leading-relaxed shadow-2xl',
                 isCorrect ? 'border-emerald-200' : 'border-red-200'
             ].join(' ');
             popover.style.left = `${position.left}px`;
             popover.style.top = `${position.top}px`;
+            popover.style.maxHeight = `${position.maxHeight}px`;
+            popover.style.overflowY = 'auto';
             popover.innerHTML = `
                 <div class="mb-3 flex items-start justify-between gap-3">
                     <div>
@@ -655,7 +699,7 @@
                     <p class="rounded-xl ${isCorrect ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'} p-3 font-semibold">${escapeHtml(blank.explanation)}</p>
                 </div>
             `;
-            position.passageBox.appendChild(popover);
+            document.body.appendChild(popover);
             document.getElementById('close-explanation-popover').onclick = (event) => {
                 event.stopPropagation();
                 hideExplanationPopover();
@@ -664,8 +708,7 @@
 
         function hideExplanationPopover() {
             activeExplanationBlankId = null;
-            const popover = document.getElementById('explanation-popover');
-            if (popover) popover.remove();
+            removePopover('explanation-popover');
         }
 
         function renderChoices() {
@@ -806,6 +849,35 @@
             renderResult();
         }
 
+        function markBlankEdited(blankId) {
+            activeBlankId = blankId;
+            isGraded = false;
+            activeChoiceBlankId = blankId;
+            activeExplanationBlankId = null;
+            renderPassage();
+            renderChoices();
+            renderResult();
+        }
+
+        function removeBlockFromBlank(blankId, index) {
+            const current = blankAnswers[blankId] || [];
+            if (index < 0 || index >= current.length) return;
+            blankAnswers[blankId] = current.filter((_, blockIndex) => blockIndex !== index);
+            draggedBlankBlock = null;
+            markBlankEdited(blankId);
+        }
+
+        function moveBlockWithinBlank(blankId, fromIndex, toIndex) {
+            const current = [...(blankAnswers[blankId] || [])];
+            if (fromIndex < 0 || fromIndex >= current.length) return;
+
+            const [movedBlock] = current.splice(fromIndex, 1);
+            const nextIndex = Math.max(0, Math.min(toIndex, current.length));
+            current.splice(nextIndex, 0, movedBlock);
+            blankAnswers[blankId] = current;
+            markBlankEdited(blankId);
+        }
+
         function resetState() {
             activeBlankId = null;
             activeChoiceBlankId = null;
@@ -813,6 +885,7 @@
             blankAnswers = {};
             isGraded = false;
             draggedChoice = null;
+            draggedBlankBlock = null;
         }
 
         function resetCurrentSet() {
@@ -836,6 +909,7 @@
         }
 
         function handleChoiceDragStart(event) {
+            draggedBlankBlock = null;
             draggedChoice = event.currentTarget.dataset.choice;
             event.dataTransfer.effectAllowed = 'copy';
             event.dataTransfer.setData('text/plain', draggedChoice);
@@ -847,8 +921,51 @@
             draggedChoice = null;
         }
 
+        function handleBlankChipDragStart(event) {
+            event.stopPropagation();
+            const { blankId, blockIndex } = event.currentTarget.dataset;
+            draggedChoice = null;
+            draggedBlankBlock = { blankId, index: Number(blockIndex) };
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('application/x-blank-block', JSON.stringify(draggedBlankBlock));
+            event.currentTarget.classList.add('opacity-50');
+        }
+
+        function handleBlankChipDragOver(event) {
+            if (!draggedBlankBlock) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'move';
+            event.currentTarget.classList.add('ring-2', 'ring-emerald-300');
+        }
+
+        function handleBlankChipDragLeave(event) {
+            event.currentTarget.classList.remove('ring-2', 'ring-emerald-300');
+        }
+
+        function handleBlankChipDrop(event) {
+            if (!draggedBlankBlock) return;
+            event.preventDefault();
+            event.stopPropagation();
+
+            const targetBlankId = event.currentTarget.dataset.blankId;
+            const targetIndex = Number(event.currentTarget.dataset.blockIndex);
+            event.currentTarget.classList.remove('ring-2', 'ring-emerald-300');
+
+            if (draggedBlankBlock.blankId !== targetBlankId) return;
+            const adjustedIndex = draggedBlankBlock.index < targetIndex ? targetIndex - 1 : targetIndex;
+            moveBlockWithinBlank(targetBlankId, draggedBlankBlock.index, adjustedIndex);
+            draggedBlankBlock = null;
+        }
+
+        function handleBlankChipDragEnd(event) {
+            event.currentTarget.classList.remove('opacity-50', 'ring-2', 'ring-emerald-300');
+            draggedBlankBlock = null;
+        }
+
         function handleBlankDragOver(event) {
             event.preventDefault();
+            event.dataTransfer.dropEffect = draggedBlankBlock ? 'move' : 'copy';
             event.currentTarget.classList.add('drop-zone-active');
         }
 
@@ -861,8 +978,18 @@
             const blankId = event.currentTarget.dataset.blankId;
             const value = event.dataTransfer.getData('text/plain') || draggedChoice;
             event.currentTarget.classList.remove('drop-zone-active');
-            if (!blankId || !value) return;
+            if (!blankId) return;
             activeBlankId = blankId;
+
+            if (draggedBlankBlock) {
+                if (draggedBlankBlock.blankId === blankId) {
+                    moveBlockWithinBlank(blankId, draggedBlankBlock.index, (blankAnswers[blankId] || []).length);
+                }
+                draggedBlankBlock = null;
+                return;
+            }
+
+            if (!value) return;
             addBlockToBlank(blankId, value);
         }
 
