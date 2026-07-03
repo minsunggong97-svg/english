@@ -112,7 +112,7 @@
                             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Passage Reader</p>
                             <h3 id="passage-reader-title" class="text-lg font-extrabold text-slate-800">지문 전체 보기</h3>
                         </div>
-                        <p class="text-xs font-semibold text-slate-500">문장을 클릭하면 해석과 문제가 아래에 나타납니다.</p>
+                        <p class="text-xs font-semibold text-slate-500">문장을 클릭할 때마다 영어/한국어가 바뀝니다.</p>
                     </div>
                     <div id="passage-reader-list" class="max-h-72 overflow-y-auto rounded-xl bg-white px-4 py-4 text-base font-medium leading-8 text-slate-800 shadow-inner shadow-slate-100">
                         <!-- Passage sentences will be injected here -->
@@ -2381,6 +2381,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let keptQuestions = [];
         let masteredQuestions = [];
         let activePassageGroup = "textbook";
+        let translatedReaderSentences = new Set();
 
         function showManagerMessage(message, type = 'info') {
             const box = document.getElementById('manager-message');
@@ -2447,19 +2448,19 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
             quizData.forEach((question, index) => {
                 const isActive = index === currentIndex;
+                const isTranslated = translatedReaderSentences.has(index);
                 const item = document.createElement('button');
                 item.type = 'button';
                 item.dataset.readerIndex = String(index);
-                item.title = isActive ? question.original : '클릭하면 해석과 문제가 열립니다.';
-                item.setAttribute('aria-label', `문장 ${index + 1}: ${isActive ? getTranslationText(question) : question.original}`);
+                item.title = isTranslated ? question.original : getTranslationText(question);
+                item.setAttribute('aria-label', `문장 ${index + 1}: ${isTranslated ? getTranslationText(question) : question.original}`);
                 item.onclick = () => selectPassageSentence(index);
                 item.className = [
                     'inline rounded-md px-1 py-0.5 text-left align-baseline transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-200',
-                    isActive
-                        ? 'bg-emerald-100 font-bold text-emerald-900 ring-1 ring-emerald-200'
-                        : 'text-slate-800 hover:bg-emerald-50 hover:text-emerald-800'
+                    isTranslated ? 'bg-emerald-50 font-bold text-emerald-900' : 'text-slate-800',
+                    isActive ? 'ring-1 ring-emerald-300' : 'hover:bg-emerald-50 hover:text-emerald-800'
                 ].join(' ');
-                item.innerHTML = isActive
+                item.innerHTML = isTranslated
                     ? escapeHtml(getTranslationText(question))
                     : escapeHtml(question.original);
                 list.appendChild(item);
@@ -2472,6 +2473,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function selectPassageSentence(index) {
             if (index < 0 || index >= quizData.length) return;
+            if (translatedReaderSentences.has(index)) {
+                translatedReaderSentences.delete(index);
+            } else {
+                translatedReaderSentences.add(index);
+            }
             currentIndex = index;
             loadQuestion();
         }
@@ -2776,6 +2782,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 return;
             }
             activeQuestionPool = JSON.parse(JSON.stringify(cleaned));
+            translatedReaderSentences.clear();
             const studyQuestions = getStudyQuestions(cleaned);
             const masteredCountForSet = cleaned.length - studyQuestions.length;
 
