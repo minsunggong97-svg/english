@@ -44,6 +44,11 @@
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
         }
 
+        .explanation-popover {
+            z-index: 30;
+            width: min(22rem, calc(100% - 2rem));
+        }
+
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -113,7 +118,7 @@
                         </div>
 
                         <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                            <div id="passage-area" class="max-h-[30rem] overflow-y-auto rounded-xl bg-white px-4 py-5 text-lg font-medium leading-9 text-slate-800 shadow-inner shadow-slate-100"></div>
+                            <div id="passage-area" class="relative max-h-[30rem] overflow-y-auto rounded-xl bg-white px-4 py-5 text-lg font-medium leading-9 text-slate-800 shadow-inner shadow-slate-100"></div>
                         </div>
                     </div>
                 </div>
@@ -350,6 +355,7 @@
 
         let currentSetIndex = 0;
         let activeBlankId = null;
+        let activeExplanationBlankId = null;
         let blankAnswers = {};
         let isGraded = false;
         let draggedChoice = null;
@@ -460,7 +466,64 @@
                 area.appendChild(button);
             });
 
+            if (isGraded && activeExplanationBlankId) {
+                renderExplanationPopover(activeExplanationBlankId);
+            }
             updateProgress();
+        }
+
+        function renderExplanationPopover(blankId) {
+            const passageBox = document.getElementById('passage-area');
+            const blankButton = passageBox.querySelector(`[data-blank-id="${blankId}"]`);
+            if (!passageBox || !blankButton) return;
+
+            const blank = getBlank(blankId);
+            const userBlocks = blankAnswers[blankId] || [];
+            const userAnswer = userBlocks.join(' ') || '미입력';
+            const correctAnswer = blank.answer.join(' ');
+            const isCorrect = arraysEqual(userBlocks, blank.answer);
+
+            const blankRect = blankButton.getBoundingClientRect();
+            const boxRect = passageBox.getBoundingClientRect();
+            const maxLeft = Math.max(16, passageBox.clientWidth - 368);
+            const left = Math.min(Math.max(16, blankRect.left - boxRect.left + passageBox.scrollLeft), maxLeft);
+            const top = blankRect.bottom - boxRect.top + passageBox.scrollTop + 10;
+
+            const popover = document.createElement('div');
+            popover.id = 'explanation-popover';
+            popover.className = [
+                'explanation-popover absolute rounded-2xl border bg-white p-4 text-left text-sm leading-relaxed shadow-2xl',
+                isCorrect ? 'border-emerald-200' : 'border-red-200'
+            ].join(' ');
+            popover.style.left = `${left}px`;
+            popover.style.top = `${top}px`;
+            popover.innerHTML = `
+                <div class="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[0.18em] ${isCorrect ? 'text-emerald-600' : 'text-red-600'}">${isCorrect ? 'Correct' : 'Review'}</p>
+                        <h4 class="mt-1 text-base font-extrabold text-slate-900">${escapeHtml(blank.grammarPoint)}</h4>
+                    </div>
+                    <button type="button" id="close-explanation-popover" class="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="해설 닫기">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <p class="font-bold text-slate-600">내 답: <span class="${isCorrect ? 'text-emerald-700' : 'text-red-700'}">${escapeHtml(userAnswer)}</span></p>
+                    <p class="font-bold text-slate-600">정답: <span class="text-emerald-700">${escapeHtml(correctAnswer)}</span></p>
+                    <p class="rounded-xl ${isCorrect ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'} p-3 font-semibold">${escapeHtml(blank.explanation)}</p>
+                </div>
+            `;
+            passageBox.appendChild(popover);
+            document.getElementById('close-explanation-popover').onclick = (event) => {
+                event.stopPropagation();
+                hideExplanationPopover();
+            };
+        }
+
+        function hideExplanationPopover() {
+            activeExplanationBlankId = null;
+            const popover = document.getElementById('explanation-popover');
+            if (popover) popover.remove();
         }
 
         function renderChoices() {
@@ -555,6 +618,7 @@
 
         function selectBlank(blankId) {
             activeBlankId = blankId;
+            activeExplanationBlankId = isGraded ? blankId : null;
             renderPassage();
             renderChoices();
         }
@@ -568,6 +632,7 @@
             }
             blankAnswers[blankId] = [...current, value];
             isGraded = false;
+            activeExplanationBlankId = null;
             renderPassage();
             renderChoices();
             renderResult();
@@ -580,6 +645,7 @@
             }
             blankAnswers[activeBlankId] = [];
             isGraded = false;
+            activeExplanationBlankId = null;
             renderPassage();
             renderChoices();
             renderResult();
@@ -587,6 +653,7 @@
 
         function resetState() {
             activeBlankId = null;
+            activeExplanationBlankId = null;
             blankAnswers = {};
             isGraded = false;
             draggedChoice = null;
@@ -605,6 +672,7 @@
                 showStatus(`아직 채우지 않은 빈칸이 ${incomplete.length}개 있습니다. 그래도 채점 결과에는 오답으로 표시됩니다.`, 'error');
             }
             isGraded = true;
+            activeExplanationBlankId = null;
             renderPassage();
             renderChoices();
             renderResult();
