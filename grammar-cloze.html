@@ -1356,15 +1356,12 @@
             return diffs;
         }
 
-        function isWeakAiFeedback(text) {
-            if (!text || text.length < 80) return true;
-            const hasComparison = /(내 답|정답|다릅|차이|대신|→|누락|불필요)/.test(text);
-            const hasReason = /(때문|써야|해야|필요|규칙|동사|명사|형태|관계|수동|분사|관사|단수|복수|주어|목적|절|구)/.test(text);
-            const isVagueOnly = /^(.*?(아쉽|틀렸|잘못).*?)$/.test(text) && !hasReason;
+        function isIncompleteAiFeedback(text) {
+            if (!text) return true;
             const quoteCount = (text.match(/['"]/g) || []).length;
             const hasUnbalancedQuotes = quoteCount % 2 === 1;
             const hasSentenceEnding = /[.!?。！？]|(다|요|죠|니다|됩니다|합니다)\.?$/.test(text.trim());
-            return !hasComparison || !hasReason || isVagueOnly || hasUnbalancedQuotes || !hasSentenceEnding;
+            return hasUnbalancedQuotes || !hasSentenceEnding;
         }
 
         function renderAiFeedback(feedback) {
@@ -1391,20 +1388,33 @@
             return !finishReason || finishReason === 'STOP';
         }
 
-        function fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank) {
-            const diffLines = buildPositionDiff(userTokens, blank.answer);
-            const diffPart = diffLines.length
-                ? diffLines.join('. ') + '. '
-                : '';
-            const countPart = [
-                comparison.missing.length ? `'${comparison.missing.join(', ')}' 누락` : '',
-                comparison.extra.length ? `'${comparison.extra.join(', ')}' 불필요` : ''
-            ].filter(Boolean).join(', ');
-            const comparePart = countPart
-                ? `${countPart}. `
-                : `내 답 '${userAnswer}'과 정답 '${correctAnswer}'이 다릅니다. `;
-            const reasonPart = blank.explanation.replace(/`/g, '');
-            return normalizeFeedbackText(`${comparePart}${diffPart}${reasonPart}`);
+        async function fetchAiFeedbackText(prompt) {
+            const response = await fetch('/api/analyze-wrong', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            role: 'user',
+                            parts: [{ text: prompt }]
+                        }
+                    ],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 2048
+                    }
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'AI 피드백 요청에 실패했습니다.');
+            }
+
+            return {
+                data,
+                text: normalizeFeedbackText(getGeminiText(data))
+            };
         }
 
         async function requestAiFeedback(blankId) {
@@ -1413,7 +1423,6 @@
             if (!blank) return;
 
             const userTokens = blankAnswers[blankId] || [];
-            const comparison = compareAnswerTokens(userTokens, blank.answer);
             const userAnswer = userTokens.join(' ') || '미입력';
             const correctAnswer = blank.answer.join(' ');
             aiFeedbackLoadingId = blankId;
@@ -1433,33 +1442,25 @@
             ].join('\n');
 
             try {
-                const response = await fetch('/api/analyze-wrong', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                role: 'user',
-                                parts: [{ text: prompt }]
-                            }
-                        ],
-                        generationConfig: {
-                            temperature: 0.2,
-                            maxOutputTokens: 1024
-                        }
-                    })
-                });
+                let result = await fetchAiFeedbackText(prompt);
 
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.error || 'AI 피드백 요청에 실패했습니다.');
+                if (!didGeminiFinishCleanly(result.data) || isIncompleteAiFeedback(result.text)) {
+                    const retryPrompt = [
+                        prompt,
+                        '',
+                        '주의: 이전 응답이 중간에 끊긴 것으로 처리되었다.',
+                        '이번에는 반드시 완성된 문장으로 끝내고, 마지막 문장을 자연스럽게 마무리하라.'
+                    ].join('\n');
+                    result = await fetchAiFeedbackText(retryPrompt);
                 }
 
-                const text = normalizeFeedbackText(getGeminiText(data));
-                const fallback = fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank);
-                aiFeedbacks[blankId] = (!didGeminiFinishCleanly(data) || !text || isWeakAiFeedback(text)) ? fallback : text;
+                aiFeedbacks[blankId] = (!didGeminiFinishCleanly(result.data) || isIncompleteAiFeedback(result.text))
+                    ? { error: 'AI 피드백이 중간에 끊겼습니다. 다시 시도해 주세요.' }
+                    : result.text;
             } catch (error) {
-                aiFeedbacks[blankId] = fallbackAiFeedback(comparison, userTokens, userAnswer, correctAnswer, blank);
+                aiFeedbacks[blankId] = {
+                    error: `AI 피드백을 불러오지 못했습니다: ${error.message}`
+                };
             } finally {
                 aiFeedbackLoadingId = null;
                 renderResult();
