@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grammar Cloze Builder - 어법 빈칸 연습</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#dcfce7 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .choice-chip {
+            touch-action: none;
+            user-select: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .choice-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px -12px rgba(15, 23, 42, 0.45);
+        }
+
+        .choice-chip.dragging {
+            opacity: 0.45;
+            transform: scale(0.98);
+        }
+
+        .cloze-blank {
+            min-width: 6.5rem;
+            vertical-align: baseline;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .cloze-blank.drop-zone-active {
+            border-color: #10b981;
+            background-color: #ecfdf5;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl space-y-8">
+        <header class="text-center">
+            <div class="mb-4 flex flex-wrap justify-center gap-2">
+                <a href="index.html" class="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-50">
+                    <i class="fa-solid fa-arrow-left mr-1"></i>문장 배열로 이동
+                </a>
+                <span class="rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white">
+                    <i class="fa-solid fa-pen-to-square mr-1"></i>어법 빈칸
+                </span>
+            </div>
+            <h1 class="text-3xl font-extrabold text-emerald-600 sm:text-4xl">
+                Grammar Cloze Builder
+            </h1>
+            <p class="mt-3 text-lg text-slate-600">중요 어법 빈칸에 알맞은 블록을 순서대로 채워 넣으세요.</p>
+        </header>
+
+        <div id="status-message" class="hidden rounded-xl p-3 text-sm font-bold"></div>
+
+        <main class="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+            <aside class="rounded-2xl border border-emerald-100 bg-white shadow-xl lg:sticky lg:top-6 lg:self-start">
+                <div class="rounded-t-2xl bg-emerald-600 px-5 py-4 text-white">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Cloze Sets</p>
+                    <h2 class="mt-1 text-xl font-extrabold">어법 지문 선택</h2>
+                </div>
+                <div class="space-y-3 p-4" id="set-list"></div>
+            </aside>
+
+            <section class="min-w-0 space-y-5">
+                <div class="overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-xl">
+                    <div class="h-2 bg-slate-100">
+                        <div id="progress-bar" class="h-2 bg-emerald-500 transition-all duration-500" style="width: 0%;"></div>
+                    </div>
+                    <div class="space-y-5 p-6 sm:p-8">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Grammar Passage</p>
+                                <h2 id="set-title" class="mt-1 text-2xl font-extrabold text-slate-900"></h2>
+                                <p id="set-description" class="mt-2 text-sm font-semibold text-slate-500"></p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <span id="filled-count" class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700">0 / 0</span>
+                                <button onclick="resetCurrentSet()" class="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50">
+                                    <i class="fa-solid fa-rotate-left mr-1"></i>초기화
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                            <div id="passage-area" class="max-h-[30rem] overflow-y-auto rounded-xl bg-white px-4 py-5 text-lg font-medium leading-9 text-slate-800 shadow-inner shadow-slate-100"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+                    <section class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-xl">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Choice Box</p>
+                                <h3 id="choice-title" class="mt-1 text-lg font-extrabold text-slate-800">빈칸을 선택하세요</h3>
+                            </div>
+                            <button onclick="clearActiveBlank()" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50">
+                                선택 빈칸 비우기
+                            </button>
+                        </div>
+                        <p id="choice-helper" class="mb-4 text-sm font-semibold text-slate-500">지문 속 빈칸을 누르면 여기에 정답 블록과 함정 블록이 나타납니다.</p>
+                        <div id="choice-box" class="flex min-h-[104px] flex-wrap gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4"></div>
+                    </section>
+
+                    <section class="rounded-2xl border border-blue-100 bg-white p-5 shadow-xl">
+                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">How To</p>
+                        <h3 class="mt-1 text-lg font-extrabold text-slate-800">풀이 방법</h3>
+                        <ol class="mt-4 space-y-3 text-sm font-semibold leading-relaxed text-slate-600">
+                            <li><span class="font-black text-emerald-700">1.</span> 지문 속 `______` 빈칸을 클릭합니다.</li>
+                            <li><span class="font-black text-emerald-700">2.</span> 보기 박스의 블록을 클릭하거나 빈칸으로 끌어다 놓습니다.</li>
+                            <li><span class="font-black text-emerald-700">3.</span> 구 단위 빈칸은 블록 순서까지 맞춰야 합니다.</li>
+                            <li><span class="font-black text-emerald-700">4.</span> 모든 빈칸을 채운 뒤 채점하면 틀린 어법 해설이 표시됩니다.</li>
+                        </ol>
+                    </section>
+                </div>
+
+                <div class="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-white p-5 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-slate-800">채점 준비</h3>
+                        <p class="text-sm font-semibold text-slate-500">빈칸을 모두 채운 뒤 채점해 보세요. 틀린 문항만 해설이 열립니다.</p>
+                    </div>
+                    <button id="grade-btn" onclick="gradeCurrentSet()" class="rounded-xl bg-emerald-600 px-8 py-3 font-extrabold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-700 active:scale-95">
+                        <i class="fa-solid fa-check mr-2"></i>채점하기
+                    </button>
+                </div>
+
+                <section id="result-area" class="hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"></section>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const clozeSets = [
+            {
+                id: "sports-fandom-part-1",
+                title: "Sports Fandom Part 1",
+                subtitle: "스포츠 팬덤의 문제 제기",
+                type: "grammar",
+                description: "도입부의 수일치, 조건절, 분사, 관계사, 수동태를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "Playing sports " },
+                    { type: "blank", id: "p1-b1" },
+                    { type: "text", text: " one of the most common " },
+                    { type: "blank", id: "p1-b2" },
+                    { type: "text", text: ", but people also love to watch live sports games. " },
+                    { type: "blank", id: "p1-b3" },
+                    { type: "text", text: " you go to any sports stadium, you will be able to find fans " },
+                    { type: "blank", id: "p1-b4" },
+                    { type: "text", text: " wildly, " },
+                    { type: "blank", id: "p1-b5" },
+                    { type: "text", text: " with joy. In the case of football, some famous matches " },
+                    { type: "blank", id: "p1-b6" },
+                    { type: "text", text: " extreme fans, " },
+                    { type: "blank", id: "p1-b7" },
+                    { type: "text", text: " overly aggressive support of their team sometimes " },
+                    { type: "blank", id: "p1-b8" },
+                    { type: "text", text: " confrontations with fans from opposition teams. If someone’s joy, sadness, and even anger " },
+                    { type: "blank", id: "p1-b9" },
+                    { type: "text", text: " from the love of their team, what makes them so loyal? What does it mean for an individual to be a sports fan? And would their passion and cheering actually " },
+                    { type: "blank", id: "p1-b10" },
+                    { type: "text", text: " the performance of their team? These questions can be addressed from both an evolutionary and a social psychological perspective." }
+                ],
+                blanks: {
+                    "p1-b1": {
+                        answer: ["is"],
+                        choices: ["is", "are", "be", "being"],
+                        grammarPoint: "동명사 주어 수 일치",
+                        explanation: "`Playing sports`는 동명사구 주어라 단수 취급합니다. 따라서 단수 동사 `is`가 맞고, `sports`에 끌려 `are`를 고르면 안 됩니다."
+                    },
+                    "p1-b2": {
+                        answer: ["hobbies"],
+                        choices: ["hobbies", "hobby", "habit", "hobbying"],
+                        grammarPoint: "one of the + 최상급 + 복수명사",
+                        explanation: "`one of the most common ...` 뒤에는 여러 대상 중 하나라는 의미 때문에 복수명사 `hobbies`가 와야 합니다."
+                    },
+                    "p1-b3": {
+                        answer: ["If"],
+                        choices: ["If", "Although", "Because", "Unless"],
+                        grammarPoint: "조건의 부사절",
+                        explanation: "경기장에 가면 팬들을 볼 수 있다는 조건을 제시하므로 `If`가 자연스럽습니다. 뒤 절의 `will be able to`와도 조건절-주절 관계를 이룹니다."
+                    },
+                    "p1-b4": {
+                        answer: ["cheering"],
+                        choices: ["cheering", "cheered", "cheer", "to cheer"],
+                        grammarPoint: "5형식 목적격 보어 현재분사",
+                        explanation: "`find fans cheering`은 팬들이 응원하고 있는 상태를 발견한다는 뜻입니다. 팬들이 직접 응원하므로 능동의 현재분사 `cheering`이 필요합니다."
+                    },
+                    "p1-b5": {
+                        answer: ["crying"],
+                        choices: ["crying", "cried", "cry", "to cry"],
+                        grammarPoint: "현재분사 병렬",
+                        explanation: "`cheering wildly, crying with joy`에서 `crying`은 앞의 `cheering`과 병렬인 현재분사입니다. 감정을 느껴 울고 있는 팬들의 능동 동작을 나타냅니다."
+                    },
+                    "p1-b6": {
+                        answer: ["are", "accompanied", "by"],
+                        choices: ["are", "is", "accompanied", "accompanying", "by", "with"],
+                        grammarPoint: "수동태 be accompanied by",
+                        explanation: "주어 `some famous matches`가 극성팬들을 동반하게 되는 것이므로 수동태 `are accompanied by`가 맞습니다. 복수 주어라 `is`가 아니라 `are`입니다."
+                    },
+                    "p1-b7": {
+                        answer: ["whose"],
+                        choices: ["whose", "who", "whom", "which"],
+                        grammarPoint: "소유격 관계대명사",
+                        explanation: "`extreme fans`와 `overly aggressive support`가 '그 팬들의 지지'라는 소유 관계이므로 소유격 관계대명사 `whose`가 필요합니다."
+                    },
+                    "p1-b8": {
+                        answer: ["leads", "to"],
+                        choices: ["leads", "lead", "leading", "to", "for"],
+                        grammarPoint: "주어 수일치와 lead to",
+                        explanation: "관계절 안의 주어 핵심어는 단수명사 `support`이므로 `leads`가 맞습니다. 또한 `lead to + 명사`는 '~로 이어지다'라는 표현입니다."
+                    },
+                    "p1-b9": {
+                        answer: ["emerge"],
+                        choices: ["emerge", "emerges", "are emerged", "emerging"],
+                        grammarPoint: "자동사 emerge와 병렬 주어",
+                        explanation: "`joy, sadness, and even anger`가 병렬로 연결된 복수 주어이므로 동사는 `emerge`입니다. `emerge`는 자동사라 수동태 `are emerged`로 쓰지 않습니다."
+                    },
+                    "p1-b10": {
+                        answer: ["influence"],
+                        choices: ["influence", "influences", "influenced", "influencing"],
+                        grammarPoint: "조동사 뒤 동사원형",
+                        explanation: "`would ... influence`에서 조동사 `would` 뒤에는 동사원형이 와야 합니다. 따라서 `influence`가 맞습니다."
+                    }
+                }
+            },
+            {
+                id: "sports-fandom-part-2",
+                title: "Sports Fandom Part 2",
+                subtitle: "진화론적 관점에서 본 팬덤",
+                type: "grammar",
+                description: "전치사구, 비교급, 관계절, so that, 현재완료를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "From an evolutionary perspective, sports fandom " },
+                    { type: "blank", id: "p2-b1" },
+                    { type: "text", text: " our tribal hunter-gatherer ancestors tens of thousands of years ago. At that time, a person was far more likely " },
+                    { type: "blank", id: "p2-b2" },
+                    { type: "text", text: " as a member of a group " },
+                    { type: "blank", id: "p2-b3" },
+                    { type: "text", text: " as an isolated individual. People could help each other in groups when " },
+                    { type: "blank", id: "p2-b4" },
+                    { type: "text", text: " difficult tasks, such as " },
+                    { type: "blank", id: "p2-b5" },
+                    { type: "text", text: " hunted animals that " },
+                    { type: "blank", id: "p2-b6" },
+                    { type: "text", text: " too heavy for one person " },
+                    { type: "blank", id: "p2-b7" },
+                    { type: "text", text: ". This mutual cooperation built trust and fostered relationships among group members. In fact, group membership was " },
+                    { type: "blank", id: "p2-b8" },
+                    { type: "text", text: " important that tribes with a stronger sense of community were likely to defeat tribes " },
+                    { type: "blank", id: "p2-b9" },
+                    { type: "text", text: " members were less closely allied. Because of this, community membership was a survival mechanism for our ancestors, and the instinct " },
+                    { type: "blank", id: "p2-b10" },
+                    { type: "text", text: " one’s own tribe or group has been passed down to modern people. This may be how community membership influences our choice of a sports team and our sense of loyalty to that team." }
+                ],
+                blanks: {
+                    "p2-b1": {
+                        answer: ["emerged", "from"],
+                        choices: ["emerged", "emerging", "was", "from", "by"],
+                        grammarPoint: "자동사 emerge from",
+                        explanation: "`emerge from`은 '~에서 생겨나다'라는 표현입니다. `sports fandom`이 조상 집단에서 생겨났다는 의미이므로 `emerged from`이 맞습니다."
+                    },
+                    "p2-b2": {
+                        answer: ["to", "survive"],
+                        choices: ["to", "survive", "surviving", "survived", "for"],
+                        grammarPoint: "be likely to V",
+                        explanation: "`be likely to V`는 '~할 가능성이 있다'라는 표현입니다. 따라서 `to survive`가 와야 합니다."
+                    },
+                    "p2-b3": {
+                        answer: ["than"],
+                        choices: ["than", "as", "to", "from"],
+                        grammarPoint: "비교급 than",
+                        explanation: "`far more likely ... than ...`은 두 대상을 비교하는 구조입니다. 비교 대상 앞에는 `than`이 와야 합니다."
+                    },
+                    "p2-b4": {
+                        answer: ["dealing", "with"],
+                        choices: ["dealing", "dealt", "deal", "with", "to"],
+                        grammarPoint: "when + -ing 축약",
+                        explanation: "`when dealing with difficult tasks`는 `when they were dealing with...`가 축약된 구조로 볼 수 있습니다. 전치사 `with`와 함께 쓰는 `deal with`도 중요합니다."
+                    },
+                    "p2-b5": {
+                        answer: ["carrying"],
+                        choices: ["carrying", "carried", "carry", "to carry"],
+                        grammarPoint: "such as + 동명사",
+                        explanation: "`such as` 뒤에는 예시가 오며, 여기서는 어려운 과업의 예로 `carrying hunted animals`라는 동명사구가 쓰였습니다."
+                    },
+                    "p2-b6": {
+                        answer: ["were"],
+                        choices: ["were", "was", "are", "be"],
+                        grammarPoint: "관계절 수일치",
+                        explanation: "관계절 `that were too heavy...`의 선행사는 복수명사 `animals`입니다. 따라서 복수 동사 `were`가 맞습니다."
+                    },
+                    "p2-b7": {
+                        answer: ["to", "handle"],
+                        choices: ["to", "handle", "handling", "handled", "for"],
+                        grammarPoint: "too 형용사 for 목적격 to V",
+                        explanation: "`too heavy for one person to handle`은 '한 사람이 다루기에는 너무 무거운'이라는 구조입니다. `for one person`은 to부정사의 의미상 주어입니다."
+                    },
+                    "p2-b8": {
+                        answer: ["so"],
+                        choices: ["so", "such", "very", "too"],
+                        grammarPoint: "so 형용사 that",
+                        explanation: "`so important that ...`은 '너무 중요해서 ~하다'라는 결과 구문입니다. 뒤에 `that`절이 이어지므로 `so`가 맞습니다."
+                    },
+                    "p2-b9": {
+                        answer: ["whose"],
+                        choices: ["whose", "who", "which", "that"],
+                        grammarPoint: "소유격 관계대명사",
+                        explanation: "`tribes whose members...`는 '그 부족들의 구성원들'이라는 소유 관계를 나타냅니다. 뒤에 명사 `members`가 바로 오므로 `whose`가 필요합니다."
+                    },
+                    "p2-b10": {
+                        answer: ["to", "find"],
+                        choices: ["to", "find", "finding", "found", "for"],
+                        grammarPoint: "명사 수식 to부정사",
+                        explanation: "`the instinct to find...`에서 `to find`는 앞 명사 `instinct`의 내용을 설명하는 형용사적 용법의 to부정사입니다."
+                    }
+                }
+            }
+        ];
+
+        let currentSetIndex = 0;
+        let activeBlankId = null;
+        let blankAnswers = {};
+        let isGraded = false;
+        let draggedChoice = null;
+
+        function getCurrentSet() {
+            return clozeSets[currentSetIndex];
+        }
+
+        function getBlank(blankId) {
+            return getCurrentSet().blanks[blankId];
+        }
+
+        function getBlankIds() {
+            return Object.keys(getCurrentSet().blanks);
+        }
+
+        function arraysEqual(a, b) {
+            return a.length === b.length && a.every((value, index) => value === b[index]);
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showStatus(message, type = 'info') {
+            const box = document.getElementById('status-message');
+            const styleMap = {
+                info: 'bg-blue-50 text-blue-700',
+                success: 'bg-emerald-50 text-emerald-700',
+                error: 'bg-red-50 text-red-700'
+            };
+            box.className = `rounded-xl p-3 text-sm font-bold ${styleMap[type] || styleMap.info}`;
+            box.textContent = message;
+            box.classList.remove('hidden');
+        }
+
+        function renderSetList() {
+            const list = document.getElementById('set-list');
+            list.innerHTML = '';
+            clozeSets.forEach((set, index) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.onclick = () => selectSet(index);
+                button.className = [
+                    'w-full rounded-2xl border px-4 py-3 text-left transition-all',
+                    index === currentSetIndex
+                        ? 'border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-100'
+                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                ].join(' ');
+                button.innerHTML = `
+                    <span class="block text-base font-extrabold ${index === currentSetIndex ? 'text-emerald-800' : 'text-slate-800'}">${escapeHtml(set.title)}</span>
+                    <span class="mt-1 block text-sm font-semibold text-slate-500">${escapeHtml(set.subtitle)}</span>
+                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">${Object.keys(set.blanks).length}개 빈칸</span>
+                `;
+                list.appendChild(button);
+            });
+        }
+
+        function renderPassage() {
+            const set = getCurrentSet();
+            const area = document.getElementById('passage-area');
+            area.innerHTML = '';
+
+            set.passageParts.forEach((part) => {
+                if (part.type === 'text') {
+                    area.appendChild(document.createTextNode(part.text));
+                    return;
+                }
+
+                const blank = getBlank(part.id);
+                const userBlocks = blankAnswers[part.id] || [];
+                const isActive = activeBlankId === part.id;
+                const isFilled = userBlocks.length > 0;
+                const isCorrect = isGraded && arraysEqual(userBlocks, blank.answer);
+                const isWrong = isGraded && !arraysEqual(userBlocks, blank.answer);
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.dataset.blankId = part.id;
+                button.onclick = () => selectBlank(part.id);
+                button.ondragover = handleBlankDragOver;
+                button.ondragleave = handleBlankDragLeave;
+                button.ondrop = handleBlankDrop;
+                button.className = [
+                    'cloze-blank mx-1 inline-flex min-h-[2.4rem] items-center justify-center gap-1 rounded-lg border-2 border-dashed px-3 py-1 text-base font-extrabold',
+                    isActive ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100' : 'border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50',
+                    isCorrect ? 'border-emerald-500 bg-emerald-100 text-emerald-800' : '',
+                    isWrong ? 'border-red-400 bg-red-50 text-red-700' : '',
+                    !isFilled ? 'text-slate-400' : 'text-slate-800'
+                ].join(' ');
+
+                if (isFilled) {
+                    userBlocks.forEach((block) => {
+                        const chip = document.createElement('span');
+                        chip.className = 'rounded-md bg-white px-2 py-0.5 text-sm shadow-sm';
+                        chip.textContent = block;
+                        button.appendChild(chip);
+                    });
+                } else {
+                    button.textContent = '______';
+                }
+
+                area.appendChild(button);
+            });
+
+            updateProgress();
+        }
+
+        function renderChoices() {
+            const title = document.getElementById('choice-title');
+            const helper = document.getElementById('choice-helper');
+            const box = document.getElementById('choice-box');
+            box.innerHTML = '';
+
+            if (!activeBlankId) {
+                title.textContent = '빈칸을 선택하세요';
+                helper.textContent = '지문 속 빈칸을 누르면 여기에 정답 블록과 함정 블록이 나타납니다.';
+                return;
+            }
+
+            const blank = getBlank(activeBlankId);
+            const current = blankAnswers[activeBlankId] || [];
+            title.textContent = blank.grammarPoint;
+            helper.textContent = `필요 블록 수: ${blank.answer.length}개 / 현재 ${current.length}개`;
+
+            blank.choices.forEach((choice) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.draggable = true;
+                chip.dataset.choice = choice;
+                chip.onclick = () => addBlockToBlank(activeBlankId, choice);
+                chip.ondragstart = handleChoiceDragStart;
+                chip.ondragend = handleChoiceDragEnd;
+                chip.className = 'choice-chip rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-700 hover:border-emerald-400 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200';
+                chip.textContent = choice;
+                box.appendChild(chip);
+            });
+        }
+
+        function renderResult() {
+            const area = document.getElementById('result-area');
+            if (!isGraded) {
+                area.classList.add('hidden');
+                area.innerHTML = '';
+                return;
+            }
+
+            const set = getCurrentSet();
+            const blankIds = getBlankIds();
+            const wrongIds = blankIds.filter((id) => !arraysEqual(blankAnswers[id] || [], set.blanks[id].answer));
+            const correctCount = blankIds.length - wrongIds.length;
+            const score = Math.round((correctCount / blankIds.length) * 100);
+
+            const wrongHtml = wrongIds.length === 0
+                ? '<p class="rounded-xl bg-emerald-50 p-4 font-bold text-emerald-700">모든 빈칸을 정확히 채웠습니다.</p>'
+                : wrongIds.map((id) => {
+                    const blank = set.blanks[id];
+                    const user = (blankAnswers[id] || []).join(' ') || '미입력';
+                    const answer = blank.answer.join(' ');
+                    return `
+                        <article class="rounded-xl border border-red-100 bg-red-50/60 p-4">
+                            <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                <h4 class="font-extrabold text-red-700">${escapeHtml(blank.grammarPoint)}</h4>
+                                <span class="text-sm font-bold text-red-500">정답: ${escapeHtml(answer)}</span>
+                            </div>
+                            <p class="mt-2 text-sm font-semibold text-slate-600">내 답: ${escapeHtml(user)}</p>
+                            <p class="mt-3 text-sm font-medium leading-relaxed text-slate-700">${escapeHtml(blank.explanation)}</p>
+                        </article>
+                    `;
+                }).join('');
+
+            area.classList.remove('hidden');
+            area.innerHTML = `
+                <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Result</p>
+                        <h3 class="mt-1 text-2xl font-extrabold text-slate-900">${correctCount} / ${blankIds.length} 정답</h3>
+                    </div>
+                    <span class="rounded-full bg-slate-900 px-4 py-2 text-lg font-black text-white">${score}점</span>
+                </div>
+                <div class="space-y-3">${wrongHtml}</div>
+            `;
+        }
+
+        function updateProgress() {
+            const blankIds = getBlankIds();
+            const filled = blankIds.filter((id) => (blankAnswers[id] || []).length > 0).length;
+            document.getElementById('filled-count').textContent = `${filled} / ${blankIds.length}`;
+            document.getElementById('progress-bar').style.width = `${(filled / blankIds.length) * 100}%`;
+        }
+
+        function selectSet(index) {
+            currentSetIndex = index;
+            resetState();
+            renderAll();
+            showStatus(`${getCurrentSet().title} 지문을 불러왔습니다.`, 'success');
+        }
+
+        function selectBlank(blankId) {
+            activeBlankId = blankId;
+            renderPassage();
+            renderChoices();
+        }
+
+        function addBlockToBlank(blankId, value) {
+            const blank = getBlank(blankId);
+            const current = blankAnswers[blankId] || [];
+            if (current.length >= blank.answer.length) {
+                showStatus('이 빈칸은 이미 필요한 블록 수만큼 채워졌습니다. 비우고 다시 시도하세요.', 'error');
+                return;
+            }
+            blankAnswers[blankId] = [...current, value];
+            isGraded = false;
+            renderPassage();
+            renderChoices();
+            renderResult();
+        }
+
+        function clearActiveBlank() {
+            if (!activeBlankId) {
+                showStatus('먼저 빈칸을 선택해 주세요.', 'info');
+                return;
+            }
+            blankAnswers[activeBlankId] = [];
+            isGraded = false;
+            renderPassage();
+            renderChoices();
+            renderResult();
+        }
+
+        function resetState() {
+            activeBlankId = null;
+            blankAnswers = {};
+            isGraded = false;
+            draggedChoice = null;
+        }
+
+        function resetCurrentSet() {
+            resetState();
+            renderAll();
+            showStatus('현재 지문 풀이를 초기화했습니다.', 'info');
+        }
+
+        function gradeCurrentSet() {
+            const blankIds = getBlankIds();
+            const incomplete = blankIds.filter((id) => (blankAnswers[id] || []).length !== getBlank(id).answer.length);
+            if (incomplete.length > 0) {
+                showStatus(`아직 채우지 않은 빈칸이 ${incomplete.length}개 있습니다. 그래도 채점 결과에는 오답으로 표시됩니다.`, 'error');
+            }
+            isGraded = true;
+            renderPassage();
+            renderChoices();
+            renderResult();
+        }
+
+        function handleChoiceDragStart(event) {
+            draggedChoice = event.currentTarget.dataset.choice;
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('text/plain', draggedChoice);
+            event.currentTarget.classList.add('dragging');
+        }
+
+        function handleChoiceDragEnd(event) {
+            event.currentTarget.classList.remove('dragging');
+            draggedChoice = null;
+        }
+
+        function handleBlankDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drop-zone-active');
+        }
+
+        function handleBlankDragLeave(event) {
+            event.currentTarget.classList.remove('drop-zone-active');
+        }
+
+        function handleBlankDrop(event) {
+            event.preventDefault();
+            const blankId = event.currentTarget.dataset.blankId;
+            const value = event.dataTransfer.getData('text/plain') || draggedChoice;
+            event.currentTarget.classList.remove('drop-zone-active');
+            if (!blankId || !value) return;
+            activeBlankId = blankId;
+            addBlockToBlank(blankId, value);
+        }
+
+        function renderAll() {
+            const set = getCurrentSet();
+            document.getElementById('set-title').textContent = `${set.title} - ${set.subtitle}`;
+            document.getElementById('set-description').textContent = set.description;
+            renderSetList();
+            renderPassage();
+            renderChoices();
+            renderResult();
+        }
+
+        window.onload = () => {
+            resetState();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
