@@ -1340,46 +1340,38 @@
 
         function renderAiFeedback(feedback) {
             if (!feedback) return '';
-            if (feedback.error) {
+            if (typeof feedback === 'object' && feedback.error) {
                 return `<p class="mt-3 rounded-xl border border-red-100 bg-white p-3 text-sm font-semibold leading-relaxed text-red-700">${escapeHtml(feedback.error)}</p>`;
             }
-
-            return `
-                <div class="mt-3 space-y-1 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">
-                    <p><span class="font-extrabold text-amber-700">일치율</span> ${escapeHtml(feedback.matchRate)}</p>
-                    <p><span class="font-extrabold text-amber-700">문법 오류</span> ${escapeHtml(feedback.grammarError)}</p>
-                    <p><span class="font-extrabold text-amber-700">조언</span> ${escapeHtml(feedback.advice)}</p>
-                </div>
-            `;
+            const text = typeof feedback === 'string' ? feedback : '';
+            if (!text) return '';
+            return `<p class="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm font-medium leading-relaxed text-amber-950">${escapeHtml(text)}</p>`;
         }
 
-        function fallbackAiFeedback(comparison) {
-            const missingText = comparison.missing.length ? `빠진 블록: ${comparison.missing.join(', ')}` : '';
-            const extraText = comparison.extra.length ? `불필요한 블록: ${comparison.extra.join(', ')}` : '';
-            const grammarError = [missingText, extraText].filter(Boolean).join(' / ') || '단어는 비슷하지만 순서가 정답과 다릅니다.';
-            return {
-                matchRate: `${comparison.matchRate}% (${comparison.samePositionCount}/${comparison.total} 위치 일치)`,
-                grammarError,
-                advice: '관사, 소유격, 복수형, 수량 표현처럼 짧은 블록도 빠뜨리지 말고 정답 순서대로 다시 배열해 보세요.'
-            };
-        }
-
-        function parseStructuredFeedback(text, comparison) {
+        function normalizeFeedbackText(text) {
             const cleaned = text
                 .replace(/```json/gi, '')
                 .replace(/```/g, '')
+                .replace(/^["']|["']$/g, '')
                 .trim();
+            return cleaned.length > 300 ? `${cleaned.slice(0, 300)}…` : cleaned;
+        }
 
-            try {
-                const parsed = JSON.parse(cleaned);
-                return {
-                    matchRate: parsed.matchRate || `${comparison.matchRate}%`,
-                    grammarError: parsed.grammarError || fallbackAiFeedback(comparison).grammarError,
-                    advice: parsed.advice || fallbackAiFeedback(comparison).advice
-                };
-            } catch {
-                return fallbackAiFeedback(comparison);
+        function fallbackAiFeedback(comparison, userAnswer, correctAnswer, grammarPoint) {
+            const parts = [];
+            if (comparison.missing.length) {
+                parts.push(`'${comparison.missing.join(', ')}'이(가) 빠졌습니다`);
             }
+            if (comparison.extra.length) {
+                parts.push(`'${comparison.extra.join(', ')}'은(는) 불필요하거나 잘못 고른 블록입니다`);
+            }
+            if (comparison.matchRate < 100 && !comparison.missing.length && !comparison.extra.length) {
+                parts.push('단어는 같지만 순서가 정답과 다릅니다');
+            }
+            const diff = parts.length
+                ? parts.join('. ') + '.'
+                : `정답 '${correctAnswer}'과(와) 내 답 '${userAnswer}'이(가) 다릅니다.`;
+            return normalizeFeedbackText(`${diff} ${grammarPoint} 포인트에 맞게 블록을 다시 배열해 보세요.`);
         }
 
         async function requestAiFeedback(blankId) {
@@ -1397,14 +1389,12 @@
             const prompt = [
                 '너는 고등학교 영어 내신 어법 선생님이다.',
                 '학생이 문법 빈칸/서술형 배열 문제를 틀렸다.',
-                '아래 데이터를 바탕으로 학생의 문법적 오류와 전체 일치율을 간결하게 평가하라.',
-                '반드시 JSON만 출력하라. 마크다운, 코드블록, 추가 설명은 금지한다.',
-                'JSON 스키마: {\"matchRate\":\"...\", \"grammarError\":\"...\", \"advice\":\"...\"}',
-                '각 값은 한국어로 쓰고, grammarError와 advice는 각각 1문장으로 제한하라.',
+                '학생 답과 정답을 비교해, 어디가 틀렸는지 왜 틀렸는지 한국어로 서술하라.',
+                '300자 이내로만 답하라. 마크다운, JSON, 목록, 제목 없이 평문 한 단락으로만 써라.',
+                '정답 전체를 그대로 반복하지 말고, 차이점과 문법적 이유에 집중하라.',
                 '',
                 `문제 유형: ${set.type === 'writing' ? '서술형 배열' : '어법 빈칸'}`,
                 `문법 포인트: ${blank.grammarPoint}`,
-                `앱 계산 일치율: ${comparison.matchRate}% (${comparison.samePositionCount}/${comparison.total} 위치 일치)`,
                 `빠진 블록: ${comparison.missing.join(', ') || '없음'}`,
                 `불필요하거나 잘못 고른 블록: ${comparison.extra.join(', ') || '없음'}`,
                 `내 답: ${userAnswer}`,
@@ -1425,7 +1415,7 @@
                         ],
                         generationConfig: {
                             temperature: 0.2,
-                            maxOutputTokens: 320
+                            maxOutputTokens: 400
                         }
                     })
                 });
@@ -1435,10 +1425,10 @@
                     throw new Error(data.error || 'AI 피드백 요청에 실패했습니다.');
                 }
 
-                aiFeedbacks[blankId] = parseStructuredFeedback(getGeminiText(data), comparison);
+                const text = normalizeFeedbackText(getGeminiText(data));
+                aiFeedbacks[blankId] = text || fallbackAiFeedback(comparison, userAnswer, correctAnswer, blank.grammarPoint);
             } catch (error) {
                 aiFeedbacks[blankId] = {
-                    ...fallbackAiFeedback(comparison),
                     error: `AI 피드백을 불러오지 못했습니다: ${error.message}`
                 };
             } finally {
