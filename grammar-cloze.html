@@ -5088,6 +5088,41 @@
                 : localProgress;
         }
 
+        function chooseBetterScoreRecord(localRecord, remoteRecord) {
+            if (!localRecord) return remoteRecord;
+            if (!remoteRecord) return localRecord;
+            const localTime = Date.parse(localRecord.gradedAt || '');
+            const remoteTime = Date.parse(remoteRecord.gradedAt || '');
+            if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
+                return remoteTime > localTime ? remoteRecord : localRecord;
+            }
+            return (Number(remoteRecord.score) || 0) > (Number(localRecord.score) || 0)
+                ? remoteRecord
+                : localRecord;
+        }
+
+        function mergeScoreRecords(localRecords = {}, remoteRecords = {}) {
+            const merged = { ...remoteRecords };
+            Object.entries(localRecords || {}).forEach(([setId, record]) => {
+                merged[setId] = chooseBetterScoreRecord(record, merged[setId]);
+            });
+            return merged;
+        }
+
+        function mergeProgressSnapshots(localProgress, remoteProgress) {
+            if (!isValidProgressSnapshot(localProgress)) return remoteProgress;
+            if (!isValidProgressSnapshot(remoteProgress)) return localProgress;
+            const sameSet = localProgress.setId === remoteProgress.setId;
+            return {
+                ...localProgress,
+                blankAnswers: sameSet
+                    ? { ...(remoteProgress.blankAnswers || {}), ...(localProgress.blankAnswers || {}) }
+                    : (localProgress.blankAnswers || {}),
+                scoreRecords: mergeScoreRecords(localProgress.scoreRecords, remoteProgress.scoreRecords),
+                savedAt: localProgress.savedAt || new Date().toISOString()
+            };
+        }
+
         function sanitizeSavedAnswers(savedAnswers, set) {
             if (!savedAnswers || typeof savedAnswers !== 'object') return {};
             return Object.entries(savedAnswers).reduce((answers, [blankId, blocks]) => {
@@ -5350,19 +5385,26 @@
         async function upsertRemoteProgress(snapshot = getProgressSnapshot()) {
             if (!supabaseClient || !currentUser || !isValidProgressSnapshot(snapshot)) return false;
             const now = new Date().toISOString();
+            const remoteProgress = await fetchRemoteProgress();
+            const mergedSnapshot = mergeProgressSnapshots(
+                { ...snapshot, savedAt: snapshot.savedAt || now },
+                remoteProgress
+            );
             const { error } = await supabaseClient
                 .from(REMOTE_PROGRESS_TABLE)
                 .upsert({
                     user_id: currentUser.id,
                     app_key: REMOTE_APP_KEY,
                     progress_key: getProgressStorageKey(),
-                    progress_json: {
-                        ...snapshot,
-                        savedAt: snapshot.savedAt || now
-                    },
+                    progress_json: mergedSnapshot,
                     updated_at: now
                 }, { onConflict: 'user_id,app_key' });
             if (error) throw error;
+            if (mergedSnapshot?.scoreRecords) {
+                scoreRecords = mergedSnapshot.scoreRecords;
+                localStorage.setItem(getProgressStorageKey(), JSON.stringify(mergedSnapshot));
+                renderSetList();
+            }
             return true;
         }
 
