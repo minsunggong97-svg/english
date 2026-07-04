@@ -4981,7 +4981,8 @@
 
         const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
-        const REMOTE_PROGRESS_TABLE = 'cloze_progress';
+        const REMOTE_PROGRESS_TABLE = 'app_progress';
+        const REMOTE_APP_KEY = 'grammar-cloze';
 
         let activeClozeSets = [...clozeSets];
         let activeBlankTranslations = { ...blankTranslations };
@@ -5336,6 +5337,7 @@
                 .from(REMOTE_PROGRESS_TABLE)
                 .select('progress_json, updated_at')
                 .eq('user_id', currentUser.id)
+                .eq('app_key', REMOTE_APP_KEY)
                 .maybeSingle();
             if (error) throw error;
             if (!data?.progress_json || !isValidProgressSnapshot(data.progress_json)) return null;
@@ -5352,13 +5354,14 @@
                 .from(REMOTE_PROGRESS_TABLE)
                 .upsert({
                     user_id: currentUser.id,
+                    app_key: REMOTE_APP_KEY,
                     progress_key: getProgressStorageKey(),
                     progress_json: {
                         ...snapshot,
                         savedAt: snapshot.savedAt || now
                     },
                     updated_at: now
-                }, { onConflict: 'user_id' });
+                }, { onConflict: 'user_id,app_key' });
             if (error) throw error;
             return true;
         }

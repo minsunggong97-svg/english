@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Sentence Builder - 260문장 연습기</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
@@ -74,6 +75,26 @@
         </div>
 
         <div id="manager-message" class="hidden p-3 rounded-lg text-sm font-semibold"></div>
+
+        <section id="auth-sync-panel" class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-xl">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Cloud Sync</p>
+                    <h2 id="auth-sync-title" class="mt-1 text-lg font-extrabold text-slate-900">로그인하면 다른 기기에서도 이어서 공부할 수 있어요.</h2>
+                    <p id="auth-sync-description" class="mt-1 text-sm font-semibold text-slate-500">로그인 전에는 이 기기의 localStorage에만 저장됩니다.</p>
+                </div>
+                <div id="auth-sync-actions" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <button id="auth-google-login-btn" type="button" onclick="loginWithGoogle()"
+                        class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-emerald-100 transition-colors hover:bg-emerald-700">
+                        <i class="fa-brands fa-google mr-2"></i>Google 계정으로 로그인
+                    </button>
+                    <button id="auth-logout-btn" type="button" onclick="logoutUser()"
+                        class="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-600 transition-colors hover:bg-slate-50">
+                        로그아웃
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <div class="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]" id="app-container">
             <aside class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden lg:sticky lg:top-6 lg:self-start">
@@ -2373,6 +2394,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
         const PROGRESS_STORAGE_KEY = "sentenceBuilderProgress";
         const MASTERED_STORAGE_KEY = "sentenceBuilderMasteredQuestions";
+        const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
+        const REMOTE_PROGRESS_TABLE = 'app_progress';
+        const REMOTE_APP_KEY = 'sentence-builder';
+        const REMOTE_PROGRESS_KEY = 'sentence-builder-progress-v1';
 
         let currentIndex = 0;
         let score = 0;
@@ -2389,6 +2415,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let translatedReaderSentences = new Set();
         let sentenceAiFeedbacks = {};
         let sentenceAiFeedbackLoadingKey = null;
+        let supabaseClient = null;
+        let currentUser = null;
+        let remoteSyncReady = false;
+        let remoteSaveTimer = null;
+        let isApplyingRemoteProgress = false;
 
         function showManagerMessage(message, type = 'info') {
             const box = document.getElementById('manager-message');
@@ -2400,6 +2431,287 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             };
             box.classList.add(...(styleMap[type] || styleMap.info));
             box.innerText = message;
+        }
+
+        function isSupabaseConfigured() {
+            return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase?.createClient);
+        }
+
+        function renderAuthSyncPanel() {
+            const title = document.getElementById('auth-sync-title');
+            const description = document.getElementById('auth-sync-description');
+            const googleLoginButton = document.getElementById('auth-google-login-btn');
+            const logoutButton = document.getElementById('auth-logout-btn');
+            if (!title || !description || !googleLoginButton || !logoutButton) return;
+
+            if (!isSupabaseConfigured()) {
+                title.textContent = '동기화 설정이 필요합니다.';
+                description.textContent = 'SUPABASE_SETUP.md를 참고해 Project URL과 anon key를 입력하면 로그인 저장을 사용할 수 있습니다. 지금은 이 기기에만 저장됩니다.';
+                googleLoginButton.disabled = true;
+                googleLoginButton.classList.add('opacity-50', 'cursor-not-allowed');
+                logoutButton.classList.add('hidden');
+                return;
+            }
+
+            googleLoginButton.disabled = false;
+            googleLoginButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            if (currentUser) {
+                const label = currentUser.email || '로그인 사용자';
+                title.textContent = `${label} 계정으로 동기화 중입니다.`;
+                description.textContent = '문장 배열 학습 기록이 Supabase에 함께 저장됩니다.';
+                googleLoginButton.classList.add('hidden');
+                logoutButton.classList.remove('hidden');
+            } else {
+                title.textContent = '로그인하면 다른 기기에서도 이어서 공부할 수 있어요.';
+                description.textContent = 'Google 계정으로 로그인하면 문장 배열 기록이 동기화됩니다. 로그인 전에는 이 기기에만 저장됩니다.';
+                googleLoginButton.classList.remove('hidden');
+                logoutButton.classList.add('hidden');
+            }
+        }
+
+        function createSupabaseClient() {
+            if (!isSupabaseConfigured()) return null;
+            if (!supabaseClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return supabaseClient;
+        }
+
+        function getProgressStorageKey() {
+            return REMOTE_PROGRESS_KEY;
+        }
+
+        function getLocalProgressSnapshot() {
+            try {
+                const progress = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
+                const mastered = JSON.parse(localStorage.getItem(MASTERED_STORAGE_KEY) || '[]');
+                const kept = JSON.parse(localStorage.getItem(KEEP_STORAGE_KEY) || '[]');
+                return {
+                    progressRecords: progress && typeof progress === 'object' && !Array.isArray(progress) ? progress : {},
+                    masteredQuestions: Array.isArray(mastered) ? mastered : [],
+                    keptQuestions: Array.isArray(kept) ? kept : [],
+                    savedAt: localStorage.getItem(getProgressStorageKey()) || null
+                };
+            } catch (error) {
+                console.warn('Unable to parse local sentence builder progress:', error);
+                return null;
+            }
+        }
+
+        function getProgressSnapshot(savedAt = new Date().toISOString()) {
+            return {
+                progressRecords,
+                masteredQuestions,
+                keptQuestions,
+                savedAt
+            };
+        }
+
+        function isValidProgressSnapshot(saved) {
+            if (!saved || typeof saved !== 'object') return false;
+            if (saved.progressRecords && (typeof saved.progressRecords !== 'object' || Array.isArray(saved.progressRecords))) return false;
+            if (saved.masteredQuestions && !Array.isArray(saved.masteredQuestions)) return false;
+            if (saved.keptQuestions && !Array.isArray(saved.keptQuestions)) return false;
+            return true;
+        }
+
+        function getProgressCompleteness(saved) {
+            if (!saved || typeof saved !== 'object') return 0;
+            const progressCount = saved.progressRecords && typeof saved.progressRecords === 'object'
+                ? Object.keys(saved.progressRecords).length
+                : 0;
+            const masteredCount = Array.isArray(saved.masteredQuestions) ? saved.masteredQuestions.length : 0;
+            const keptCount = Array.isArray(saved.keptQuestions) ? saved.keptQuestions.length : 0;
+            return progressCount * 10 + masteredCount + keptCount;
+        }
+
+        function chooseBetterProgress(localProgress, remoteProgress) {
+            if (!isValidProgressSnapshot(localProgress)) return remoteProgress;
+            if (!isValidProgressSnapshot(remoteProgress)) return localProgress;
+
+            const localTime = Date.parse(localProgress.savedAt || '');
+            const remoteTime = Date.parse(remoteProgress.savedAt || '');
+            if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
+                return remoteTime > localTime ? remoteProgress : localProgress;
+            }
+
+            return getProgressCompleteness(remoteProgress) > getProgressCompleteness(localProgress)
+                ? remoteProgress
+                : localProgress;
+        }
+
+        function calculateScoreFromProgress(records) {
+            return Object.values(records || {}).filter(record => record?.status === 'correct').length * 20;
+        }
+
+        function applyProgressSnapshot(saved) {
+            if (!isValidProgressSnapshot(saved)) return false;
+            isApplyingRemoteProgress = true;
+            try {
+                progressRecords = saved.progressRecords && typeof saved.progressRecords === 'object' && !Array.isArray(saved.progressRecords)
+                    ? saved.progressRecords
+                    : {};
+                masteredQuestions = Array.isArray(saved.masteredQuestions) ? saved.masteredQuestions : [];
+                keptQuestions = Array.isArray(saved.keptQuestions) ? saved.keptQuestions : [];
+                score = calculateScoreFromProgress(progressRecords);
+
+                localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressRecords));
+                localStorage.setItem(MASTERED_STORAGE_KEY, JSON.stringify(masteredQuestions));
+                localStorage.setItem(KEEP_STORAGE_KEY, JSON.stringify(keptQuestions));
+                localStorage.setItem(getProgressStorageKey(), saved.savedAt || new Date().toISOString());
+                document.getElementById('score-display').innerText = score;
+                renderMasteredStatus();
+                renderKeptNotes();
+                return true;
+            } finally {
+                isApplyingRemoteProgress = false;
+            }
+        }
+
+        async function fetchRemoteProgress() {
+            if (!supabaseClient || !currentUser) return null;
+            const { data, error } = await supabaseClient
+                .from(REMOTE_PROGRESS_TABLE)
+                .select('progress_json, updated_at')
+                .eq('user_id', currentUser.id)
+                .eq('app_key', REMOTE_APP_KEY)
+                .maybeSingle();
+            if (error) throw error;
+            if (!data?.progress_json || !isValidProgressSnapshot(data.progress_json)) return null;
+            return {
+                ...data.progress_json,
+                savedAt: data.progress_json.savedAt || data.updated_at
+            };
+        }
+
+        async function upsertRemoteProgress(snapshot = getProgressSnapshot()) {
+            if (!supabaseClient || !currentUser || !isValidProgressSnapshot(snapshot)) return false;
+            const now = new Date().toISOString();
+            const { error } = await supabaseClient
+                .from(REMOTE_PROGRESS_TABLE)
+                .upsert({
+                    user_id: currentUser.id,
+                    app_key: REMOTE_APP_KEY,
+                    progress_key: getProgressStorageKey(),
+                    progress_json: {
+                        ...snapshot,
+                        savedAt: snapshot.savedAt || now
+                    },
+                    updated_at: now
+                }, { onConflict: 'user_id,app_key' });
+            if (error) throw error;
+            return true;
+        }
+
+        function queueRemoteProgressSave(snapshot = getProgressSnapshot()) {
+            if (isApplyingRemoteProgress || !remoteSyncReady || !currentUser || !supabaseClient) return;
+            clearTimeout(remoteSaveTimer);
+            remoteSaveTimer = setTimeout(async () => {
+                try {
+                    const syncedSnapshot = {
+                        ...snapshot,
+                        savedAt: snapshot.savedAt || new Date().toISOString()
+                    };
+                    await upsertRemoteProgress(syncedSnapshot);
+                    localStorage.setItem(getProgressStorageKey(), syncedSnapshot.savedAt);
+                } catch (error) {
+                    console.warn('Unable to sync sentence builder progress:', error);
+                    showManagerMessage('Supabase 동기화에 실패했습니다. 이 기기에는 계속 저장됩니다.', 'info');
+                }
+            }, 600);
+        }
+
+        async function hydrateRemoteProgress() {
+            if (!currentUser || !supabaseClient) return;
+            try {
+                const localProgress = getLocalProgressSnapshot();
+                const remoteProgress = await fetchRemoteProgress();
+                const selectedProgress = chooseBetterProgress(localProgress, remoteProgress);
+                if (selectedProgress && applyProgressSnapshot(selectedProgress)) {
+                    applyQuizData(defaultQuizData, '로그인 기록을 불러와 동기화를 시작했습니다.', document.getElementById('passage-select')?.value || 'all');
+                    score = calculateScoreFromProgress(progressRecords);
+                    document.getElementById('score-display').innerText = score;
+                }
+                await upsertRemoteProgress(selectedProgress || getProgressSnapshot());
+                showManagerMessage('로그인 기록을 불러와 동기화를 시작했습니다.', 'success');
+            } catch (error) {
+                console.warn('Unable to hydrate sentence builder progress:', error);
+                showManagerMessage('Supabase 기록을 불러오지 못했습니다. 이 기기의 저장 기록으로 계속 진행합니다.', 'info');
+            }
+        }
+
+        async function initializeRemoteSync() {
+            renderAuthSyncPanel();
+            const client = createSupabaseClient();
+            if (!client) {
+                remoteSyncReady = false;
+                return;
+            }
+
+            try {
+                const { data, error } = await client.auth.getSession();
+                if (error) throw error;
+                currentUser = data.session?.user || null;
+                remoteSyncReady = Boolean(currentUser);
+                renderAuthSyncPanel();
+
+                client.auth.onAuthStateChange(async (_event, session) => {
+                    currentUser = session?.user || null;
+                    remoteSyncReady = Boolean(currentUser);
+                    renderAuthSyncPanel();
+                    if (currentUser) {
+                        await hydrateRemoteProgress();
+                    } else {
+                        showManagerMessage('로그아웃했습니다. 이후 기록은 이 기기에만 저장됩니다.', 'info');
+                    }
+                });
+
+                if (currentUser) {
+                    await hydrateRemoteProgress();
+                }
+            } catch (error) {
+                remoteSyncReady = false;
+                console.warn('Unable to initialize Supabase sync:', error);
+                showManagerMessage('Supabase 동기화를 시작하지 못했습니다. 이 기기에만 저장됩니다.', 'info');
+            }
+        }
+
+        async function loginWithGoogle() {
+            const client = createSupabaseClient();
+            if (!client) {
+                showManagerMessage('Supabase 설정값을 먼저 입력해야 Google 로그인을 사용할 수 있습니다.', 'info');
+                renderAuthSyncPanel();
+                return;
+            }
+            try {
+                const { error } = await client.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.href.split('#')[0]
+                    }
+                });
+                if (error) throw error;
+            } catch (error) {
+                console.warn('Unable to log in with Google:', error);
+                showManagerMessage(`Google 로그인에 실패했습니다: ${error.message}`, 'error');
+            }
+        }
+
+        async function logoutUser() {
+            const client = createSupabaseClient();
+            if (!client) return;
+            try {
+                const { error } = await client.auth.signOut();
+                if (error) throw error;
+                currentUser = null;
+                remoteSyncReady = false;
+                renderAuthSyncPanel();
+                showManagerMessage('로그아웃했습니다. 로컬 저장 모드로 전환됩니다.', 'info');
+            } catch (error) {
+                console.warn('Unable to log out:', error);
+                showManagerMessage(`로그아웃하지 못했습니다: ${error.message}`, 'error');
+            }
         }
 
         function updateTotalCountLabel() {
@@ -2714,6 +3026,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function saveProgressRecords() {
             localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressRecords));
+            const savedAt = new Date().toISOString();
+            localStorage.setItem(getProgressStorageKey(), savedAt);
+            queueRemoteProgressSave(getProgressSnapshot(savedAt));
         }
 
         function markQuestionProgress(question, isCorrect, userAnswer) {
@@ -2734,6 +3049,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function saveMasteredQuestions() {
             localStorage.setItem(MASTERED_STORAGE_KEY, JSON.stringify(masteredQuestions));
+            const savedAt = new Date().toISOString();
+            localStorage.setItem(getProgressStorageKey(), savedAt);
+            queueRemoteProgressSave(getProgressSnapshot(savedAt));
         }
 
         function loadMasteredQuestions() {
@@ -3311,6 +3629,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function saveKeptQuestions() {
             localStorage.setItem(KEEP_STORAGE_KEY, JSON.stringify(keptQuestions));
+            const savedAt = new Date().toISOString();
+            localStorage.setItem(getProgressStorageKey(), savedAt);
+            queueRemoteProgressSave(getProgressSnapshot(savedAt));
         }
 
         function loadKeptQuestions() {
@@ -3475,11 +3796,15 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             }
         });
 
-        window.onload = () => {
+        window.onload = async () => {
             loadKeptQuestions();
             loadProgressRecords();
             loadMasteredQuestions();
             applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
+            score = calculateScoreFromProgress(progressRecords);
+            document.getElementById('score-display').innerText = score;
+            renderAuthSyncPanel();
+            await initializeRemoteSync();
         };
     </script>
 </body>
