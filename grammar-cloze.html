@@ -115,15 +115,18 @@
                     <div class="space-y-5 p-6 sm:p-8">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                                <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Grammar Passage</p>
+                                <p id="passage-type-label" class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Grammar Passage</p>
                                 <h2 id="set-title" class="mt-1 text-2xl font-extrabold text-slate-900"></h2>
                                 <p id="set-description" class="mt-2 text-sm font-semibold text-slate-500"></p>
-                                <div class="mt-4 inline-flex rounded-2xl border border-emerald-100 bg-emerald-50 p-1">
+                                <div class="mt-4 inline-flex flex-wrap rounded-2xl border border-emerald-100 bg-emerald-50 p-1">
                                     <button id="grammar-mode-btn" type="button" onclick="setMode('grammar')" class="rounded-xl px-4 py-2 text-sm font-extrabold transition-colors">
                                         어법 빈칸
                                     </button>
                                     <button id="writing-mode-btn" type="button" onclick="setMode('writing')" class="rounded-xl px-4 py-2 text-sm font-extrabold transition-colors">
                                         서술형 배열
+                                    </button>
+                                    <button id="vocab-mode-btn" type="button" onclick="setMode('vocab')" class="rounded-xl px-4 py-2 text-sm font-extrabold transition-colors">
+                                        어휘 빈칸
                                     </button>
                                 </div>
                             </div>
@@ -731,6 +734,213 @@
                     "w6-b9": { answer: ["Given", "that", "sports", "fandom", "has", "become", "more", "and", "more", "common", "in", "modern", "times", "we", "should", "think", "about", "our", "role", "as", "fans"], choices: ["Given", "Giving", "that", "sports", "fandom", "has", "have", "become", "more", "and", "more", "common", "in", "modern", "times", "we", "should", "think", "about", "our", "role", "as", "fans"], grammarPoint: "Given that + 현재완료", explanation: "`Given that`은 '~을 고려하면'이고, 단수 주어 `sports fandom`에는 `has become`이 맞습니다." },
                     "w6-b10": { answer: ["We", "should", "establish", "a", "healthy", "culture", "of", "fandom", "and", "seek", "ways", "to", "practice", "fandom", "that", "can", "have", "a", "positive", "influence", "on", "society"], choices: ["We", "should", "establish", "establishing", "a", "healthy", "culture", "of", "fandom", "and", "seek", "ways", "to", "practice", "practicing", "fandom", "that", "can", "have", "has", "a", "positive", "influence", "on", "society"], grammarPoint: "should 병렬동사 + 관계절", explanation: "`should establish and seek` 병렬과 `ways to practice`, `that can have...` 관계절이 핵심입니다." }
                 }
+            },
+            {
+                id: "sports-fandom-part-1-vocab",
+                sourceSetId: "sports-fandom-part-1",
+                title: "Sports Fandom Part 1",
+                subtitle: "어휘 빈칸",
+                type: "vocab",
+                description: "도입부의 핵심 어휘와 문맥상 알맞은 표현을 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "Playing sports is one of the most " },
+                    { type: "blank", id: "v1-b1" },
+                    { type: "text", text: " hobbies, but people also love to watch " },
+                    { type: "blank", id: "v1-b2" },
+                    { type: "text", text: " sports games. If you go to any sports stadium, you will be able to find fans cheering " },
+                    { type: "blank", id: "v1-b3" },
+                    { type: "text", text: ", crying with joy. In the case of football, some famous matches are accompanied by " },
+                    { type: "blank", id: "v1-b4" },
+                    { type: "text", text: " fans, whose overly " },
+                    { type: "blank", id: "v1-b5" },
+                    { type: "text", text: " support of their team sometimes leads to " },
+                    { type: "blank", id: "v1-b6" },
+                    { type: "text", text: " with fans from opposition teams. If someone’s joy, sadness, and even anger emerge from the love of their team, what makes them so loyal? What does it mean for an individual to be a sports fan? And would their passion and cheering actually influence the performance of their team? These questions can be addressed from both an evolutionary and a social psychological perspective." }
+                ],
+                blanks: {
+                    "v1-b1": { answer: ["common"], choices: ["common", "rare", "strange", "private"], grammarPoint: "문맥 어휘 common", explanation: "가장 흔한 취미 중 하나라는 의미이므로 `common`이 맞습니다. `rare`는 드문이라는 반대 의미입니다." },
+                    "v1-b2": { answer: ["live"], choices: ["live", "dead", "silent", "private"], grammarPoint: "live sports games", explanation: "직접 진행되는 경기 관람을 말하므로 `live sports games`가 자연스럽습니다." },
+                    "v1-b3": { answer: ["wildly"], choices: ["wildly", "quietly", "barely", "politely"], grammarPoint: "강도 부사 wildly", explanation: "기쁨에 울 정도로 열광적으로 응원하는 문맥이므로 `wildly`가 적절합니다." },
+                    "v1-b4": { answer: ["extreme"], choices: ["extreme", "ordinary", "gentle", "neutral"], grammarPoint: "extreme fans", explanation: "뒤의 공격적 응원과 충돌로 이어지는 팬들을 설명하므로 `extreme`이 맞습니다." },
+                    "v1-b5": { answer: ["aggressive"], choices: ["aggressive", "peaceful", "weak", "careful"], grammarPoint: "aggressive support", explanation: "상대 팀 팬과의 충돌로 이어지는 지지이므로 `aggressive`가 문맥에 맞습니다." },
+                    "v1-b6": { answer: ["confrontations"], choices: ["confrontations", "celebrations", "agreements", "friendships"], grammarPoint: "confrontation", explanation: "공격적인 응원이 상대 팬과의 대립으로 이어지는 흐름이므로 `confrontations`가 맞습니다." }
+                }
+            },
+            {
+                id: "sports-fandom-part-2-vocab",
+                sourceSetId: "sports-fandom-part-2",
+                title: "Sports Fandom Part 2",
+                subtitle: "어휘 빈칸",
+                type: "vocab",
+                description: "진화론적 관점 설명에 쓰인 원인·생존·공동체 어휘를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "From an " },
+                    { type: "blank", id: "v2-b1" },
+                    { type: "text", text: " perspective, sports fandom " },
+                    { type: "blank", id: "v2-b2" },
+                    { type: "text", text: " from our tribal hunter-gatherer ancestors tens of thousands of years ago. At that time, a person was far more likely to " },
+                    { type: "blank", id: "v2-b3" },
+                    { type: "text", text: " as a member of a group than as an " },
+                    { type: "blank", id: "v2-b4" },
+                    { type: "text", text: " individual. People could help each other in groups when dealing with difficult tasks, such as carrying hunted animals that were too heavy for one person to handle. This " },
+                    { type: "blank", id: "v2-b5" },
+                    { type: "text", text: " cooperation built trust and " },
+                    { type: "blank", id: "v2-b6" },
+                    { type: "text", text: " relationships among group members. In fact, group membership was so important that tribes with a stronger sense of community were likely to defeat tribes whose members were less closely allied. Because of this, community membership was a survival " },
+                    { type: "blank", id: "v2-b7" },
+                    { type: "text", text: " for our ancestors, and the instinct to find one’s own tribe or group has been passed down to modern people. This may be how community membership influences our choice of a sports team and our sense of loyalty to that team." }
+                ],
+                blanks: {
+                    "v2-b1": { answer: ["evolutionary"], choices: ["evolutionary", "economic", "artificial", "temporary"], grammarPoint: "evolutionary perspective", explanation: "조상과 생존 기원을 설명하는 관점이므로 `evolutionary`가 맞습니다." },
+                    "v2-b2": { answer: ["emerged"], choices: ["emerged", "disappeared", "borrowed", "escaped"], grammarPoint: "emerge from", explanation: "`emerged from`은 '~에서 생겨나다'라는 뜻으로 기원을 설명합니다." },
+                    "v2-b3": { answer: ["survive"], choices: ["survive", "compete", "celebrate", "wander"], grammarPoint: "survive", explanation: "집단 구성원이었을 때 생존 가능성이 높았다는 문맥이므로 `survive`가 필요합니다." },
+                    "v2-b4": { answer: ["isolated"], choices: ["isolated", "connected", "allied", "crowded"], grammarPoint: "isolated individual", explanation: "집단 구성원과 대비되는 고립된 개인을 뜻하므로 `isolated`가 맞습니다." },
+                    "v2-b5": { answer: ["mutual"], choices: ["mutual", "single", "hostile", "random"], grammarPoint: "mutual cooperation", explanation: "서로 돕는 협력을 말하므로 `mutual`이 자연스럽습니다." },
+                    "v2-b6": { answer: ["fostered"], choices: ["fostered", "damaged", "blocked", "ignored"], grammarPoint: "foster relationships", explanation: "관계를 촉진하고 발전시킨다는 의미이므로 `fostered`가 맞습니다." },
+                    "v2-b7": { answer: ["mechanism"], choices: ["mechanism", "decoration", "accident", "hobby"], grammarPoint: "survival mechanism", explanation: "생존을 가능하게 하는 장치나 방식이라는 뜻으로 `mechanism`이 적절합니다." }
+                }
+            },
+            {
+                id: "sports-fandom-part-3-vocab",
+                sourceSetId: "sports-fandom-part-3",
+                title: "Sports Fandom Part 3",
+                subtitle: "어휘 빈칸",
+                type: "vocab",
+                description: "사회심리학 이론과 소속·차별화 관련 어휘를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "There are also two social psychological " },
+                    { type: "blank", id: "v3-b1" },
+                    { type: "text", text: " that might explain why we cheer for a sports team: optimal " },
+                    { type: "blank", id: "v3-b2" },
+                    { type: "text", text: " and basking in reflected glory. Though it may be human nature to form a group and feel a sense of " },
+                    { type: "blank", id: "v3-b3" },
+                    { type: "text", text: " to that group, being a fan of a sports team is different from just having friends. Optimal distinctiveness theory states that everyone has a need for " },
+                    { type: "blank", id: "v3-b4" },
+                    { type: "text", text: " and differentiation. That is, individuals want to be included somewhere, but they also want to be different and unique. These two basic but " },
+                    { type: "blank", id: "v3-b5" },
+                    { type: "text", text: " needs can be satisfied through group membership. Sports team supporters are one such group. For example, if you are a fan of a football team based in your city, you can satisfy your need for inclusion by supporting the same team with other in-group members. This can also make you feel unique because your team’s fans are different from the fans of other teams. This feeling of uniqueness is " },
+                    { type: "blank", id: "v3-b6" },
+                    { type: "text", text: " by sports teams’ deliberate use of their team colors and songs." }
+                ],
+                blanks: {
+                    "v3-b1": { answer: ["theories"], choices: ["theories", "stadiums", "emotions", "arguments"], grammarPoint: "theory", explanation: "팬덤을 설명하는 사회심리학 이론들이므로 `theories`가 맞습니다." },
+                    "v3-b2": { answer: ["distinctiveness"], choices: ["distinctiveness", "similarity", "weakness", "silence"], grammarPoint: "distinctiveness", explanation: "남들과 구별되고 독특해지고 싶은 욕구를 말하므로 `distinctiveness`가 적절합니다." },
+                    "v3-b3": { answer: ["belonging"], choices: ["belonging", "failure", "distance", "confusion"], grammarPoint: "sense of belonging", explanation: "집단에 소속되어 있다는 느낌은 `a sense of belonging`으로 표현합니다." },
+                    "v3-b4": { answer: ["inclusion"], choices: ["inclusion", "exclusion", "competition", "isolation"], grammarPoint: "inclusion", explanation: "어딘가에 포함되고 싶은 욕구를 뜻하므로 `inclusion`이 맞습니다." },
+                    "v3-b5": { answer: ["competing"], choices: ["competing", "identical", "empty", "hidden"], grammarPoint: "competing needs", explanation: "포함되고 싶지만 동시에 달라지고 싶은 두 욕구가 서로 경쟁하므로 `competing`이 맞습니다." },
+                    "v3-b6": { answer: ["reinforced"], choices: ["reinforced", "weakened", "forgotten", "removed"], grammarPoint: "reinforce", explanation: "팀 색과 노래가 독특함의 느낌을 강화하므로 `reinforced`가 자연스럽습니다." }
+                }
+            },
+            {
+                id: "sports-fandom-part-4-vocab",
+                sourceSetId: "sports-fandom-part-4",
+                title: "Sports Fandom Part 4",
+                subtitle: "어휘 빈칸",
+                type: "vocab",
+                description: "반사된 영광과 팬 동일시를 설명하는 핵심 어휘를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "Another explanation for sports fandom is a " },
+                    { type: "blank", id: "v4-b1" },
+                    { type: "text", text: " called “basking in reflected glory.” This means that you feel successful by " },
+                    { type: "blank", id: "v4-b2" },
+                    { type: "text", text: " yourself with others’ success, especially when you are connected to them in some way. This phenomenon is closely related to people’s love for their sports teams. People feel proud when their team wins the game or performs well. Even though a team’s triumph may not offer its fans any " },
+                    { type: "blank", id: "v4-b3" },
+                    { type: "text", text: " benefits, the mere act of watching the game brings them " },
+                    { type: "blank", id: "v4-b4" },
+                    { type: "text", text: ". This connection with sports teams can sometimes grow so strong among some passionate supporters that they even " },
+                    { type: "blank", id: "v4-b5" },
+                    { type: "text", text: " themselves with their teams. Because of this identification, they often consider " },
+                    { type: "blank", id: "v4-b6" },
+                    { type: "text", text: " toward their team as a personal attack and become " },
+                    { type: "blank", id: "v4-b7" },
+                    { type: "text", text: " in extreme cases." }
+                ],
+                blanks: {
+                    "v4-b1": { answer: ["phenomenon"], choices: ["phenomenon", "punishment", "strategy", "equipment"], grammarPoint: "phenomenon", explanation: "반사된 영광 누리기는 하나의 심리 현상이므로 `phenomenon`이 맞습니다." },
+                    "v4-b2": { answer: ["associating"], choices: ["associating", "separating", "hiding", "defeating"], grammarPoint: "associate A with B", explanation: "자신을 타인의 성공과 연관 짓는다는 의미이므로 `associating`이 적절합니다." },
+                    "v4-b3": { answer: ["immediate"], choices: ["immediate", "distant", "negative", "imaginary"], grammarPoint: "immediate benefits", explanation: "즉각적인 이익을 제공하지 않을 수 있다는 문맥이므로 `immediate`가 맞습니다." },
+                    "v4-b4": { answer: ["satisfaction"], choices: ["satisfaction", "conflict", "pressure", "failure"], grammarPoint: "satisfaction", explanation: "경기를 보는 행위가 만족감을 준다는 흐름이므로 `satisfaction`이 필요합니다." },
+                    "v4-b5": { answer: ["identify"], choices: ["identify", "separate", "compare", "replace"], grammarPoint: "identify with", explanation: "자신을 팀과 동일시한다는 표현은 `identify themselves with`입니다." },
+                    "v4-b6": { answer: ["criticism"], choices: ["criticism", "praise", "support", "victory"], grammarPoint: "criticism", explanation: "팀에 대한 비판을 개인적 공격으로 여긴다는 뜻이므로 `criticism`이 맞습니다." },
+                    "v4-b7": { answer: ["violent"], choices: ["violent", "calm", "friendly", "careful"], grammarPoint: "violent", explanation: "극단적 경우 폭력적으로 변한다는 의미이므로 `violent`가 적절합니다." }
+                }
+            },
+            {
+                id: "sports-fandom-part-5-vocab",
+                sourceSetId: "sports-fandom-part-5",
+                title: "Sports Fandom Part 5",
+                subtitle: "어휘 빈칸",
+                type: "vocab",
+                description: "응원 행동과 뇌 호르몬 효과를 설명하는 어휘를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "However, as long as the behavior of sports fans does not go too far and harm others, cheering can become a means for them to " },
+                    { type: "blank", id: "v5-b1" },
+                    { type: "text", text: " their emotions. Supporting a team " },
+                    { type: "blank", id: "v5-b2" },
+                    { type: "text", text: " can help people forget about their daily life challenges. It can also have positive effects on our brains. For instance, when you cheer for a team and your team wins the game, your brain may " },
+                    { type: "blank", id: "v5-b3" },
+                    { type: "text", text: " dopamine. Dopamine, a chemical known as the “happy hormone,” makes you feel " },
+                    { type: "blank", id: "v5-b4" },
+                    { type: "text", text: " when you reach a goal. If you have " },
+                    { type: "blank", id: "v5-b5" },
+                    { type: "text", text: " the goal for a long time, the effect is greater. So it is a particular " },
+                    { type: "blank", id: "v5-b6" },
+                    { type: "text", text: " when a team achieves victory following a series of back-to-back losses. While you are cheering, your brain may also release " },
+                    { type: "blank", id: "v5-b7" },
+                    { type: "text", text: ", a hormone that contributes to feelings of " },
+                    { type: "blank", id: "v5-b8" },
+                    { type: "text", text: " between people." }
+                ],
+                blanks: {
+                    "v5-b1": { answer: ["express"], choices: ["express", "hide", "control", "deny"], grammarPoint: "express emotions", explanation: "감정을 드러내는 수단을 말하므로 `express their emotions`가 맞습니다." },
+                    "v5-b2": { answer: ["passionately"], choices: ["passionately", "carelessly", "silently", "rarely"], grammarPoint: "passionately", explanation: "팀을 열정적으로 지지한다는 뜻이므로 `passionately`가 적절합니다." },
+                    "v5-b3": { answer: ["release"], choices: ["release", "remove", "reject", "reduce"], grammarPoint: "release dopamine", explanation: "뇌가 도파민을 분비한다는 표현은 `release dopamine`입니다." },
+                    "v5-b4": { answer: ["pleasure"], choices: ["pleasure", "anger", "pressure", "danger"], grammarPoint: "pleasure", explanation: "목표 달성 시 느끼는 즐거움이므로 `pleasure`가 맞습니다." },
+                    "v5-b5": { answer: ["pursued"], choices: ["pursued", "ignored", "lost", "avoided"], grammarPoint: "pursue a goal", explanation: "목표를 오랫동안 추구해 왔다는 의미이므로 `pursued`가 필요합니다." },
+                    "v5-b6": { answer: ["thrill"], choices: ["thrill", "burden", "routine", "mistake"], grammarPoint: "thrill", explanation: "연패 뒤 승리가 주는 특별한 짜릿함을 말하므로 `thrill`이 맞습니다." },
+                    "v5-b7": { answer: ["oxytocin"], choices: ["oxytocin", "oxygen", "protein", "vitamin"], grammarPoint: "oxytocin", explanation: "사람 사이의 유대감에 기여하는 호르몬은 `oxytocin`입니다." },
+                    "v5-b8": { answer: ["bonding"], choices: ["bonding", "separation", "competition", "confusion"], grammarPoint: "bonding", explanation: "사람들 사이의 유대감을 뜻하므로 `bonding`이 적절합니다." }
+                }
+            },
+            {
+                id: "sports-fandom-part-6-vocab",
+                sourceSetId: "sports-fandom-part-6",
+                title: "Sports Fandom Part 6",
+                subtitle: "어휘 빈칸",
+                type: "vocab",
+                description: "연구 결과와 결론에 쓰인 효과·분석·실천 어휘를 점검합니다.",
+                passageParts: [
+                    { type: "text", text: "Sports fandom brings " },
+                    { type: "blank", id: "v6-b1" },
+                    { type: "text", text: " not only to individual fans but also to the " },
+                    { type: "blank", id: "v6-b2" },
+                    { type: "text", text: " of sports teams. When a team competes in their home stadium, their fans gather to watch the game. " },
+                    { type: "blank", id: "v6-b3" },
+                    { type: "text", text: ", the cheers from the home team’s fans are louder than those from the visiting team’s supporters. This " },
+                    { type: "blank", id: "v6-b4" },
+                    { type: "text", text: " has an impact on the performance of the home team, as confirmed by a study in 2021. The study " },
+                    { type: "blank", id: "v6-b5" },
+                    { type: "text", text: " the relationship between cheering and goals scored in matches. It compared home matches in an Italian football league from 2013 to 2019 with matches during the pandemic when crowds were " },
+                    { type: "blank", id: "v6-b6" },
+                    { type: "text", text: " from entering stadiums. It was found that the home team’s performance " },
+                    { type: "blank", id: "v6-b7" },
+                    { type: "text", text: " by eight percent on average without crowds. This means that cheering helps the team’s performance to some extent, although it may not be the " },
+                    { type: "blank", id: "v6-b8" },
+                    { type: "text", text: " factor. Sports fandom can be analyzed using both evolutionary and social psychological approaches. Through these perspectives, we can understand why people have loyalty and support for their teams. Given that sports fandom has become more and more common in modern times, we should think about our role as fans. We should " },
+                    { type: "blank", id: "v6-b9" },
+                    { type: "text", text: " a healthy culture of fandom and seek ways to practice fandom that can have a positive influence on society." }
+                ],
+                blanks: {
+                    "v6-b1": { answer: ["benefits"], choices: ["benefits", "problems", "limits", "attacks"], grammarPoint: "benefits", explanation: "팬과 팀 경기력 모두에 이익을 가져온다는 흐름이므로 `benefits`가 맞습니다." },
+                    "v6-b2": { answer: ["performance"], choices: ["performance", "appearance", "location", "expense"], grammarPoint: "performance", explanation: "스포츠 팀의 경기력에 대한 효과를 말하므로 `performance`가 적절합니다." },
+                    "v6-b3": { answer: ["Typically"], choices: ["Typically", "Rarely", "Secretly", "Accidentally"], grammarPoint: "typically", explanation: "일반적인 경향을 말하므로 `Typically`가 자연스럽습니다." },
+                    "v6-b4": { answer: ["dynamic"], choices: ["dynamic", "object", "silence", "tradition"], grammarPoint: "dynamic", explanation: "홈 팬 응원과 경기력 사이의 작용 관계를 가리키므로 `dynamic`이 맞습니다." },
+                    "v6-b5": { answer: ["examined"], choices: ["examined", "ignored", "invented", "predicted"], grammarPoint: "examine", explanation: "연구가 관계를 조사했다는 의미이므로 `examined`가 필요합니다." },
+                    "v6-b6": { answer: ["banned"], choices: ["banned", "invited", "allowed", "encouraged"], grammarPoint: "ban", explanation: "팬데믹 기간 관중 입장이 금지된 상황이므로 `banned`가 맞습니다." },
+                    "v6-b7": { answer: ["decreased"], choices: ["decreased", "increased", "remained", "improved"], grammarPoint: "decrease", explanation: "관중이 없을 때 경기력이 평균 8퍼센트 감소했으므로 `decreased`가 맞습니다." },
+                    "v6-b8": { answer: ["determining"], choices: ["determining", "minor", "hidden", "random"], grammarPoint: "determining factor", explanation: "결정적 요인을 뜻하는 표현은 `determining factor`입니다." },
+                    "v6-b9": { answer: ["establish"], choices: ["establish", "destroy", "ignore", "delay"], grammarPoint: "establish a culture", explanation: "건강한 팬덤 문화를 확립해야 한다는 결론이므로 `establish`가 적절합니다." }
+                }
             }
 
         ];
@@ -834,7 +1044,50 @@
             "w6-b7": "이것은 응원이 결정적 요인은 아닐지라도 팀의 경기력에 어느 정도 도움이 된다는 뜻이다",
             "w6-b8": "스포츠 팬덤은 진화론적 접근법과 사회심리학적 접근법 모두를 사용하여 분석될 수 있다",
             "w6-b9": "현대에 스포츠 팬덤이 점점 더 흔해졌다는 점을 고려하면 우리는 팬으로서의 역할을 생각해야 한다",
-            "w6-b10": "우리는 건강한 팬덤 문화를 확립하고 사회에 긍정적인 영향을 미칠 수 있는 팬덤 실천 방법을 찾아야 한다"
+            "w6-b10": "우리는 건강한 팬덤 문화를 확립하고 사회에 긍정적인 영향을 미칠 수 있는 팬덤 실천 방법을 찾아야 한다",
+            "v1-b1": "흔한",
+            "v1-b2": "실시간의, 생중계의",
+            "v1-b3": "열광적으로",
+            "v1-b4": "극단적인",
+            "v1-b5": "공격적인",
+            "v1-b6": "대립, 충돌",
+            "v2-b1": "진화론적인",
+            "v2-b2": "생겨났다",
+            "v2-b3": "생존하다",
+            "v2-b4": "고립된",
+            "v2-b5": "상호의",
+            "v2-b6": "촉진했다",
+            "v2-b7": "기제, 장치",
+            "v3-b1": "이론들",
+            "v3-b2": "구별성, 독특성",
+            "v3-b3": "소속감",
+            "v3-b4": "포함",
+            "v3-b5": "경쟁하는",
+            "v3-b6": "강화된",
+            "v4-b1": "현상",
+            "v4-b2": "연관시키는 것",
+            "v4-b3": "즉각적인",
+            "v4-b4": "만족감",
+            "v4-b5": "동일시하다",
+            "v4-b6": "비판",
+            "v4-b7": "폭력적인",
+            "v5-b1": "표현하다",
+            "v5-b2": "열정적으로",
+            "v5-b3": "분비하다",
+            "v5-b4": "즐거움",
+            "v5-b5": "추구했다",
+            "v5-b6": "짜릿함",
+            "v5-b7": "옥시토신",
+            "v5-b8": "유대감",
+            "v6-b1": "이익",
+            "v6-b2": "경기력",
+            "v6-b3": "일반적으로",
+            "v6-b4": "역학, 작용 관계",
+            "v6-b5": "조사했다",
+            "v6-b6": "금지된",
+            "v6-b7": "감소했다",
+            "v6-b8": "결정적인",
+            "v6-b9": "확립하다"
         };
 
         let currentMode = "grammar";
@@ -882,7 +1135,7 @@
         function loadProgress() {
             try {
                 const saved = JSON.parse(localStorage.getItem(getProgressStorageKey()) || 'null');
-                if (!saved || !['grammar', 'writing'].includes(saved.mode)) return false;
+                if (!saved || !['grammar', 'writing', 'vocab'].includes(saved.mode)) return false;
 
                 const visibleSets = clozeSets.filter((set) => set.type === saved.mode);
                 const savedIndex = visibleSets.findIndex((set) => set.id === saved.setId);
@@ -972,13 +1225,21 @@
         function renderModeToggle() {
             const grammarBtn = document.getElementById('grammar-mode-btn');
             const writingBtn = document.getElementById('writing-mode-btn');
-            if (!grammarBtn || !writingBtn) return;
+            const vocabBtn = document.getElementById('vocab-mode-btn');
+            if (!grammarBtn || !writingBtn || !vocabBtn) return;
 
             const activeClass = 'bg-white text-emerald-700 shadow-sm';
             const inactiveClass = 'text-slate-500 hover:text-emerald-700';
             grammarBtn.className = `rounded-xl px-4 py-2 text-sm font-extrabold transition-colors ${currentMode === 'grammar' ? activeClass : inactiveClass}`;
             writingBtn.className = `rounded-xl px-4 py-2 text-sm font-extrabold transition-colors ${currentMode === 'writing' ? activeClass : inactiveClass}`;
-            document.getElementById('set-list-title').textContent = currentMode === 'writing' ? '서술형 지문 선택' : '어법 지문 선택';
+            vocabBtn.className = `rounded-xl px-4 py-2 text-sm font-extrabold transition-colors ${currentMode === 'vocab' ? activeClass : inactiveClass}`;
+
+            const titleMap = {
+                grammar: '어법 지문 선택',
+                writing: '서술형 지문 선택',
+                vocab: '어휘 지문 선택'
+            };
+            document.getElementById('set-list-title').textContent = titleMap[currentMode] || titleMap.grammar;
         }
 
         function renderPassage() {
@@ -1472,18 +1733,25 @@
             const userTokens = blankAnswers[blankId] || [];
             const userAnswer = userTokens.join(' ') || '미입력';
             const correctAnswer = blank.answer.join(' ');
+            const problemTypeMap = {
+                grammar: '어법 빈칸',
+                writing: '서술형 배열',
+                vocab: '어휘 빈칸'
+            };
+            const pointLabel = set.type === 'vocab' ? '어휘 포인트' : '문법 포인트';
             aiFeedbackLoadingId = blankId;
             renderResult();
 
             const prompt = [
-                '너는 고등학교 영어 내신 어법 선생님이다.',
+                '너는 고등학교 영어 내신 어법과 어휘를 지도하는 선생님이다.',
                 '학생이 작성한 답과 원래 정답을 비교해 피드백하라.',
                 '칭찬, 총평, 격려, 불필요한 배경 설명은 쓰지 마라.',
                 '사용자가 틀린 부분, 왜 틀렸는지, 올바른 답만 한국어 평문으로 설명하라.',
+                '어휘 문제라면 문맥상 왜 정답 어휘가 맞고 학생이 고른 어휘가 어색한지 설명하라.',
                 '정해진 형식, 제목, 목록, JSON은 쓰지 말고 500자 이내로 답하라.',
                 '',
-                `문제 유형: ${set.type === 'writing' ? '서술형 배열' : '어법 빈칸'}`,
-                `문법 포인트: ${blank.grammarPoint}`,
+                `문제 유형: ${problemTypeMap[set.type] || problemTypeMap.grammar}`,
+                `${pointLabel}: ${blank.grammarPoint}`,
                 `사용자가 적은 답: ${userAnswer}`,
                 `원래 정답: ${correctAnswer}`,
                 `참고 해설: ${blank.explanation.replace(/`/g, '')}`
@@ -1524,7 +1792,12 @@
             resetState();
             saveProgress();
             renderAll();
-            showStatus(mode === 'writing' ? '서술형 배열 모드로 전환했습니다.' : '어법 빈칸 모드로 전환했습니다.', 'success');
+            const messageMap = {
+                grammar: '어법 빈칸 모드로 전환했습니다.',
+                writing: '서술형 배열 모드로 전환했습니다.',
+                vocab: '어휘 빈칸 모드로 전환했습니다.'
+            };
+            showStatus(messageMap[mode] || messageMap.grammar, 'success');
         }
 
         function selectBlank(blankId) {
@@ -1720,6 +1993,12 @@
 
         function renderAll() {
             const set = getCurrentSet();
+            const passageTypeMap = {
+                grammar: 'Grammar Passage',
+                writing: 'Writing Passage',
+                vocab: 'Vocabulary Passage'
+            };
+            document.getElementById('passage-type-label').textContent = passageTypeMap[currentMode] || passageTypeMap.grammar;
             document.getElementById('set-title').textContent = `${set.title} - ${set.subtitle}`;
             document.getElementById('set-description').textContent = set.description;
             renderModeToggle();
