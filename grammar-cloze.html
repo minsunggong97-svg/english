@@ -4966,6 +4966,7 @@
         let activeHintBlankId = null;
         let blankAnswers = {};
         let aiFeedbacks = {};
+        let scoreRecords = {};
         let aiFeedbackLoadingId = null;
         let isGraded = false;
         let vocabDifficultyLevel = 0;
@@ -4995,7 +4996,8 @@
                     setId: set.id,
                     blankAnswers,
                     isGraded,
-                    vocabDifficultyLevel
+                    vocabDifficultyLevel,
+                    scoreRecords
                 }));
             } catch (error) {
                 console.warn('Unable to save cloze progress:', error);
@@ -5019,6 +5021,7 @@
                     saved.vocabDifficultyLevel ?? (saved.vocabDifficultyMin === 1 ? 0 : saved.vocabDifficultyMin)
                 );
                 blankAnswers = sanitizeSavedAnswers(saved.blankAnswers, set);
+                scoreRecords = saved.scoreRecords && typeof saved.scoreRecords === 'object' ? saved.scoreRecords : {};
                 isGraded = Boolean(saved.isGraded);
                 return true;
             } catch (error) {
@@ -5106,6 +5109,54 @@
             return getAllBlankIds().filter((blankId) => isBlankActiveForDifficulty(blanks[blankId]));
         }
 
+        function calculateSetScore(set = getCurrentSet()) {
+            const blankIds = getBlankIds();
+            const totalCount = blankIds.length;
+            const correctCount = blankIds.filter((id) => arraysEqual(blankAnswers[id] || [], set.blanks[id].answer)).length;
+            const score = totalCount ? Math.round((correctCount / totalCount) * 100) : 0;
+            return { blankIds, totalCount, correctCount, score };
+        }
+
+        function getSetScoreRecord(set) {
+            return scoreRecords[set.id] || null;
+        }
+
+        function getScoreBadgeLabel(set) {
+            const record = getSetScoreRecord(set);
+            return record ? `${record.score}점 · ${record.correctCount}/${record.totalCount}` : '미채점';
+        }
+
+        function getGroupScoreSummary(groupId, visibleSets = getVisibleSets()) {
+            const groupSets = visibleSets.filter((set) => getPassageGroupId(set) === groupId);
+            const records = groupSets
+                .map((set) => getSetScoreRecord(set))
+                .filter(Boolean);
+            if (!records.length) {
+                return `0/${groupSets.length} 완료`;
+            }
+            const averageScore = Math.round(records.reduce((sum, record) => sum + record.score, 0) / records.length);
+            return `평균 ${averageScore}점 · ${records.length}/${groupSets.length} 완료`;
+        }
+
+        function recordCurrentSetScore() {
+            const set = getCurrentSet();
+            const { totalCount, correctCount, score } = calculateSetScore(set);
+            if (!totalCount) return null;
+            const record = {
+                setId: set.id,
+                mode: set.type,
+                score,
+                correctCount,
+                totalCount,
+                gradedAt: new Date().toISOString()
+            };
+            scoreRecords = {
+                ...scoreRecords,
+                [set.id]: record
+            };
+            return record;
+        }
+
         function arraysEqual(a, b) {
             return a.length === b.length && a.every((value, index) => value === b[index]);
         }
@@ -5160,6 +5211,7 @@
             groupIds.forEach((groupId) => {
                 const groupSets = visibleSets.filter((set) => getPassageGroupId(set) === groupId);
                 const isActive = groupId === activeGroupId;
+                const groupSummary = getGroupScoreSummary(groupId, visibleSets);
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.onclick = () => selectPassageGroup(groupId);
@@ -5172,6 +5224,7 @@
                 button.innerHTML = `
                     <span class="block text-base font-extrabold ${isActive ? 'text-emerald-800' : 'text-slate-800'}">${escapeHtml(getPassageGroupLabel(groupId))}</span>
                     <span class="mt-1 block text-xs font-bold text-slate-500">${groupSets.length}개 Part</span>
+                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">${escapeHtml(groupSummary)}</span>
                 `;
                 groupGrid.appendChild(button);
             });
@@ -5189,6 +5242,8 @@
             partGrid.className = 'grid gap-2';
             visibleSets.forEach((set, index) => {
                 if (getPassageGroupId(set) !== activeGroupId) return;
+                const scoreRecord = getSetScoreRecord(set);
+                const scoreClass = scoreRecord ? 'text-emerald-700' : 'text-slate-400';
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.onclick = () => selectSet(index);
@@ -5201,7 +5256,10 @@
                 button.innerHTML = `
                     <span class="block text-sm font-extrabold ${index === currentSetIndex ? 'text-emerald-800' : 'text-slate-800'}">${escapeHtml(getPartLabel(set))}</span>
                     <span class="mt-1 block text-sm font-semibold text-slate-500">${escapeHtml(set.subtitle)}</span>
-                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">${Object.keys(set.blanks).length}개 빈칸</span>
+                    <span class="mt-2 inline-flex flex-wrap gap-1.5">
+                        <span class="rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">${Object.keys(set.blanks).length}개 빈칸</span>
+                        <span class="rounded-full bg-white px-2.5 py-1 text-xs font-black ${scoreClass}">${escapeHtml(getScoreBadgeLabel(set))}</span>
+                    </span>
                 `;
                 partGrid.appendChild(button);
             });
@@ -5953,9 +6011,11 @@
             isGraded = true;
             activeChoiceBlankId = null;
             activeExplanationBlankId = null;
+            recordCurrentSetScore();
             saveProgress();
             renderPassage();
             renderChoices();
+            renderSetList();
             renderResult();
         }
 
