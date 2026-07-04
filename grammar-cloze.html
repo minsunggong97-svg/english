@@ -133,11 +133,12 @@
                             <div id="vocab-difficulty-filter" class="hidden rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
                                 <p class="mb-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-600">Vocabulary Level</p>
                                 <div class="flex flex-wrap gap-1.5">
-                                    <button type="button" data-vocab-difficulty="1" onclick="setVocabDifficulty(1)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">전체</button>
-                                    <button type="button" data-vocab-difficulty="2" onclick="setVocabDifficulty(2)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">2 이상</button>
-                                    <button type="button" data-vocab-difficulty="3" onclick="setVocabDifficulty(3)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">3 이상</button>
-                                    <button type="button" data-vocab-difficulty="4" onclick="setVocabDifficulty(4)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">4 이상</button>
-                                    <button type="button" data-vocab-difficulty="5" onclick="setVocabDifficulty(5)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">5만</button>
+                                    <button type="button" data-vocab-difficulty="0" onclick="setVocabDifficulty(0)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">All</button>
+                                    <button type="button" data-vocab-difficulty="1" onclick="setVocabDifficulty(1)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">Level 1</button>
+                                    <button type="button" data-vocab-difficulty="2" onclick="setVocabDifficulty(2)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">Level 2</button>
+                                    <button type="button" data-vocab-difficulty="3" onclick="setVocabDifficulty(3)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">Level 3</button>
+                                    <button type="button" data-vocab-difficulty="4" onclick="setVocabDifficulty(4)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">Level 4</button>
+                                    <button type="button" data-vocab-difficulty="5" onclick="setVocabDifficulty(5)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">Level 5</button>
                                 </div>
                                 <p id="vocab-difficulty-summary" class="mt-2 text-xs font-semibold text-emerald-700"></p>
                             </div>
@@ -760,13 +761,25 @@
                     { type: "blank", id: "v1-b2" },
                     { type: "text", text: " sports games. If you go to any sports stadium, you will be able to find fans cheering " },
                     { type: "blank", id: "v1-b3" },
-                    { type: "text", text: ", crying with joy. In the case of football, some famous matches are accompanied by " },
+                    { type: "text", text: ", crying with joy. In the case of football, some famous matches are " },
+                    { type: "blank", id: "v1-b7" },
+                    { type: "text", text: " by " },
                     { type: "blank", id: "v1-b4" },
                     { type: "text", text: " fans, whose overly " },
                     { type: "blank", id: "v1-b5" },
                     { type: "text", text: " support of their team sometimes leads to " },
                     { type: "blank", id: "v1-b6" },
-                    { type: "text", text: " with fans from opposition teams. If someone’s joy, sadness, and even anger emerge from the love of their team, what makes them so loyal? What does it mean for an individual to be a sports fan? And would their passion and cheering actually influence the performance of their team? These questions can be addressed from both an evolutionary and a social psychological perspective." }
+                    { type: "text", text: " with fans from " },
+                    { type: "blank", id: "v1-b8" },
+                    { type: "text", text: " teams. If someone’s joy, sadness, and even anger " },
+                    { type: "blank", id: "v1-b9" },
+                    { type: "text", text: " from the love of their team, what makes them so " },
+                    { type: "blank", id: "v1-b10" },
+                    { type: "text", text: "? What does it mean for an individual to be a sports fan? And would their passion and cheering actually influence the performance of their team? These questions can be " },
+                    { type: "blank", id: "v1-b11" },
+                    { type: "text", text: " from both an evolutionary and a social psychological " },
+                    { type: "blank", id: "v1-b12" },
+                    { type: "text", text: "." }
                 ],
                 blanks: {
                     "v1-b1": { answer: ["common"], choices: ["common", "rare", "strange", "private"], difficulty: 1, grammarPoint: "문맥 어휘 common", explanation: "가장 흔한 취미 중 하나라는 의미이므로 `common`이 맞습니다. `rare`는 드문이라는 반대 의미입니다." },
@@ -774,7 +787,13 @@
                     "v1-b3": { answer: ["wildly"], choices: ["wildly", "quietly", "barely", "politely"], difficulty: 3, grammarPoint: "강도 부사 wildly", explanation: "기쁨에 울 정도로 열광적으로 응원하는 문맥이므로 `wildly`가 적절합니다." },
                     "v1-b4": { answer: ["extreme"], choices: ["extreme", "ordinary", "gentle", "neutral"], difficulty: 3, grammarPoint: "extreme fans", explanation: "뒤의 공격적 응원과 충돌로 이어지는 팬들을 설명하므로 `extreme`이 맞습니다." },
                     "v1-b5": { answer: ["aggressive"], choices: ["aggressive", "peaceful", "weak", "careful"], difficulty: 4, grammarPoint: "aggressive support", explanation: "상대 팀 팬과의 충돌로 이어지는 지지이므로 `aggressive`가 문맥에 맞습니다." },
-                    "v1-b6": { answer: ["confrontations"], choices: ["confrontations", "celebrations", "agreements", "friendships"], difficulty: 5, grammarPoint: "confrontation", explanation: "공격적인 응원이 상대 팬과의 대립으로 이어지는 흐름이므로 `confrontations`가 맞습니다." }
+                    "v1-b6": { answer: ["confrontations"], choices: ["confrontations", "celebrations", "agreements", "friendships"], difficulty: 5, grammarPoint: "confrontation", explanation: "공격적인 응원이 상대 팬과의 대립으로 이어지는 흐름이므로 `confrontations`가 맞습니다." },
+                    "v1-b7": { answer: ["accompanied"], choices: ["accompanied", "avoided", "replaced", "separated"], difficulty: 4, grammarPoint: "be accompanied by", explanation: "`be accompanied by`는 '~을 동반하다'라는 뜻으로, 유명한 경기들이 극성 팬들을 동반한다는 문맥에 맞습니다." },
+                    "v1-b8": { answer: ["opposition"], choices: ["opposition", "supporting", "friendly", "local"], difficulty: 4, grammarPoint: "opposition teams", explanation: "`opposition teams`는 상대 팀을 뜻합니다. 팬들 사이의 충돌이므로 상대 팀 팬들이 자연스럽습니다." },
+                    "v1-b9": { answer: ["emerge"], choices: ["emerge", "hide", "vanish", "rest"], difficulty: 4, grammarPoint: "emerge from", explanation: "`emerge from`은 '~에서 생겨나다, 나오다'라는 뜻으로 감정이 팀에 대한 사랑에서 나온다는 흐름입니다." },
+                    "v1-b10": { answer: ["loyal"], choices: ["loyal", "casual", "careless", "distant"], difficulty: 3, grammarPoint: "loyal", explanation: "팀에 강한 애정을 가진 팬들이 왜 충성스러운지를 묻는 문맥이므로 `loyal`이 맞습니다." },
+                    "v1-b11": { answer: ["addressed"], choices: ["addressed", "ignored", "created", "repeated"], difficulty: 5, grammarPoint: "address questions", explanation: "`address questions`는 질문을 다루거나 해결하려고 접근한다는 뜻입니다." },
+                    "v1-b12": { answer: ["perspective"], choices: ["perspective", "schedule", "equipment", "stadium"], difficulty: 4, grammarPoint: "perspective", explanation: "`perspective`는 관점이라는 뜻으로, 진화론적 관점과 사회심리학적 관점 모두에서 다룬다는 문맥입니다." }
                 }
             },
             {
@@ -789,7 +808,13 @@
                     { type: "blank", id: "v2-b1" },
                     { type: "text", text: " perspective, sports fandom " },
                     { type: "blank", id: "v2-b2" },
-                    { type: "text", text: " from our tribal hunter-gatherer ancestors tens of thousands of years ago. At that time, a person was far more likely to " },
+                    { type: "text", text: " from our " },
+                    { type: "blank", id: "v2-b8" },
+                    { type: "text", text: " " },
+                    { type: "blank", id: "v2-b9" },
+                    { type: "text", text: " " },
+                    { type: "blank", id: "v2-b10" },
+                    { type: "text", text: " tens of thousands of years ago. At that time, a person was far more likely to " },
                     { type: "blank", id: "v2-b3" },
                     { type: "text", text: " as a member of a group than as an " },
                     { type: "blank", id: "v2-b4" },
@@ -797,9 +822,19 @@
                     { type: "blank", id: "v2-b5" },
                     { type: "text", text: " cooperation built trust and " },
                     { type: "blank", id: "v2-b6" },
-                    { type: "text", text: " relationships among group members. In fact, group membership was so important that tribes with a stronger sense of community were likely to defeat tribes whose members were less closely allied. Because of this, community membership was a survival " },
+                    { type: "text", text: " relationships among group members. In fact, group membership was so important that " },
+                    { type: "blank", id: "v2-b11" },
+                    { type: "text", text: " with a stronger sense of community were likely to defeat tribes whose members were less closely " },
+                    { type: "blank", id: "v2-b12" },
+                    { type: "text", text: ". Because of this, community membership was a survival " },
                     { type: "blank", id: "v2-b7" },
-                    { type: "text", text: " for our ancestors, and the instinct to find one’s own tribe or group has been passed down to modern people. This may be how community membership influences our choice of a sports team and our sense of loyalty to that team." }
+                    { type: "text", text: " for our ancestors, and the " },
+                    { type: "blank", id: "v2-b13" },
+                    { type: "text", text: " to find one’s own tribe or group has been " },
+                    { type: "blank", id: "v2-b14" },
+                    { type: "text", text: " to modern people. This may be how community membership " },
+                    { type: "blank", id: "v2-b15" },
+                    { type: "text", text: " our choice of a sports team and our sense of loyalty to that team." }
                 ],
                 blanks: {
                     "v2-b1": { answer: ["evolutionary"], choices: ["evolutionary", "economic", "artificial", "temporary"], difficulty: 4, grammarPoint: "evolutionary perspective", explanation: "조상과 생존 기원을 설명하는 관점이므로 `evolutionary`가 맞습니다." },
@@ -808,7 +843,15 @@
                     "v2-b4": { answer: ["isolated"], choices: ["isolated", "connected", "allied", "crowded"], difficulty: 4, grammarPoint: "isolated individual", explanation: "집단 구성원과 대비되는 고립된 개인을 뜻하므로 `isolated`가 맞습니다." },
                     "v2-b5": { answer: ["mutual"], choices: ["mutual", "single", "hostile", "random"], difficulty: 3, grammarPoint: "mutual cooperation", explanation: "서로 돕는 협력을 말하므로 `mutual`이 자연스럽습니다." },
                     "v2-b6": { answer: ["fostered"], choices: ["fostered", "damaged", "blocked", "ignored"], difficulty: 5, grammarPoint: "foster relationships", explanation: "관계를 촉진하고 발전시킨다는 의미이므로 `fostered`가 맞습니다." },
-                    "v2-b7": { answer: ["mechanism"], choices: ["mechanism", "decoration", "accident", "hobby"], difficulty: 5, grammarPoint: "survival mechanism", explanation: "생존을 가능하게 하는 장치나 방식이라는 뜻으로 `mechanism`이 적절합니다." }
+                    "v2-b7": { answer: ["mechanism"], choices: ["mechanism", "decoration", "accident", "hobby"], difficulty: 5, grammarPoint: "survival mechanism", explanation: "생존을 가능하게 하는 장치나 방식이라는 뜻으로 `mechanism`이 적절합니다." },
+                    "v2-b8": { answer: ["tribal"], choices: ["tribal", "urban", "modern", "private"], difficulty: 4, grammarPoint: "tribal", explanation: "`tribal`은 부족의, 부족 사회의라는 뜻으로 수렵채집 조상들의 공동체를 설명합니다." },
+                    "v2-b9": { answer: ["hunter-gatherer"], choices: ["hunter-gatherer", "city-building", "team-owning", "goal-scoring"], difficulty: 5, grammarPoint: "hunter-gatherer", explanation: "`hunter-gatherer`는 수렵채집인을 뜻하며 인류 초기 집단 생활을 설명하는 핵심 어휘입니다." },
+                    "v2-b10": { answer: ["ancestors"], choices: ["ancestors", "neighbors", "athletes", "supporters"], difficulty: 4, grammarPoint: "ancestors", explanation: "`ancestors`는 조상들이라는 뜻으로 팬덤의 기원을 과거 인류에게서 찾는 문맥입니다." },
+                    "v2-b11": { answer: ["tribes"], choices: ["tribes", "stadiums", "leagues", "matches"], difficulty: 4, grammarPoint: "tribes", explanation: "`tribes`는 부족들을 뜻하며 공동체 의식이 강한 부족과 약한 부족을 비교합니다." },
+                    "v2-b12": { answer: ["allied"], choices: ["allied", "isolated", "hidden", "defeated"], difficulty: 5, grammarPoint: "allied", explanation: "`allied`는 연합된, 결속된이라는 뜻으로 구성원들이 덜 긴밀하게 연결된 부족을 설명합니다." },
+                    "v2-b13": { answer: ["instinct"], choices: ["instinct", "schedule", "benefit", "argument"], difficulty: 5, grammarPoint: "instinct", explanation: "`instinct`는 본능이라는 뜻으로 자기 집단을 찾으려는 성향을 설명합니다." },
+                    "v2-b14": { answer: ["passed", "down"], choices: ["passed", "down", "taken", "over", "turned", "off"], difficulty: 4, grammarPoint: "pass down", explanation: "`pass down`은 후대에 전해지다라는 뜻으로 조상의 본능이 현대인에게 이어졌다는 의미입니다." },
+                    "v2-b15": { answer: ["influences"], choices: ["influences", "prevents", "copies", "ignores"], difficulty: 3, grammarPoint: "influence", explanation: "공동체 소속감이 스포츠 팀 선택과 충성심에 영향을 준다는 문맥이므로 `influences`가 맞습니다." }
                 }
             },
             {
@@ -821,17 +864,27 @@
                 passageParts: [
                     { type: "text", text: "There are also two social psychological " },
                     { type: "blank", id: "v3-b1" },
-                    { type: "text", text: " that might explain why we cheer for a sports team: optimal " },
+                    { type: "text", text: " that might explain why we cheer for a sports team: " },
+                    { type: "blank", id: "v3-b7" },
+                    { type: "text", text: " " },
                     { type: "blank", id: "v3-b2" },
                     { type: "text", text: " and basking in reflected glory. Though it may be human nature to form a group and feel a sense of " },
                     { type: "blank", id: "v3-b3" },
                     { type: "text", text: " to that group, being a fan of a sports team is different from just having friends. Optimal distinctiveness theory states that everyone has a need for " },
                     { type: "blank", id: "v3-b4" },
-                    { type: "text", text: " and differentiation. That is, individuals want to be included somewhere, but they also want to be different and unique. These two basic but " },
+                    { type: "text", text: " and " },
+                    { type: "blank", id: "v3-b8" },
+                    { type: "text", text: ". That is, individuals want to be included somewhere, but they also want to be different and unique. These two basic but " },
                     { type: "blank", id: "v3-b5" },
-                    { type: "text", text: " needs can be satisfied through group membership. Sports team supporters are one such group. For example, if you are a fan of a football team based in your city, you can satisfy your need for inclusion by supporting the same team with other in-group members. This can also make you feel unique because your team’s fans are different from the fans of other teams. This feeling of uniqueness is " },
+                    { type: "text", text: " needs can be " },
+                    { type: "blank", id: "v3-b9" },
+                    { type: "text", text: " through group membership. Sports team supporters are one such group. For example, if you are a fan of a football team based in your city, you can satisfy your need for inclusion by supporting the same team with other " },
+                    { type: "blank", id: "v3-b10" },
+                    { type: "text", text: " members. This can also make you feel unique because your team’s fans are different from the fans of other teams. This feeling of uniqueness is " },
                     { type: "blank", id: "v3-b6" },
-                    { type: "text", text: " by sports teams’ deliberate use of their team colors and songs." }
+                    { type: "text", text: " by sports teams’ " },
+                    { type: "blank", id: "v3-b11" },
+                    { type: "text", text: " use of their team colors and songs." }
                 ],
                 blanks: {
                     "v3-b1": { answer: ["theories"], choices: ["theories", "stadiums", "emotions", "arguments"], difficulty: 3, grammarPoint: "theory", explanation: "팬덤을 설명하는 사회심리학 이론들이므로 `theories`가 맞습니다." },
@@ -839,7 +892,12 @@
                     "v3-b3": { answer: ["belonging"], choices: ["belonging", "failure", "distance", "confusion"], difficulty: 3, grammarPoint: "sense of belonging", explanation: "집단에 소속되어 있다는 느낌은 `a sense of belonging`으로 표현합니다." },
                     "v3-b4": { answer: ["inclusion"], choices: ["inclusion", "exclusion", "competition", "isolation"], difficulty: 5, grammarPoint: "inclusion", explanation: "어딘가에 포함되고 싶은 욕구를 뜻하므로 `inclusion`이 맞습니다." },
                     "v3-b5": { answer: ["competing"], choices: ["competing", "identical", "empty", "hidden"], difficulty: 4, grammarPoint: "competing needs", explanation: "포함되고 싶지만 동시에 달라지고 싶은 두 욕구가 서로 경쟁하므로 `competing`이 맞습니다." },
-                    "v3-b6": { answer: ["reinforced"], choices: ["reinforced", "weakened", "forgotten", "removed"], difficulty: 4, grammarPoint: "reinforce", explanation: "팀 색과 노래가 독특함의 느낌을 강화하므로 `reinforced`가 자연스럽습니다." }
+                    "v3-b6": { answer: ["reinforced"], choices: ["reinforced", "weakened", "forgotten", "removed"], difficulty: 4, grammarPoint: "reinforce", explanation: "팀 색과 노래가 독특함의 느낌을 강화하므로 `reinforced`가 자연스럽습니다." },
+                    "v3-b7": { answer: ["optimal"], choices: ["optimal", "ordinary", "accidental", "private"], difficulty: 5, grammarPoint: "optimal", explanation: "`optimal`은 최적의라는 뜻으로 `optimal distinctiveness` 이론 이름을 구성합니다." },
+                    "v3-b8": { answer: ["differentiation"], choices: ["differentiation", "repetition", "confusion", "celebration"], difficulty: 5, grammarPoint: "differentiation", explanation: "`differentiation`은 차별화, 구별됨이라는 뜻으로 포함 욕구와 함께 제시되는 핵심 욕구입니다." },
+                    "v3-b9": { answer: ["satisfied"], choices: ["satisfied", "removed", "divided", "hidden"], difficulty: 4, grammarPoint: "satisfy needs", explanation: "욕구가 집단 소속을 통해 충족될 수 있다는 의미이므로 `satisfied`가 맞습니다." },
+                    "v3-b10": { answer: ["in-group"], choices: ["in-group", "outdoor", "opposition", "random"], difficulty: 5, grammarPoint: "in-group", explanation: "`in-group`은 자신이 속한 내부 집단을 뜻하며 같은 팀 팬들을 가리킵니다." },
+                    "v3-b11": { answer: ["deliberate"], choices: ["deliberate", "careless", "temporary", "silent"], difficulty: 5, grammarPoint: "deliberate use", explanation: "`deliberate`는 의도적인이라는 뜻으로 팀 색과 노래를 전략적으로 사용한다는 의미입니다." }
                 }
             },
             {
@@ -852,17 +910,29 @@
                 passageParts: [
                     { type: "text", text: "Another explanation for sports fandom is a " },
                     { type: "blank", id: "v4-b1" },
-                    { type: "text", text: " called “basking in reflected glory.” This means that you feel successful by " },
+                    { type: "text", text: " called “basking in " },
+                    { type: "blank", id: "v4-b8" },
+                    { type: "text", text: " glory.” This means that you feel successful by " },
                     { type: "blank", id: "v4-b2" },
-                    { type: "text", text: " yourself with others’ success, especially when you are connected to them in some way. This phenomenon is closely related to people’s love for their sports teams. People feel proud when their team wins the game or performs well. Even though a team’s triumph may not offer its fans any " },
+                    { type: "text", text: " yourself with others’ success, especially when you are connected to them in some way. This phenomenon is closely related to people’s love for their sports teams. People feel proud when their team wins the game or performs well. Even though a team’s " },
+                    { type: "blank", id: "v4-b9" },
+                    { type: "text", text: " may not offer its fans any " },
                     { type: "blank", id: "v4-b3" },
-                    { type: "text", text: " benefits, the mere act of watching the game brings them " },
+                    { type: "text", text: " benefits, the " },
+                    { type: "blank", id: "v4-b10" },
+                    { type: "text", text: " act of watching the game brings them " },
                     { type: "blank", id: "v4-b4" },
-                    { type: "text", text: ". This connection with sports teams can sometimes grow so strong among some passionate supporters that they even " },
+                    { type: "text", text: ". This connection with sports teams can sometimes grow so strong among some " },
+                    { type: "blank", id: "v4-b11" },
+                    { type: "text", text: " supporters that they even " },
                     { type: "blank", id: "v4-b5" },
-                    { type: "text", text: " themselves with their teams. Because of this identification, they often consider " },
+                    { type: "text", text: " themselves with their teams. Because of this " },
+                    { type: "blank", id: "v4-b12" },
+                    { type: "text", text: ", they often consider " },
                     { type: "blank", id: "v4-b6" },
-                    { type: "text", text: " toward their team as a personal attack and become " },
+                    { type: "text", text: " toward their team as a " },
+                    { type: "blank", id: "v4-b13" },
+                    { type: "text", text: " attack and become " },
                     { type: "blank", id: "v4-b7" },
                     { type: "text", text: " in extreme cases." }
                 ],
@@ -873,7 +943,13 @@
                     "v4-b4": { answer: ["satisfaction"], choices: ["satisfaction", "conflict", "pressure", "failure"], difficulty: 3, grammarPoint: "satisfaction", explanation: "경기를 보는 행위가 만족감을 준다는 흐름이므로 `satisfaction`이 필요합니다." },
                     "v4-b5": { answer: ["identify"], choices: ["identify", "separate", "compare", "replace"], difficulty: 4, grammarPoint: "identify with", explanation: "자신을 팀과 동일시한다는 표현은 `identify themselves with`입니다." },
                     "v4-b6": { answer: ["criticism"], choices: ["criticism", "praise", "support", "victory"], difficulty: 4, grammarPoint: "criticism", explanation: "팀에 대한 비판을 개인적 공격으로 여긴다는 뜻이므로 `criticism`이 맞습니다." },
-                    "v4-b7": { answer: ["violent"], choices: ["violent", "calm", "friendly", "careful"], difficulty: 3, grammarPoint: "violent", explanation: "극단적 경우 폭력적으로 변한다는 의미이므로 `violent`가 적절합니다." }
+                    "v4-b7": { answer: ["violent"], choices: ["violent", "calm", "friendly", "careful"], difficulty: 3, grammarPoint: "violent", explanation: "극단적 경우 폭력적으로 변한다는 의미이므로 `violent`가 적절합니다." },
+                    "v4-b8": { answer: ["reflected"], choices: ["reflected", "hidden", "direct", "private"], difficulty: 4, grammarPoint: "reflected glory", explanation: "`reflected glory`는 다른 사람의 성공에서 반사되어 오는 영광이라는 뜻입니다." },
+                    "v4-b9": { answer: ["triumph"], choices: ["triumph", "failure", "practice", "schedule"], difficulty: 5, grammarPoint: "triumph", explanation: "`triumph`는 승리, 대성공이라는 뜻으로 팀이 이기는 상황을 나타냅니다." },
+                    "v4-b10": { answer: ["mere"], choices: ["mere", "complex", "violent", "official"], difficulty: 5, grammarPoint: "mere act", explanation: "`mere`는 단지, 그저라는 뜻으로 실제 이익 없이 경기를 보는 행위만으로도 만족을 준다는 의미입니다." },
+                    "v4-b11": { answer: ["passionate"], choices: ["passionate", "doubtful", "careless", "temporary"], difficulty: 4, grammarPoint: "passionate supporters", explanation: "`passionate`는 열정적인이라는 뜻으로 팀과 강하게 연결된 지지자들을 설명합니다." },
+                    "v4-b12": { answer: ["identification"], choices: ["identification", "separation", "celebration", "competition"], difficulty: 5, grammarPoint: "identification", explanation: "`identification`은 동일시라는 뜻으로 자신을 팀과 하나로 여기는 심리를 말합니다." },
+                    "v4-b13": { answer: ["personal"], choices: ["personal", "public", "minor", "friendly"], difficulty: 3, grammarPoint: "personal attack", explanation: "`personal attack`은 개인적 공격이라는 뜻으로 팀 비판을 자신에 대한 공격처럼 받아들이는 상황입니다." }
                 }
             },
             {
@@ -884,21 +960,35 @@
                 type: "vocab",
                 description: "응원 행동과 뇌 호르몬 효과를 설명하는 어휘를 점검합니다.",
                 passageParts: [
-                    { type: "text", text: "However, as long as the behavior of sports fans does not go too far and harm others, cheering can become a means for them to " },
+                    { type: "text", text: "However, as long as the behavior of sports fans does not go too far and " },
+                    { type: "blank", id: "v5-b9" },
+                    { type: "text", text: " others, cheering can become a " },
+                    { type: "blank", id: "v5-b10" },
+                    { type: "text", text: " for them to " },
                     { type: "blank", id: "v5-b1" },
                     { type: "text", text: " their emotions. Supporting a team " },
                     { type: "blank", id: "v5-b2" },
-                    { type: "text", text: " can help people forget about their daily life challenges. It can also have positive effects on our brains. For instance, when you cheer for a team and your team wins the game, your brain may " },
+                    { type: "text", text: " can help people forget about their daily life " },
+                    { type: "blank", id: "v5-b11" },
+                    { type: "text", text: ". It can also have positive " },
+                    { type: "blank", id: "v5-b12" },
+                    { type: "text", text: " on our brains. For instance, when you cheer for a team and your team wins the game, your brain may " },
                     { type: "blank", id: "v5-b3" },
-                    { type: "text", text: " dopamine. Dopamine, a chemical known as the “happy hormone,” makes you feel " },
+                    { type: "text", text: " dopamine. Dopamine, a " },
+                    { type: "blank", id: "v5-b13" },
+                    { type: "text", text: " known as the “happy hormone,” makes you feel " },
                     { type: "blank", id: "v5-b4" },
                     { type: "text", text: " when you reach a goal. If you have " },
                     { type: "blank", id: "v5-b5" },
                     { type: "text", text: " the goal for a long time, the effect is greater. So it is a particular " },
                     { type: "blank", id: "v5-b6" },
-                    { type: "text", text: " when a team achieves victory following a series of back-to-back losses. While you are cheering, your brain may also release " },
+                    { type: "text", text: " when a team " },
+                    { type: "blank", id: "v5-b14" },
+                    { type: "text", text: " victory following a series of back-to-back losses. While you are cheering, your brain may also release " },
                     { type: "blank", id: "v5-b7" },
-                    { type: "text", text: ", a hormone that contributes to feelings of " },
+                    { type: "text", text: ", a hormone that " },
+                    { type: "blank", id: "v5-b15" },
+                    { type: "text", text: " to feelings of " },
                     { type: "blank", id: "v5-b8" },
                     { type: "text", text: " between people." }
                 ],
@@ -910,7 +1000,14 @@
                     "v5-b5": { answer: ["pursued"], choices: ["pursued", "ignored", "lost", "avoided"], difficulty: 4, grammarPoint: "pursue a goal", explanation: "목표를 오랫동안 추구해 왔다는 의미이므로 `pursued`가 필요합니다." },
                     "v5-b6": { answer: ["thrill"], choices: ["thrill", "burden", "routine", "mistake"], difficulty: 4, grammarPoint: "thrill", explanation: "연패 뒤 승리가 주는 특별한 짜릿함을 말하므로 `thrill`이 맞습니다." },
                     "v5-b7": { answer: ["oxytocin"], choices: ["oxytocin", "oxygen", "protein", "vitamin"], difficulty: 5, grammarPoint: "oxytocin", explanation: "사람 사이의 유대감에 기여하는 호르몬은 `oxytocin`입니다." },
-                    "v5-b8": { answer: ["bonding"], choices: ["bonding", "separation", "competition", "confusion"], difficulty: 4, grammarPoint: "bonding", explanation: "사람들 사이의 유대감을 뜻하므로 `bonding`이 적절합니다." }
+                    "v5-b8": { answer: ["bonding"], choices: ["bonding", "separation", "competition", "confusion"], difficulty: 4, grammarPoint: "bonding", explanation: "사람들 사이의 유대감을 뜻하므로 `bonding`이 적절합니다." },
+                    "v5-b9": { answer: ["harm"], choices: ["harm", "help", "follow", "praise"], difficulty: 3, grammarPoint: "harm", explanation: "`harm`은 해치다라는 뜻으로 팬 행동이 다른 사람에게 피해를 주지 않는 한이라는 조건을 나타냅니다." },
+                    "v5-b10": { answer: ["means"], choices: ["means", "mistake", "burden", "limit"], difficulty: 4, grammarPoint: "a means for", explanation: "`a means`는 수단이라는 뜻으로 응원이 감정을 표현하는 수단이 될 수 있다는 의미입니다." },
+                    "v5-b11": { answer: ["challenges"], choices: ["challenges", "victories", "stadiums", "hormones"], difficulty: 4, grammarPoint: "daily life challenges", explanation: "`challenges`는 어려움, 과제라는 뜻으로 일상생활의 어려움을 말합니다." },
+                    "v5-b12": { answer: ["effects"], choices: ["effects", "attacks", "rules", "colors"], difficulty: 2, grammarPoint: "have effects on", explanation: "`effects`는 효과, 영향이라는 뜻으로 응원이 뇌에 긍정적 효과를 준다는 문맥입니다." },
+                    "v5-b13": { answer: ["chemical"], choices: ["chemical", "emotion", "stadium", "supporter"], difficulty: 4, grammarPoint: "chemical", explanation: "`chemical`은 화학물질이라는 뜻으로 도파민을 설명하는 동격 표현입니다." },
+                    "v5-b14": { answer: ["achieves"], choices: ["achieves", "avoids", "loses", "predicts"], difficulty: 4, grammarPoint: "achieve victory", explanation: "`achieve victory`는 승리를 이루다라는 뜻으로 팀이 승리했을 때의 짜릿함을 설명합니다." },
+                    "v5-b15": { answer: ["contributes"], choices: ["contributes", "objects", "belongs", "escapes"], difficulty: 5, grammarPoint: "contribute to", explanation: "`contribute to`는 ~에 기여하다라는 뜻으로 옥시토신이 유대감 형성에 기여한다는 의미입니다." }
                 }
             },
             {
@@ -925,21 +1022,39 @@
                     { type: "blank", id: "v6-b1" },
                     { type: "text", text: " not only to individual fans but also to the " },
                     { type: "blank", id: "v6-b2" },
-                    { type: "text", text: " of sports teams. When a team competes in their home stadium, their fans gather to watch the game. " },
+                    { type: "text", text: " of sports teams. When a team " },
+                    { type: "blank", id: "v6-b10" },
+                    { type: "text", text: " in their home stadium, their fans gather to watch the game. " },
                     { type: "blank", id: "v6-b3" },
-                    { type: "text", text: ", the cheers from the home team’s fans are louder than those from the visiting team’s supporters. This " },
+                    { type: "text", text: ", the cheers from the home team’s fans are louder than those from the " },
+                    { type: "blank", id: "v6-b11" },
+                    { type: "text", text: " team’s supporters. This " },
                     { type: "blank", id: "v6-b4" },
-                    { type: "text", text: " has an impact on the performance of the home team, as confirmed by a study in 2021. The study " },
+                    { type: "text", text: " has an impact on the performance of the home team, as " },
+                    { type: "blank", id: "v6-b12" },
+                    { type: "text", text: " by a study in 2021. The study " },
                     { type: "blank", id: "v6-b5" },
-                    { type: "text", text: " the relationship between cheering and goals scored in matches. It compared home matches in an Italian football league from 2013 to 2019 with matches during the pandemic when crowds were " },
+                    { type: "text", text: " the " },
+                    { type: "blank", id: "v6-b13" },
+                    { type: "text", text: " between cheering and goals scored in matches. It " },
+                    { type: "blank", id: "v6-b14" },
+                    { type: "text", text: " home matches in an Italian football league from 2013 to 2019 with matches during the pandemic when crowds were " },
                     { type: "blank", id: "v6-b6" },
                     { type: "text", text: " from entering stadiums. It was found that the home team’s performance " },
                     { type: "blank", id: "v6-b7" },
                     { type: "text", text: " by eight percent on average without crowds. This means that cheering helps the team’s performance to some extent, although it may not be the " },
                     { type: "blank", id: "v6-b8" },
-                    { type: "text", text: " factor. Sports fandom can be analyzed using both evolutionary and social psychological approaches. Through these perspectives, we can understand why people have loyalty and support for their teams. Given that sports fandom has become more and more common in modern times, we should think about our role as fans. We should " },
+                    { type: "text", text: " factor. Sports fandom can be " },
+                    { type: "blank", id: "v6-b15" },
+                    { type: "text", text: " using both evolutionary and social psychological " },
+                    { type: "blank", id: "v6-b16" },
+                    { type: "text", text: ". Through these perspectives, we can understand why people have loyalty and support for their teams. Given that sports fandom has become more and more common in modern times, we should think about our role as fans. We should " },
                     { type: "blank", id: "v6-b9" },
-                    { type: "text", text: " a healthy culture of fandom and seek ways to practice fandom that can have a positive influence on society." }
+                    { type: "text", text: " a healthy culture of fandom and " },
+                    { type: "blank", id: "v6-b17" },
+                    { type: "text", text: " ways to practice fandom that can have a positive " },
+                    { type: "blank", id: "v6-b18" },
+                    { type: "text", text: " on society." }
                 ],
                 blanks: {
                     "v6-b1": { answer: ["benefits"], choices: ["benefits", "problems", "limits", "attacks"], difficulty: 2, grammarPoint: "benefits", explanation: "팬과 팀 경기력 모두에 이익을 가져온다는 흐름이므로 `benefits`가 맞습니다." },
@@ -950,7 +1065,16 @@
                     "v6-b6": { answer: ["banned"], choices: ["banned", "invited", "allowed", "encouraged"], difficulty: 3, grammarPoint: "ban", explanation: "팬데믹 기간 관중 입장이 금지된 상황이므로 `banned`가 맞습니다." },
                     "v6-b7": { answer: ["decreased"], choices: ["decreased", "increased", "remained", "improved"], difficulty: 3, grammarPoint: "decrease", explanation: "관중이 없을 때 경기력이 평균 8퍼센트 감소했으므로 `decreased`가 맞습니다." },
                     "v6-b8": { answer: ["determining"], choices: ["determining", "minor", "hidden", "random"], difficulty: 4, grammarPoint: "determining factor", explanation: "결정적 요인을 뜻하는 표현은 `determining factor`입니다." },
-                    "v6-b9": { answer: ["establish"], choices: ["establish", "destroy", "ignore", "delay"], difficulty: 4, grammarPoint: "establish a culture", explanation: "건강한 팬덤 문화를 확립해야 한다는 결론이므로 `establish`가 적절합니다." }
+                    "v6-b9": { answer: ["establish"], choices: ["establish", "destroy", "ignore", "delay"], difficulty: 4, grammarPoint: "establish a culture", explanation: "건강한 팬덤 문화를 확립해야 한다는 결론이므로 `establish`가 적절합니다." },
+                    "v6-b10": { answer: ["competes"], choices: ["competes", "rests", "celebrates", "wanders"], difficulty: 3, grammarPoint: "compete", explanation: "`compete`는 경기하다, 경쟁하다라는 뜻으로 팀이 홈구장에서 경기하는 상황입니다." },
+                    "v6-b11": { answer: ["visiting"], choices: ["visiting", "winning", "local", "hidden"], difficulty: 3, grammarPoint: "visiting team", explanation: "`visiting team`은 원정 팀, 방문 팀을 뜻하며 홈팀과 대비됩니다." },
+                    "v6-b12": { answer: ["confirmed"], choices: ["confirmed", "questioned", "imagined", "removed"], difficulty: 4, grammarPoint: "confirmed by", explanation: "`confirmed by`는 ~에 의해 확인된이라는 뜻으로 연구가 홈팀 효과를 뒷받침합니다." },
+                    "v6-b13": { answer: ["relationship"], choices: ["relationship", "decoration", "argument", "expense"], difficulty: 3, grammarPoint: "relationship between A and B", explanation: "`relationship`은 관계라는 뜻으로 응원과 득점 사이의 관계를 조사했다는 의미입니다." },
+                    "v6-b14": { answer: ["compared"], choices: ["compared", "ignored", "invented", "supported"], difficulty: 3, grammarPoint: "compare A with B", explanation: "`compared A with B`는 A와 B를 비교했다는 뜻으로 두 기간의 경기를 비교합니다." },
+                    "v6-b15": { answer: ["analyzed"], choices: ["analyzed", "avoided", "celebrated", "damaged"], difficulty: 4, grammarPoint: "analyze", explanation: "`analyzed`는 분석될 수 있다는 뜻으로 팬덤을 두 접근법으로 살펴볼 수 있다는 문맥입니다." },
+                    "v6-b16": { answer: ["approaches"], choices: ["approaches", "stadiums", "hormones", "losses"], difficulty: 4, grammarPoint: "approach", explanation: "`approaches`는 접근법이라는 뜻으로 진화론적 접근과 사회심리학적 접근을 가리킵니다." },
+                    "v6-b17": { answer: ["seek"], choices: ["seek", "hide", "reject", "delay"], difficulty: 4, grammarPoint: "seek ways", explanation: "`seek`는 찾다, 추구하다라는 뜻으로 팬덤을 실천할 방법을 찾아야 한다는 결론입니다." },
+                    "v6-b18": { answer: ["influence"], choices: ["influence", "expense", "silence", "injury"], difficulty: 3, grammarPoint: "have an influence on", explanation: "`influence`는 영향이라는 뜻으로 사회에 긍정적 영향을 미치는 팬덤을 말합니다." }
                 }
             }
 
@@ -1098,7 +1222,135 @@
             "v6-b6": "금지된",
             "v6-b7": "감소했다",
             "v6-b8": "결정적인",
-            "v6-b9": "확립하다"
+            "v6-b9": "확립하다",
+            "v1-b7": "~을 동반한",
+            "v1-b8": "상대편의",
+            "v1-b9": "나오다, 생겨나다",
+            "v1-b10": "충성스러운",
+            "v1-b11": "다루어지는",
+            "v1-b12": "관점",
+            "v2-b8": "부족의",
+            "v2-b9": "수렵채집의",
+            "v2-b10": "조상들",
+            "v2-b11": "부족들",
+            "v2-b12": "연합된, 결속된",
+            "v2-b13": "본능",
+            "v2-b14": "전해졌다",
+            "v2-b15": "영향을 미친다",
+            "v3-b7": "최적의",
+            "v3-b8": "차별화",
+            "v3-b9": "충족된",
+            "v3-b10": "내부 집단의",
+            "v3-b11": "의도적인",
+            "v4-b8": "반사된",
+            "v4-b9": "승리, 대성공",
+            "v4-b10": "단지, 그저",
+            "v4-b11": "열정적인",
+            "v4-b12": "동일시",
+            "v4-b13": "개인적인",
+            "v5-b9": "해치다",
+            "v5-b10": "수단",
+            "v5-b11": "어려움, 과제",
+            "v5-b12": "효과, 영향",
+            "v5-b13": "화학물질",
+            "v5-b14": "이루다, 달성하다",
+            "v5-b15": "기여하다",
+            "v6-b10": "경기하다, 경쟁하다",
+            "v6-b11": "방문하는, 원정의",
+            "v6-b12": "확인된",
+            "v6-b13": "관계",
+            "v6-b14": "비교했다",
+            "v6-b15": "분석된",
+            "v6-b16": "접근법들",
+            "v6-b17": "찾다, 추구하다",
+            "v6-b18": "영향"
+        };
+
+        const vocabPronunciations = {
+            "v1-b1": "/ˈkɑːmən/",
+            "v1-b2": "/laɪv/",
+            "v1-b3": "/ˈwaɪldli/",
+            "v1-b4": "/ɪkˈstriːm/",
+            "v1-b5": "/əˈɡresɪv/",
+            "v1-b6": "/ˌkɑːnfrənˈteɪʃənz/",
+            "v2-b1": "/ˌevəˈluːʃəneri/",
+            "v2-b2": "/ɪˈmɜːrdʒd/",
+            "v2-b3": "/sərˈvaɪv/",
+            "v2-b4": "/ˈaɪsəleɪtɪd/",
+            "v2-b5": "/ˈmjuːtʃuəl/",
+            "v2-b6": "/ˈfɔːstərd/",
+            "v2-b7": "/ˈmekənɪzəm/",
+            "v3-b1": "/ˈθɪəriz/",
+            "v3-b2": "/dɪˈstɪŋktɪvnəs/",
+            "v3-b3": "/bɪˈlɔːŋɪŋ/",
+            "v3-b4": "/ɪnˈkluːʒən/",
+            "v3-b5": "/kəmˈpiːtɪŋ/",
+            "v3-b6": "/ˌriːɪnˈfɔːrst/",
+            "v4-b1": "/fəˈnɑːmənɑːn/",
+            "v4-b2": "/əˈsoʊsieɪtɪŋ/",
+            "v4-b3": "/ɪˈmiːdiət/",
+            "v4-b4": "/ˌsætɪsˈfækʃən/",
+            "v4-b5": "/aɪˈdentɪfaɪ/",
+            "v4-b6": "/ˈkrɪtɪsɪzəm/",
+            "v4-b7": "/ˈvaɪələnt/",
+            "v5-b1": "/ɪkˈspres/",
+            "v5-b2": "/ˈpæʃənətli/",
+            "v5-b3": "/rɪˈliːs/",
+            "v5-b4": "/ˈpleʒər/",
+            "v5-b5": "/pərˈsuːd/",
+            "v5-b6": "/θrɪl/",
+            "v5-b7": "/ˌɑːksɪˈtoʊsɪn/",
+            "v5-b8": "/ˈbɑːndɪŋ/",
+            "v6-b1": "/ˈbenəfɪts/",
+            "v6-b2": "/pərˈfɔːrməns/",
+            "v6-b3": "/ˈtɪpɪkli/",
+            "v6-b4": "/daɪˈnæmɪk/",
+            "v6-b5": "/ɪɡˈzæmɪnd/",
+            "v6-b6": "/bænd/",
+            "v6-b7": "/dɪˈkriːst/",
+            "v6-b8": "/dɪˈtɜːrmɪnɪŋ/",
+            "v6-b9": "/ɪˈstæblɪʃ/",
+            "v1-b7": "/əˈkʌmpənid/",
+            "v1-b8": "/ˌɑːpəˈzɪʃən/",
+            "v1-b9": "/ɪˈmɜːrdʒ/",
+            "v1-b10": "/ˈlɔɪəl/",
+            "v1-b11": "/əˈdrest/",
+            "v1-b12": "/pərˈspektɪv/",
+            "v2-b8": "/ˈtraɪbəl/",
+            "v2-b9": "/ˈhʌntər ˈɡæðərər/",
+            "v2-b10": "/ˈænsestərz/",
+            "v2-b11": "/traɪbz/",
+            "v2-b12": "/əˈlaɪd/",
+            "v2-b13": "/ˈɪnstɪŋkt/",
+            "v2-b14": "/pæst daʊn/",
+            "v2-b15": "/ˈɪnfluənsɪz/",
+            "v3-b7": "/ˈɑːptɪməl/",
+            "v3-b8": "/ˌdɪfəˌrenʃiˈeɪʃən/",
+            "v3-b9": "/ˈsætɪsfaɪd/",
+            "v3-b10": "/ˈɪn ɡruːp/",
+            "v3-b11": "/dɪˈlɪbərət/",
+            "v4-b8": "/rɪˈflektɪd/",
+            "v4-b9": "/ˈtraɪʌmf/",
+            "v4-b10": "/mɪr/",
+            "v4-b11": "/ˈpæʃənət/",
+            "v4-b12": "/aɪˌdentɪfɪˈkeɪʃən/",
+            "v4-b13": "/ˈpɜːrsənəl/",
+            "v5-b9": "/hɑːrm/",
+            "v5-b10": "/miːnz/",
+            "v5-b11": "/ˈtʃælɪndʒɪz/",
+            "v5-b12": "/ɪˈfekts/",
+            "v5-b13": "/ˈkemɪkəl/",
+            "v5-b14": "/əˈtʃiːvz/",
+            "v5-b15": "/kənˈtrɪbjuːts/",
+            "v6-b10": "/kəmˈpiːts/",
+            "v6-b11": "/ˈvɪzɪtɪŋ/",
+            "v6-b12": "/kənˈfɜːrmd/",
+            "v6-b13": "/rɪˈleɪʃənʃɪp/",
+            "v6-b14": "/kəmˈperd/",
+            "v6-b15": "/ˈænəlaɪzd/",
+            "v6-b16": "/əˈproʊtʃɪz/",
+            "v6-b17": "/siːk/",
+            "v6-b18": "/ˈɪnfluəns/"
         };
 
         let currentMode = "grammar";
@@ -1111,7 +1363,7 @@
         let aiFeedbacks = {};
         let aiFeedbackLoadingId = null;
         let isGraded = false;
-        let vocabDifficultyMin = 1;
+        let vocabDifficultyLevel = 0;
         let draggedChoice = null;
         let draggedBlankBlock = null;
 
@@ -1138,7 +1390,7 @@
                     setId: set.id,
                     blankAnswers,
                     isGraded,
-                    vocabDifficultyMin
+                    vocabDifficultyLevel
                 }));
             } catch (error) {
                 console.warn('Unable to save cloze progress:', error);
@@ -1158,7 +1410,9 @@
                 currentSetIndex = savedIndex;
                 const set = getCurrentSet();
                 resetState();
-                vocabDifficultyMin = clampVocabDifficulty(saved.vocabDifficultyMin);
+                vocabDifficultyLevel = clampVocabDifficulty(
+                    saved.vocabDifficultyLevel ?? (saved.vocabDifficultyMin === 1 ? 0 : saved.vocabDifficultyMin)
+                );
                 blankAnswers = sanitizeSavedAnswers(saved.blankAnswers, set);
                 isGraded = Boolean(saved.isGraded);
                 return true;
@@ -1174,7 +1428,7 @@
 
         function clampVocabDifficulty(value) {
             const numeric = Number(value);
-            return Number.isInteger(numeric) ? Math.min(Math.max(numeric, 1), 5) : 1;
+            return Number.isInteger(numeric) ? Math.min(Math.max(numeric, 0), 5) : 0;
         }
 
         function isVocabMode() {
@@ -1182,7 +1436,8 @@
         }
 
         function isBlankActiveForDifficulty(blank) {
-            return !isVocabMode() || clampVocabDifficulty(blank.difficulty || 1) >= vocabDifficultyMin;
+            if (!isVocabMode()) return true;
+            return vocabDifficultyLevel === 0 || clampVocabDifficulty(blank.difficulty || 1) === vocabDifficultyLevel;
         }
 
         function getAllBlankIds() {
@@ -1200,6 +1455,20 @@
 
         function getBlankTranslation(blankId) {
             return blankTranslations[blankId] || getBlank(blankId).answer.join(' ');
+        }
+
+        function getVocabStudyMeta(blankId, blank = getBlank(blankId)) {
+            if (getCurrentSet().type !== 'vocab') return '';
+            const meaning = getBlankTranslation(blankId);
+            const pronunciation = vocabPronunciations[blankId] || '발음기호 준비 중';
+            const level = clampVocabDifficulty(blank.difficulty || 1);
+            return `
+                <div class="mt-3 grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50/80 p-3 text-sm font-semibold text-emerald-900 sm:grid-cols-3">
+                    <p><span class="text-emerald-600">뜻</span><br>${escapeHtml(meaning)}</p>
+                    <p><span class="text-emerald-600">발음</span><br><span class="font-mono">${escapeHtml(pronunciation)}</span></p>
+                    <p><span class="text-emerald-600">레벨</span><br>Level ${level}</p>
+                </div>
+            `;
         }
 
         function getBlankIds() {
@@ -1286,12 +1555,13 @@
 
             const total = getAllBlankIds().length;
             const active = getBlankIds().length;
+            const label = vocabDifficultyLevel === 0 ? 'All Levels' : `Level ${vocabDifficultyLevel}`;
             filter.classList.remove('hidden');
-            summary.textContent = `현재 ${total}개 중 ${active}개 빈칸 표시`;
+            summary.textContent = `${label}: ${total}개 중 ${active}개 빈칸 표시`;
 
             document.querySelectorAll('.vocab-difficulty-btn').forEach((button) => {
                 const level = Number(button.dataset.vocabDifficulty);
-                const isActive = level === vocabDifficultyMin;
+                const isActive = level === vocabDifficultyLevel;
                 button.className = [
                     'vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors',
                     isActive ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-emerald-700 hover:bg-emerald-100'
@@ -1570,6 +1840,7 @@
                 <div class="space-y-2">
                     <p class="font-bold text-slate-600">내 답: <span class="${isCorrect ? 'text-emerald-700' : 'text-red-700'}">${escapeHtml(userAnswer)}</span></p>
                     <p class="font-bold text-slate-600">정답: <span class="text-emerald-700">${escapeHtml(correctAnswer)}</span></p>
+                    ${getVocabStudyMeta(blankId, blank)}
                     <p class="rounded-xl ${isCorrect ? 'bg-emerald-50 text-emerald-900' : 'bg-red-50 text-red-900'} p-3 font-semibold">${escapeHtml(blank.explanation)}</p>
                 </div>
             `;
@@ -1629,7 +1900,7 @@
             const blankIds = getBlankIds();
             if (blankIds.length === 0) {
                 area.classList.remove('hidden');
-                area.innerHTML = '<p class="rounded-xl bg-amber-50 p-4 font-bold text-amber-700">현재 난이도에 표시할 어휘 빈칸이 없습니다.</p>';
+                area.innerHTML = '<p class="rounded-xl bg-amber-50 p-4 font-bold text-amber-700">현재 레벨에 표시할 어휘 빈칸이 없습니다.</p>';
                 return;
             }
             const wrongIds = blankIds.filter((id) => !arraysEqual(blankAnswers[id] || [], set.blanks[id].answer));
@@ -1651,6 +1922,7 @@
                                 <span class="text-sm font-bold text-red-500">정답: ${escapeHtml(answer)}</span>
                             </div>
                             <p class="mt-2 text-sm font-semibold text-slate-600">내 답: ${escapeHtml(user)}</p>
+                            ${getVocabStudyMeta(id, blank)}
                             <p class="mt-3 text-sm font-medium leading-relaxed text-slate-700">${escapeHtml(blank.explanation)}</p>
                             <div class="mt-3 flex flex-wrap items-center gap-2">
                                 <button type="button" onclick="requestAiFeedback('${id}')" class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-extrabold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60" ${isLoading ? 'disabled' : ''}>
@@ -1870,13 +2142,13 @@
 
         function setVocabDifficulty(level) {
             const nextLevel = clampVocabDifficulty(level);
-            if (vocabDifficultyMin === nextLevel) return;
-            vocabDifficultyMin = nextLevel;
+            if (vocabDifficultyLevel === nextLevel) return;
+            vocabDifficultyLevel = nextLevel;
             resetState();
             saveProgress();
             renderAll();
-            const label = nextLevel === 1 ? '전체' : nextLevel === 5 ? '5만' : `${nextLevel} 이상`;
-            showStatus(`어휘 난이도를 ${label}으로 변경했습니다. 현재 지문 풀이를 초기화했습니다.`, 'success');
+            const label = nextLevel === 0 ? 'All Levels' : `Level ${nextLevel}`;
+            showStatus(`어휘 레벨을 ${label}로 변경했습니다. 현재 지문 풀이를 초기화했습니다.`, 'success');
         }
 
         function selectBlank(blankId) {
@@ -1973,7 +2245,7 @@
         function gradeCurrentSet() {
             const blankIds = getBlankIds();
             if (blankIds.length === 0) {
-                showStatus('현재 난이도에 채점할 어휘 빈칸이 없습니다.', 'info');
+                showStatus('현재 레벨에 채점할 어휘 빈칸이 없습니다.', 'info');
                 return;
             }
             const incomplete = blankIds.filter((id) => (blankAnswers[id] || []).length !== getBlank(id).answer.length);
