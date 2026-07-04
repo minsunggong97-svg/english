@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grammar Cloze Builder - 어법 빈칸 연습</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap');
@@ -97,6 +98,28 @@
         </header>
 
         <div id="status-message" class="hidden rounded-xl p-3 text-sm font-bold"></div>
+
+        <section id="auth-sync-panel" class="rounded-2xl border border-emerald-100 bg-white p-4 shadow-xl">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Cloud Sync</p>
+                    <h2 id="auth-sync-title" class="mt-1 text-lg font-extrabold text-slate-900">로그인하면 다른 기기에서도 이어서 공부할 수 있어요.</h2>
+                    <p id="auth-sync-description" class="mt-1 text-sm font-semibold text-slate-500">로그인 전에는 이 기기의 localStorage에만 저장됩니다.</p>
+                </div>
+                <div id="auth-sync-actions" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <input id="auth-email-input" type="email" inputmode="email" autocomplete="email" placeholder="이메일 주소"
+                        class="min-w-0 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold outline-none transition-colors focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 sm:w-64">
+                    <button id="auth-login-btn" type="button" onclick="requestLoginLink()"
+                        class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white shadow-lg shadow-emerald-100 transition-colors hover:bg-emerald-700">
+                        로그인 링크 받기
+                    </button>
+                    <button id="auth-logout-btn" type="button" onclick="logoutUser()"
+                        class="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-600 transition-colors hover:bg-slate-50">
+                        로그아웃
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <main class="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
             <aside class="rounded-2xl border border-emerald-100 bg-white shadow-xl lg:sticky lg:top-6 lg:self-start">
@@ -4958,10 +4981,19 @@
             "gv6-b8": "/prɪˈzɜːrv/"
         };
 
+        const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
+        const REMOTE_PROGRESS_TABLE = 'cloze_progress';
+
         let activeClozeSets = [...clozeSets];
         let activeBlankTranslations = { ...blankTranslations };
         let activeVocabPronunciations = { ...vocabPronunciations };
         let activePassageGroupLabels = {};
+        let supabaseClient = null;
+        let currentUser = null;
+        let remoteSyncReady = false;
+        let remoteSaveTimer = null;
+        let isApplyingProgress = false;
         let currentMode = "grammar";
         let currentSetIndex = 0;
         let activeBlankId = null;
@@ -4981,6 +5013,82 @@
             return 'grammar-cloze-progress-v1';
         }
 
+        function isSupabaseConfigured() {
+            return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase?.createClient);
+        }
+
+        function getProgressSnapshot(savedAt = new Date().toISOString()) {
+            const set = getCurrentSet();
+            return {
+                mode: currentMode,
+                setId: set.id,
+                blankAnswers,
+                isGraded,
+                vocabDifficultyLevel,
+                scoreRecords,
+                savedAt
+            };
+        }
+
+        function isValidProgressSnapshot(saved) {
+            if (!saved || typeof saved !== 'object') return false;
+            if (!['grammar', 'writing', 'vocab'].includes(saved.mode)) return false;
+            if (typeof saved.setId !== 'string') return false;
+            if (saved.blankAnswers && typeof saved.blankAnswers !== 'object') return false;
+            if (saved.scoreRecords && typeof saved.scoreRecords !== 'object') return false;
+            return true;
+        }
+
+        function applyProgressSnapshot(saved) {
+            if (!isValidProgressSnapshot(saved)) return false;
+            const visibleSets = activeClozeSets.filter((set) => set.type === saved.mode);
+            const savedIndex = visibleSets.findIndex((set) => set.id === saved.setId);
+            if (savedIndex < 0) return false;
+
+            isApplyingProgress = true;
+            try {
+                currentMode = saved.mode;
+                currentSetIndex = savedIndex;
+                const set = getCurrentSet();
+                resetState();
+                vocabDifficultyLevel = clampVocabDifficulty(
+                    saved.vocabDifficultyLevel ?? (saved.vocabDifficultyMin === 1 ? 0 : saved.vocabDifficultyMin)
+                );
+                blankAnswers = sanitizeSavedAnswers(saved.blankAnswers, set);
+                scoreRecords = saved.scoreRecords && typeof saved.scoreRecords === 'object' ? saved.scoreRecords : {};
+                isGraded = Boolean(saved.isGraded);
+                return true;
+            } finally {
+                isApplyingProgress = false;
+            }
+        }
+
+        function getProgressCompleteness(saved) {
+            if (!saved || typeof saved !== 'object') return 0;
+            const scoreCount = saved.scoreRecords && typeof saved.scoreRecords === 'object'
+                ? Object.keys(saved.scoreRecords).length
+                : 0;
+            const answerCount = saved.blankAnswers && typeof saved.blankAnswers === 'object'
+                ? Object.keys(saved.blankAnswers).length
+                : 0;
+            return scoreCount * 10 + answerCount + (saved.isGraded ? 1 : 0);
+        }
+
+        function chooseBetterProgress(localProgress, remoteProgress) {
+            if (!isValidProgressSnapshot(localProgress)) return remoteProgress;
+            if (!isValidProgressSnapshot(remoteProgress)) return localProgress;
+
+            const localTime = Date.parse(localProgress.savedAt || '');
+            const remoteTime = Date.parse(remoteProgress.savedAt || '');
+            if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
+                return remoteTime > localTime ? remoteProgress : localProgress;
+            }
+
+            return getProgressCompleteness(remoteProgress) > getProgressCompleteness(localProgress)
+                ? remoteProgress
+                : localProgress;
+        }
+
         function sanitizeSavedAnswers(savedAnswers, set) {
             if (!savedAnswers || typeof savedAnswers !== 'object') return {};
             return Object.entries(savedAnswers).reduce((answers, [blankId, blocks]) => {
@@ -4994,15 +5102,9 @@
 
         function saveProgress() {
             try {
-                const set = getCurrentSet();
-                localStorage.setItem(getProgressStorageKey(), JSON.stringify({
-                    mode: currentMode,
-                    setId: set.id,
-                    blankAnswers,
-                    isGraded,
-                    vocabDifficultyLevel,
-                    scoreRecords
-                }));
+                const snapshot = getProgressSnapshot();
+                localStorage.setItem(getProgressStorageKey(), JSON.stringify(snapshot));
+                queueRemoteProgressSave(snapshot);
             } catch (error) {
                 console.warn('Unable to save cloze progress:', error);
             }
@@ -5011,23 +5113,7 @@
         function loadProgress() {
             try {
                 const saved = JSON.parse(localStorage.getItem(getProgressStorageKey()) || 'null');
-                if (!saved || !['grammar', 'writing', 'vocab'].includes(saved.mode)) return false;
-
-                const visibleSets = activeClozeSets.filter((set) => set.type === saved.mode);
-                const savedIndex = visibleSets.findIndex((set) => set.id === saved.setId);
-                if (savedIndex < 0) return false;
-
-                currentMode = saved.mode;
-                currentSetIndex = savedIndex;
-                const set = getCurrentSet();
-                resetState();
-                vocabDifficultyLevel = clampVocabDifficulty(
-                    saved.vocabDifficultyLevel ?? (saved.vocabDifficultyMin === 1 ? 0 : saved.vocabDifficultyMin)
-                );
-                blankAnswers = sanitizeSavedAnswers(saved.blankAnswers, set);
-                scoreRecords = saved.scoreRecords && typeof saved.scoreRecords === 'object' ? saved.scoreRecords : {};
-                isGraded = Boolean(saved.isGraded);
-                return true;
+                return applyProgressSnapshot(saved);
             } catch (error) {
                 console.warn('Unable to load cloze progress:', error);
                 return false;
@@ -5194,6 +5280,204 @@
             box.className = `rounded-xl p-3 text-sm font-bold ${styleMap[type] || styleMap.info}`;
             box.textContent = message;
             box.classList.remove('hidden');
+        }
+
+        function renderAuthSyncPanel() {
+            const title = document.getElementById('auth-sync-title');
+            const description = document.getElementById('auth-sync-description');
+            const emailInput = document.getElementById('auth-email-input');
+            const loginButton = document.getElementById('auth-login-btn');
+            const logoutButton = document.getElementById('auth-logout-btn');
+            if (!title || !description || !emailInput || !loginButton || !logoutButton) return;
+
+            if (!isSupabaseConfigured()) {
+                title.textContent = '동기화 설정이 필요합니다.';
+                description.textContent = 'SUPABASE_SETUP.md를 참고해 Project URL과 anon key를 입력하면 로그인 저장을 사용할 수 있습니다. 지금은 이 기기에만 저장됩니다.';
+                emailInput.disabled = true;
+                loginButton.disabled = true;
+                loginButton.classList.add('opacity-50', 'cursor-not-allowed');
+                logoutButton.classList.add('hidden');
+                return;
+            }
+
+            emailInput.disabled = false;
+            loginButton.disabled = false;
+            loginButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            if (currentUser) {
+                const label = currentUser.email || '로그인 사용자';
+                title.textContent = `${label} 계정으로 동기화 중입니다.`;
+                description.textContent = '이 기기의 진행 상황과 점수가 Supabase에 함께 저장됩니다.';
+                emailInput.classList.add('hidden');
+                loginButton.classList.add('hidden');
+                logoutButton.classList.remove('hidden');
+            } else {
+                title.textContent = '로그인하면 다른 기기에서도 이어서 공부할 수 있어요.';
+                description.textContent = '로그인 전에는 이 기기의 localStorage에만 저장됩니다.';
+                emailInput.classList.remove('hidden');
+                loginButton.classList.remove('hidden');
+                logoutButton.classList.add('hidden');
+            }
+        }
+
+        function getLocalProgressSnapshot() {
+            try {
+                return JSON.parse(localStorage.getItem(getProgressStorageKey()) || 'null');
+            } catch (error) {
+                console.warn('Unable to parse local cloze progress:', error);
+                return null;
+            }
+        }
+
+        function createSupabaseClient() {
+            if (!isSupabaseConfigured()) return null;
+            if (!supabaseClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return supabaseClient;
+        }
+
+        async function fetchRemoteProgress() {
+            if (!supabaseClient || !currentUser) return null;
+            const { data, error } = await supabaseClient
+                .from(REMOTE_PROGRESS_TABLE)
+                .select('progress_json, updated_at')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+            if (error) throw error;
+            if (!data?.progress_json || !isValidProgressSnapshot(data.progress_json)) return null;
+            return {
+                ...data.progress_json,
+                savedAt: data.progress_json.savedAt || data.updated_at
+            };
+        }
+
+        async function upsertRemoteProgress(snapshot = getProgressSnapshot()) {
+            if (!supabaseClient || !currentUser || !isValidProgressSnapshot(snapshot)) return false;
+            const now = new Date().toISOString();
+            const { error } = await supabaseClient
+                .from(REMOTE_PROGRESS_TABLE)
+                .upsert({
+                    user_id: currentUser.id,
+                    progress_key: getProgressStorageKey(),
+                    progress_json: {
+                        ...snapshot,
+                        savedAt: snapshot.savedAt || now
+                    },
+                    updated_at: now
+                }, { onConflict: 'user_id' });
+            if (error) throw error;
+            return true;
+        }
+
+        function queueRemoteProgressSave(snapshot) {
+            if (isApplyingProgress || !remoteSyncReady || !currentUser || !supabaseClient) return;
+            clearTimeout(remoteSaveTimer);
+            remoteSaveTimer = setTimeout(async () => {
+                try {
+                    await upsertRemoteProgress(snapshot);
+                } catch (error) {
+                    console.warn('Unable to sync cloze progress:', error);
+                    showStatus('Supabase 동기화에 실패했습니다. 이 기기에는 계속 저장됩니다.', 'info');
+                }
+            }, 600);
+        }
+
+        async function hydrateRemoteProgress() {
+            if (!currentUser || !supabaseClient) return;
+            try {
+                const localProgress = getLocalProgressSnapshot();
+                const remoteProgress = await fetchRemoteProgress();
+                const selectedProgress = chooseBetterProgress(localProgress, remoteProgress);
+                if (selectedProgress && applyProgressSnapshot(selectedProgress)) {
+                    localStorage.setItem(getProgressStorageKey(), JSON.stringify(selectedProgress));
+                    renderAll();
+                }
+                await upsertRemoteProgress(selectedProgress || getProgressSnapshot());
+                showStatus('로그인 기록을 불러와 동기화를 시작했습니다.', 'success');
+            } catch (error) {
+                console.warn('Unable to hydrate remote cloze progress:', error);
+                showStatus('Supabase 기록을 불러오지 못했습니다. 이 기기의 저장 기록으로 계속 진행합니다.', 'info');
+            }
+        }
+
+        async function initializeRemoteSync() {
+            renderAuthSyncPanel();
+            const client = createSupabaseClient();
+            if (!client) {
+                remoteSyncReady = false;
+                return;
+            }
+
+            try {
+                const { data, error } = await client.auth.getSession();
+                if (error) throw error;
+                currentUser = data.session?.user || null;
+                remoteSyncReady = Boolean(currentUser);
+                renderAuthSyncPanel();
+
+                client.auth.onAuthStateChange(async (_event, session) => {
+                    currentUser = session?.user || null;
+                    remoteSyncReady = Boolean(currentUser);
+                    renderAuthSyncPanel();
+                    if (currentUser) {
+                        await hydrateRemoteProgress();
+                    } else {
+                        showStatus('로그아웃했습니다. 이후 기록은 이 기기에만 저장됩니다.', 'info');
+                    }
+                });
+
+                if (currentUser) {
+                    await hydrateRemoteProgress();
+                }
+            } catch (error) {
+                remoteSyncReady = false;
+                console.warn('Unable to initialize Supabase sync:', error);
+                showStatus('Supabase 동기화를 시작하지 못했습니다. 이 기기에만 저장됩니다.', 'info');
+            }
+        }
+
+        async function requestLoginLink() {
+            const client = createSupabaseClient();
+            if (!client) {
+                showStatus('Supabase 설정값을 먼저 입력해야 로그인할 수 있습니다.', 'info');
+                renderAuthSyncPanel();
+                return;
+            }
+            const email = document.getElementById('auth-email-input')?.value.trim();
+            if (!email || !email.includes('@')) {
+                showStatus('로그인 링크를 받을 이메일 주소를 입력해 주세요.', 'info');
+                return;
+            }
+            try {
+                const { error } = await client.auth.signInWithOtp({
+                    email,
+                    options: {
+                        emailRedirectTo: window.location.href.split('#')[0]
+                    }
+                });
+                if (error) throw error;
+                showStatus('이메일로 로그인 링크를 보냈습니다. 메일함을 확인해 주세요.', 'success');
+            } catch (error) {
+                console.warn('Unable to request login link:', error);
+                showStatus(`로그인 링크를 보내지 못했습니다: ${error.message}`, 'error');
+            }
+        }
+
+        async function logoutUser() {
+            const client = createSupabaseClient();
+            if (!client) return;
+            try {
+                const { error } = await client.auth.signOut();
+                if (error) throw error;
+                currentUser = null;
+                remoteSyncReady = false;
+                renderAuthSyncPanel();
+                showStatus('로그아웃했습니다. 로컬 저장 모드로 전환됩니다.', 'info');
+            } catch (error) {
+                console.warn('Unable to log out:', error);
+                showStatus(`로그아웃하지 못했습니다: ${error.message}`, 'error');
+            }
         }
 
         function isStringArray(value) {
@@ -6288,6 +6572,7 @@
             document.getElementById('passage-type-label').textContent = passageTypeMap[currentMode] || passageTypeMap.grammar;
             document.getElementById('set-title').textContent = `${set.title} - ${set.subtitle}`;
             document.getElementById('set-description').textContent = set.description;
+            renderAuthSyncPanel();
             renderModeToggle();
             renderVocabDifficultyFilter();
             renderSetList();
@@ -6302,6 +6587,7 @@
                 resetState();
             }
             renderAll();
+            await initializeRemoteSync();
         };
     </script>
 </body>
