@@ -1437,7 +1437,7 @@
 
         function isBlankActiveForDifficulty(blank) {
             if (!isVocabMode()) return true;
-            return vocabDifficultyLevel === 0 || clampVocabDifficulty(blank.difficulty || 1) === vocabDifficultyLevel;
+            return vocabDifficultyLevel === 0 || clampVocabDifficulty(blank.difficulty || 1) >= vocabDifficultyLevel;
         }
 
         function getAllBlankIds() {
@@ -1478,6 +1478,15 @@
 
         function arraysEqual(a, b) {
             return a.length === b.length && a.every((value, index) => value === b[index]);
+        }
+
+        function shuffleArray(values) {
+            const shuffled = [...values];
+            for (let index = shuffled.length - 1; index > 0; index--) {
+                const randomIndex = Math.floor(Math.random() * (index + 1));
+                [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+            }
+            return shuffled;
         }
 
         function escapeHtml(value) {
@@ -1555,7 +1564,7 @@
 
             const total = getAllBlankIds().length;
             const active = getBlankIds().length;
-            const label = vocabDifficultyLevel === 0 ? 'All Levels' : `Level ${vocabDifficultyLevel}`;
+            const label = vocabDifficultyLevel === 0 ? 'All Levels' : `Level ${vocabDifficultyLevel}+`;
             filter.classList.remove('hidden');
             summary.textContent = `${label}: ${total}개 중 ${active}개 빈칸 표시`;
 
@@ -1772,7 +1781,7 @@
                 ? '<p class="w-full text-center text-xs font-bold text-slate-400">사용 가능한 블록을 모두 넣었습니다.</p>'
                 : '';
 
-            remainingChoices.forEach((choice) => {
+            shuffleArray(remainingChoices).forEach((choice) => {
                 const chip = document.createElement('button');
                 chip.type = 'button';
                 chip.draggable = true;
