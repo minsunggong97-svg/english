@@ -133,17 +133,6 @@
 
                 <!-- User Answer Input -->
                 <div class="mb-6">
-                    <div class="flex flex-wrap items-center justify-end gap-2 mb-3">
-                        <div id="chunk-level-buttons" class="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-                            <button type="button" data-chunk-level="1" onclick="setChunkLevel('1')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 1 큰 덩어리">L1</button>
-                            <button type="button" data-chunk-level="2" onclick="setChunkLevel('2')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 2 의미 단위">L2</button>
-                            <button type="button" data-chunk-level="3" onclick="setChunkLevel('3')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 3 기능어 분리">L3</button>
-                            <button type="button" data-chunk-level="4" onclick="setChunkLevel('4')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 4 단어별">L4</button>
-                        </div>
-                        <button onclick="clearInput()" class="text-sm text-slate-400 hover:text-red-500 transition-colors font-semibold" title="지우기">
-                            <i class="fa-solid fa-eraser mr-1"></i>전체 지우기
-                        </button>
-                    </div>
                     <div id="answer-dropzone" class="min-h-[92px] p-4 bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-wrap gap-2 items-start transition-all" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
                         <span id="dropzone-placeholder" class="text-slate-400 font-medium">여기에 블록을 놓으세요...</span>
                     </div>
@@ -155,6 +144,17 @@
                     <button id="check-btn" onclick="checkAnswer()" class="w-full sm:w-auto px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95">
                         <i class="fa-solid fa-check mr-2"></i>정답 확인
                     </button>
+                    <div class="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+                        <div id="chunk-level-buttons" class="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                            <button type="button" data-chunk-level="1" onclick="setChunkLevel('1')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 1 큰 덩어리">L1</button>
+                            <button type="button" data-chunk-level="2" onclick="setChunkLevel('2')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 2 의미 단위">L2</button>
+                            <button type="button" data-chunk-level="3" onclick="setChunkLevel('3')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 3 기능어 분리">L3</button>
+                            <button type="button" data-chunk-level="4" onclick="setChunkLevel('4')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 4 단어별">L4</button>
+                        </div>
+                        <button onclick="clearInput()" class="text-sm text-slate-400 hover:text-red-500 transition-colors font-semibold" title="지우기">
+                            <i class="fa-solid fa-eraser mr-1"></i>전체 지우기
+                        </button>
+                    </div>
                     <button id="next-btn" onclick="nextQuestion()" class="w-full sm:w-auto px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-95 hidden">
                         다음 문제 <i class="fa-solid fa-arrow-right ml-2"></i>
                     </button>
@@ -2775,7 +2775,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (!['1', '2', '3', '4'].includes(level) || currentChunkLevel === level) return;
             currentChunkLevel = level;
             if (quizData.length > 0) {
-                loadQuestion();
+                refreshCurrentQuestionChunks();
             } else {
                 renderChunkLevelButtons();
             }
@@ -2839,6 +2839,39 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return array;
         }
 
+        function resetAnswerArea() {
+            const answerInput = document.getElementById('answer-input');
+            answerInput.value = "";
+            answerInput.disabled = false;
+            document.getElementById('answer-dropzone').querySelectorAll('.answer-chip').forEach(chip => chip.remove());
+            document.getElementById('dropzone-placeholder').classList.remove('hidden');
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('keep-action-area').classList.add('hidden');
+            document.getElementById('check-btn').classList.remove('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            hasAnsweredCurrent = false;
+        }
+
+        function renderWordBankForCurrentQuestion() {
+            const q = quizData[currentIndex];
+            if (!q) return;
+            const wordBank = document.getElementById('word-bank');
+            wordBank.innerHTML = "";
+            const scrambledWords = shuffleArray([...getQuestionWords(q)]);
+            scrambledWords.forEach(word => {
+                wordBank.appendChild(createWordChip(word, 'bank'));
+            });
+        }
+
+        function refreshCurrentQuestionChunks() {
+            const scrollX = window.scrollX;
+            const scrollY = window.scrollY;
+            resetAnswerArea();
+            renderWordBankForCurrentQuestion();
+            renderChunkLevelButtons();
+            window.scrollTo(scrollX, scrollY);
+        }
+
         function normalizeString(str) {
             return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()“”"']/g, "")
                       .replace(/\s{2,}/g, " ")
@@ -2870,26 +2903,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             document.getElementById('question-counter').innerText = `문제 ${currentIndex + 1} / ${quizData.length}`;
             document.getElementById('progress-bar').style.width = `${((currentIndex) / quizData.length) * 100}%`;
             document.getElementById('hint-text').innerText = q.hint;
-            
-            const answerInput = document.getElementById('answer-input');
-            answerInput.value = "";
-            answerInput.disabled = false;
-            document.getElementById('answer-dropzone').querySelectorAll('.answer-chip').forEach(chip => chip.remove());
-            document.getElementById('dropzone-placeholder').classList.remove('hidden');
-            document.getElementById('feedback-area').classList.add('hidden');
-            document.getElementById('keep-action-area').classList.add('hidden');
-            
-            document.getElementById('check-btn').classList.remove('hidden');
-            document.getElementById('next-btn').classList.add('hidden');
 
-            const wordBank = document.getElementById('word-bank');
-            wordBank.innerHTML = "";
-            
-            const scrambledWords = shuffleArray([...getQuestionWords(q)]);
-            
-            scrambledWords.forEach(word => {
-                wordBank.appendChild(createWordChip(word, 'bank'));
-            });
+            resetAnswerArea();
+            renderWordBankForCurrentQuestion();
             updateNavigationButtons();
             renderPassageReader();
             renderChunkLevelButtons();
