@@ -123,6 +123,10 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 260</span>
                         <span id="current-question-status" class="text-xs font-black rounded-full bg-slate-100 px-3 py-1 text-slate-500">미학습</span>
+                        <button id="important-current-btn" type="button" onclick="toggleImportantCurrent()"
+                            class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700 transition-colors hover:bg-yellow-100">
+                            <i class="fa-regular fa-star mr-1"></i>중요
+                        </button>
                         <input id="passage-select" type="hidden" value="all">
                     </div>
                     <span class="text-sm font-medium text-slate-500">점수: <span id="score-display" class="font-bold text-slate-700">0</span></span>
@@ -2395,6 +2399,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
         const PROGRESS_STORAGE_KEY = "sentenceBuilderProgress";
         const MASTERED_STORAGE_KEY = "sentenceBuilderMasteredQuestions";
+        const IMPORTANT_STORAGE_KEY = "sentenceBuilderImportantQuestions";
         const POSITION_STORAGE_KEY = "sentenceBuilderPosition";
         const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
@@ -2413,6 +2418,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let wasDragging = false;
         let keptQuestions = [];
         let masteredQuestions = [];
+        let importantQuestions = {};
         let activePassageGroup = "textbook";
         let translatedReaderSentences = new Set();
         let sentenceAiFeedbacks = {};
@@ -2539,11 +2545,13 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 const progress = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
                 const mastered = JSON.parse(localStorage.getItem(MASTERED_STORAGE_KEY) || '[]');
                 const kept = JSON.parse(localStorage.getItem(KEEP_STORAGE_KEY) || '[]');
+                const important = JSON.parse(localStorage.getItem(IMPORTANT_STORAGE_KEY) || '{}');
                 const position = loadLocalPositionSnapshot();
                 return {
                     progressRecords: progress && typeof progress === 'object' && !Array.isArray(progress) ? progress : {},
                     masteredQuestions: Array.isArray(mastered) ? mastered : [],
                     keptQuestions: Array.isArray(kept) ? kept : [],
+                    importantQuestions: normalizeImportantQuestions(important),
                     position,
                     savedAt: localStorage.getItem(getProgressStorageKey()) || null
                 };
@@ -2558,6 +2566,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 progressRecords,
                 masteredQuestions,
                 keptQuestions,
+                importantQuestions,
                 position: getPositionSnapshot(),
                 savedAt
             };
@@ -2568,6 +2577,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (saved.progressRecords && (typeof saved.progressRecords !== 'object' || Array.isArray(saved.progressRecords))) return false;
             if (saved.masteredQuestions && !Array.isArray(saved.masteredQuestions)) return false;
             if (saved.keptQuestions && !Array.isArray(saved.keptQuestions)) return false;
+            if (saved.importantQuestions && (typeof saved.importantQuestions !== 'object' || Array.isArray(saved.importantQuestions))) return false;
             if (saved.position && !isValidPositionSnapshot(saved.position)) return false;
             return true;
         }
@@ -2579,7 +2589,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 : 0;
             const masteredCount = Array.isArray(saved.masteredQuestions) ? saved.masteredQuestions.length : 0;
             const keptCount = Array.isArray(saved.keptQuestions) ? saved.keptQuestions.length : 0;
-            return progressCount * 10 + masteredCount + keptCount;
+            const importantCount = countImportantQuestions(saved.importantQuestions);
+            return progressCount * 10 + masteredCount + keptCount + importantCount;
         }
 
         function chooseBetterProgress(localProgress, remoteProgress) {
@@ -2600,13 +2611,34 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         function chooseBetterQuestionRecord(localRecord, remoteRecord) {
             if (!localRecord) return remoteRecord;
             if (!remoteRecord) return localRecord;
+            const localCorrectLevel = getNumericProgressLevel(
+                localRecord.bestCorrectLevel || (localRecord.status === 'correct' ? localRecord.chunkLevel : 0)
+            );
+            const remoteCorrectLevel = getNumericProgressLevel(
+                remoteRecord.bestCorrectLevel || (remoteRecord.status === 'correct' ? remoteRecord.chunkLevel : 0)
+            );
+            const bestAttemptLevel = String(Math.max(
+                getNumericProgressLevel(localRecord.bestAttemptLevel || localRecord.chunkLevel),
+                getNumericProgressLevel(remoteRecord.bestAttemptLevel || remoteRecord.chunkLevel)
+            ) || '');
+            const bestCorrectLevel = String(Math.max(
+                localCorrectLevel,
+                remoteCorrectLevel
+            ) || '');
+            const mergedRecord = {
+                ...remoteRecord,
+                ...localRecord,
+                bestAttemptLevel,
+                bestCorrectLevel
+            };
             const localTime = Date.parse(localRecord.answeredAt || '');
             const remoteTime = Date.parse(remoteRecord.answeredAt || '');
             if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
-                return remoteTime > localTime ? remoteRecord : localRecord;
+                const newerRecord = remoteTime > localTime ? remoteRecord : localRecord;
+                return { ...newerRecord, bestAttemptLevel, bestCorrectLevel };
             }
-            if (remoteRecord.status === 'correct' && localRecord.status !== 'correct') return remoteRecord;
-            return localRecord;
+            if (remoteRecord.status === 'correct' && localRecord.status !== 'correct') return { ...remoteRecord, bestAttemptLevel, bestCorrectLevel };
+            return mergedRecord;
         }
 
         function mergeProgressRecords(localRecords = {}, remoteRecords = {}) {
@@ -2626,6 +2658,45 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return [...merged.values()];
         }
 
+        function normalizeImportantQuestions(records = {}) {
+            if (!records || typeof records !== 'object' || Array.isArray(records)) return {};
+            return Object.entries(records).reduce((normalized, [key, value]) => {
+                if (!key || !value || typeof value !== 'object') return normalized;
+                normalized[key] = {
+                    original: value.original || key,
+                    hint: value.hint || '',
+                    important: Boolean(value.important),
+                    updatedAt: value.updatedAt || null
+                };
+                return normalized;
+            }, {});
+        }
+
+        function countImportantQuestions(records = importantQuestions) {
+            return Object.values(normalizeImportantQuestions(records)).filter(record => record.important).length;
+        }
+
+        function chooseImportantRecord(localRecord, remoteRecord) {
+            if (!localRecord) return remoteRecord;
+            if (!remoteRecord) return localRecord;
+            const localTime = Date.parse(localRecord.updatedAt || '');
+            const remoteTime = Date.parse(remoteRecord.updatedAt || '');
+            if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
+                return remoteTime > localTime ? remoteRecord : localRecord;
+            }
+            return localRecord;
+        }
+
+        function mergeImportantQuestions(localRecords = {}, remoteRecords = {}) {
+            const normalizedLocal = normalizeImportantQuestions(localRecords);
+            const normalizedRemote = normalizeImportantQuestions(remoteRecords);
+            const merged = { ...normalizedRemote };
+            Object.entries(normalizedLocal).forEach(([questionKey, record]) => {
+                merged[questionKey] = chooseImportantRecord(record, merged[questionKey]);
+            });
+            return merged;
+        }
+
         function mergeProgressSnapshots(localProgress, remoteProgress) {
             if (!isValidProgressSnapshot(localProgress)) return remoteProgress;
             if (!isValidProgressSnapshot(remoteProgress)) return localProgress;
@@ -2634,6 +2705,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 progressRecords: mergeProgressRecords(localProgress.progressRecords, remoteProgress.progressRecords),
                 masteredQuestions: mergeQuestionLists(localProgress.masteredQuestions, remoteProgress.masteredQuestions),
                 keptQuestions: mergeQuestionLists(localProgress.keptQuestions, remoteProgress.keptQuestions),
+                importantQuestions: mergeImportantQuestions(localProgress.importantQuestions, remoteProgress.importantQuestions),
                 position: isValidPositionSnapshot(localProgress.position) ? localProgress.position : remoteProgress.position,
                 savedAt: localProgress.savedAt || new Date().toISOString()
             };
@@ -2652,11 +2724,13 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                     : {};
                 masteredQuestions = Array.isArray(saved.masteredQuestions) ? saved.masteredQuestions : [];
                 keptQuestions = Array.isArray(saved.keptQuestions) ? saved.keptQuestions : [];
+                importantQuestions = normalizeImportantQuestions(saved.importantQuestions);
                 score = calculateScoreFromProgress(progressRecords);
 
                 localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressRecords));
                 localStorage.setItem(MASTERED_STORAGE_KEY, JSON.stringify(masteredQuestions));
                 localStorage.setItem(KEEP_STORAGE_KEY, JSON.stringify(keptQuestions));
+                localStorage.setItem(IMPORTANT_STORAGE_KEY, JSON.stringify(importantQuestions));
                 if (isValidPositionSnapshot(saved.position)) {
                     localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(saved.position));
                     currentChunkLevel = saved.position.chunkLevel || currentChunkLevel;
@@ -2892,18 +2966,38 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return question ? progressRecords[getQuestionKey(question)] || null : null;
         }
 
+        function isQuestionImportant(question) {
+            if (!question) return false;
+            return Boolean(importantQuestions[getQuestionKey(question)]?.important);
+        }
+
+        function renderImportantBadge(question, extraClass = '') {
+            if (!isQuestionImportant(question)) return '';
+            return `<span class="inline-flex shrink-0 items-center rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-[11px] font-black leading-5 text-yellow-700 ${extraClass}" title="중요 문장"><i class="fa-solid fa-star mr-1"></i>중요</span>`;
+        }
+
+        function getNumericProgressLevel(level) {
+            const numeric = Number(level);
+            return Number.isInteger(numeric) && numeric >= 1 && numeric <= 4 ? numeric : 0;
+        }
+
         function getProgressLevelLabel(record) {
-            return record?.chunkLevel ? `L${record.chunkLevel}` : '';
+            if (!record) return '';
+            const correctLevel = getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0));
+            if (correctLevel > 0) return `최고 L${correctLevel}`;
+            const attemptLevel = getNumericProgressLevel(record.bestAttemptLevel || record.chunkLevel);
+            return attemptLevel > 0 ? `시도 L${attemptLevel}` : '';
         }
 
         function getProgressStatusLabel(record) {
             if (!record) return '미학습';
+            if (getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0)) > 0) return '정답';
             return record.status === 'correct' ? '정답' : '오답';
         }
 
         function getProgressBadgeClasses(record) {
             if (!record) return 'bg-slate-100 text-slate-500 border-slate-200';
-            if (record.status === 'correct') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (getProgressStatusLabel(record) === '정답') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             return 'bg-red-50 text-red-700 border-red-200';
         }
 
@@ -2920,19 +3014,22 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 completed: 0,
                 correct: 0,
                 wrong: 0,
+                important: 0,
                 latestLevel: ''
             };
-            let latestTime = 0;
+            let highestLevel = 0;
             questions.forEach((question) => {
                 const record = getQuestionProgress(question);
-                if (!record) return;
-                stats.completed += 1;
-                if (record.status === 'correct') stats.correct += 1;
-                else stats.wrong += 1;
-                const answeredAt = Date.parse(record.answeredAt || '');
-                if (Number.isFinite(answeredAt) && answeredAt >= latestTime && record.chunkLevel) {
-                    latestTime = answeredAt;
-                    stats.latestLevel = `L${record.chunkLevel}`;
+                if (isQuestionImportant(question)) stats.important += 1;
+                if (record) {
+                    stats.completed += 1;
+                    if (getProgressStatusLabel(record) === '정답') stats.correct += 1;
+                    else stats.wrong += 1;
+                    const recordLevel = getNumericProgressLevel(record.bestCorrectLevel || record.bestAttemptLevel || record.chunkLevel);
+                    if (recordLevel > highestLevel) {
+                        highestLevel = recordLevel;
+                        stats.latestLevel = `L${recordLevel}`;
+                    }
                 }
             });
             return stats;
@@ -2945,15 +3042,17 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 total.completed += stats.completed;
                 total.correct += stats.correct;
                 total.wrong += stats.wrong;
+                total.important += stats.important;
                 return total;
-            }, { total: 0, completed: 0, correct: 0, wrong: 0 });
+            }, { total: 0, completed: 0, correct: 0, wrong: 0, important: 0 });
         }
 
         function renderProgressSummary(stats, compact = false) {
             if (!stats.total) return '학습 기록 없음';
             if (compact) return `완료 ${stats.completed}/${stats.total}`;
-            const latest = stats.latestLevel ? ` · 최근 ${stats.latestLevel}` : '';
-            return `완료 ${stats.completed}/${stats.total} · 정답 ${stats.correct} · 오답 ${stats.wrong}${latest}`;
+            const latest = stats.latestLevel ? ` · 최고 ${stats.latestLevel}` : '';
+            const important = stats.important ? ` · 중요 ${stats.important}` : '';
+            return `완료 ${stats.completed}/${stats.total} · 정답 ${stats.correct} · 오답 ${stats.wrong}${important}${latest}`;
         }
 
         function renderCurrentQuestionStudyStatus() {
@@ -2968,6 +3067,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 'text-xs font-black rounded-full border px-3 py-1',
                 getProgressBadgeClasses(record)
             ].join(' ');
+            updateImportantButton();
         }
 
         function renderStudyProgressDisplays() {
@@ -3010,7 +3110,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                     isActive ? 'ring-1 ring-emerald-300' : 'hover:bg-emerald-50 hover:text-emerald-800'
                 ].join(' ');
                 const sentenceText = isTranslated ? getTranslationText(question) : question.original;
-                item.innerHTML = `${escapeHtml(sentenceText)} ${renderProgressBadge(record, 'ml-1 align-middle')}`;
+                item.innerHTML = `${escapeHtml(sentenceText)} ${renderImportantBadge(question, 'ml-1 align-middle')} ${renderProgressBadge(record, 'ml-1 align-middle')}`;
                 list.appendChild(item);
                 list.appendChild(document.createTextNode(' '));
             });
@@ -3059,7 +3159,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                         <span class="rounded-full px-2.5 py-1 text-xs font-black ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${count}문장</span>
                     </span>
                     <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${group.description}</span>
-                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-black ${isActive ? 'text-emerald-700' : 'text-slate-500'}">${escapeHtml(renderProgressSummary(groupStats, true))} · 정답 ${groupStats.correct} · 오답 ${groupStats.wrong}</span>
+                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-black ${isActive ? 'text-emerald-700' : 'text-slate-500'}">${escapeHtml(renderProgressSummary(groupStats, true))} · 정답 ${groupStats.correct} · 오답 ${groupStats.wrong}${groupStats.important ? ` · 중요 ${groupStats.important}` : ''}</span>
                 `;
                 groupItem.appendChild(button);
 
@@ -3266,10 +3366,23 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function markQuestionProgress(question, isCorrect, userAnswer) {
             const key = getQuestionKey(question);
+            const previousRecord = progressRecords[key] || {};
+            const currentLevel = getNumericProgressLevel(currentChunkLevel);
+            const bestAttemptLevel = String(Math.max(
+                getNumericProgressLevel(previousRecord.bestAttemptLevel || previousRecord.chunkLevel),
+                currentLevel
+            ) || '');
+            const bestCorrectLevel = String(Math.max(
+                getNumericProgressLevel(previousRecord.bestCorrectLevel || (previousRecord.status === 'correct' ? previousRecord.chunkLevel : 0)),
+                isCorrect ? currentLevel : 0
+            ) || '');
             progressRecords[key] = {
+                ...previousRecord,
                 status: isCorrect ? 'correct' : 'wrong',
                 userAnswer,
                 chunkLevel: currentChunkLevel,
+                bestAttemptLevel,
+                bestCorrectLevel,
                 passageId: getCurrentPassageId(),
                 questionIndex: currentIndex,
                 answeredAt: new Date().toISOString()
@@ -3312,6 +3425,52 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         function renderMasteredStatus() {
             const count = document.getElementById('mastered-menu-count');
             if (count) count.innerText = `${masteredQuestions.length}개`;
+        }
+
+        function saveImportantQuestions() {
+            localStorage.setItem(IMPORTANT_STORAGE_KEY, JSON.stringify(importantQuestions));
+            const savedAt = new Date().toISOString();
+            localStorage.setItem(getProgressStorageKey(), savedAt);
+            queueRemoteProgressSave(getProgressSnapshot(savedAt));
+        }
+
+        function loadImportantQuestions() {
+            try {
+                importantQuestions = normalizeImportantQuestions(JSON.parse(localStorage.getItem(IMPORTANT_STORAGE_KEY) || '{}'));
+            } catch (error) {
+                importantQuestions = {};
+            }
+        }
+
+        function updateImportantButton() {
+            const btn = document.getElementById('important-current-btn');
+            const q = quizData[currentIndex];
+            if (!btn || !q) return;
+            const important = isQuestionImportant(q);
+            btn.className = important
+                ? 'inline-flex items-center rounded-full border border-yellow-300 bg-yellow-200 px-3 py-1 text-xs font-black text-yellow-900 transition-colors hover:bg-yellow-300'
+                : 'inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700 transition-colors hover:bg-yellow-100';
+            btn.innerHTML = important
+                ? '<i class="fa-solid fa-star mr-1"></i>중요 표시됨'
+                : '<i class="fa-regular fa-star mr-1"></i>중요';
+            btn.setAttribute('aria-pressed', String(important));
+            btn.title = important ? '중요 문장 표시 해제' : '중요 문장으로 표시';
+        }
+
+        function toggleImportantCurrent() {
+            const q = quizData[currentIndex];
+            if (!q) return;
+            const key = getQuestionKey(q);
+            const important = !isQuestionImportant(q);
+            importantQuestions[key] = {
+                original: q.original,
+                hint: q.hint || '',
+                important,
+                updatedAt: new Date().toISOString()
+            };
+            saveImportantQuestions();
+            updateImportantButton();
+            renderStudyProgressDisplays();
         }
 
         function clearMasteredQuestions() {
@@ -4041,6 +4200,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             loadKeptQuestions();
             loadProgressRecords();
             loadMasteredQuestions();
+            loadImportantQuestions();
             const localProgress = getLocalProgressSnapshot();
             applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
             if (localProgress?.position) {
