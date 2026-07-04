@@ -122,10 +122,10 @@
                 <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 260</span>
-                        <span id="current-question-status" class="text-xs font-black rounded-full bg-slate-100 px-3 py-1 text-slate-500">미학습</span>
+                        <span id="current-question-status" class="text-xs font-black rounded-full bg-slate-100 px-3 py-1 text-slate-500">NEW</span>
                         <button id="important-current-btn" type="button" onclick="toggleImportantCurrent()"
                             class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700 transition-colors hover:bg-yellow-100">
-                            <i class="fa-regular fa-star mr-1"></i>중요
+                            <i class="fa-regular fa-star"></i>
                         </button>
                         <input id="passage-select" type="hidden" value="all">
                     </div>
@@ -2973,7 +2973,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function renderImportantBadge(question, extraClass = '') {
             if (!isQuestionImportant(question)) return '';
-            return `<span class="inline-flex shrink-0 items-center rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-[11px] font-black leading-5 text-yellow-700 ${extraClass}" title="중요 문장"><i class="fa-solid fa-star mr-1"></i>중요</span>`;
+            return `<span class="inline-flex shrink-0 items-center rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-[11px] font-black leading-5 text-yellow-700 ${extraClass}" title="Important"><i class="fa-solid fa-star"></i></span>`;
         }
 
         function getNumericProgressLevel(level) {
@@ -2984,20 +2984,20 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         function getProgressLevelLabel(record) {
             if (!record) return '';
             const correctLevel = getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0));
-            if (correctLevel > 0) return `최고 L${correctLevel}`;
+            if (correctLevel > 0) return `BEST L${correctLevel}`;
             const attemptLevel = getNumericProgressLevel(record.bestAttemptLevel || record.chunkLevel);
-            return attemptLevel > 0 ? `시도 L${attemptLevel}` : '';
+            return attemptLevel > 0 ? `TRY L${attemptLevel}` : '';
         }
 
         function getProgressStatusLabel(record) {
-            if (!record) return '미학습';
-            if (getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0)) > 0) return '정답';
-            return record.status === 'correct' ? '정답' : '오답';
+            if (!record) return 'NEW';
+            if (getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0)) > 0) return 'OK';
+            return record.status === 'correct' ? 'OK' : 'MISS';
         }
 
         function getProgressBadgeClasses(record) {
             if (!record) return 'bg-slate-100 text-slate-500 border-slate-200';
-            if (getProgressStatusLabel(record) === '정답') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (getProgressStatusLabel(record) === 'OK') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             return 'bg-red-50 text-red-700 border-red-200';
         }
 
@@ -3023,7 +3023,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 if (isQuestionImportant(question)) stats.important += 1;
                 if (record) {
                     stats.completed += 1;
-                    if (getProgressStatusLabel(record) === '정답') stats.correct += 1;
+                    if (getProgressStatusLabel(record) === 'OK') stats.correct += 1;
                     else stats.wrong += 1;
                     const recordLevel = getNumericProgressLevel(record.bestCorrectLevel || record.bestAttemptLevel || record.chunkLevel);
                     if (recordLevel > highestLevel) {
@@ -3048,11 +3048,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         function renderProgressSummary(stats, compact = false) {
-            if (!stats.total) return '학습 기록 없음';
-            if (compact) return `완료 ${stats.completed}/${stats.total}`;
-            const latest = stats.latestLevel ? ` · 최고 ${stats.latestLevel}` : '';
-            const important = stats.important ? ` · 중요 ${stats.important}` : '';
-            return `완료 ${stats.completed}/${stats.total} · 정답 ${stats.correct} · 오답 ${stats.wrong}${important}${latest}`;
+            if (!stats.total) return 'No log';
+            if (compact) return `Done ${stats.completed}/${stats.total}`;
+            const latest = stats.latestLevel ? ` · Max ${stats.latestLevel}` : '';
+            const important = stats.important ? ` · ★ ${stats.important}` : '';
+            return `Done ${stats.completed}/${stats.total} · OK ${stats.correct} · Miss ${stats.wrong}${important}${latest}`;
         }
 
         function renderCurrentQuestionStudyStatus() {
@@ -3061,8 +3061,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             const record = getQuestionProgress(quizData[currentIndex]);
             const level = getProgressLevelLabel(record);
             badge.textContent = record
-                ? `이 문장: ${getProgressStatusLabel(record)}${level ? ` · ${level}` : ''}`
-                : '이 문장: 미학습';
+                ? `${getProgressStatusLabel(record)}${level ? ` · ${level}` : ''}`
+                : 'NEW';
             badge.className = [
                 'text-xs font-black rounded-full border px-3 py-1',
                 getProgressBadgeClasses(record)
@@ -3159,7 +3159,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                         <span class="rounded-full px-2.5 py-1 text-xs font-black ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${count}문장</span>
                     </span>
                     <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${group.description}</span>
-                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-black ${isActive ? 'text-emerald-700' : 'text-slate-500'}">${escapeHtml(renderProgressSummary(groupStats, true))} · 정답 ${groupStats.correct} · 오답 ${groupStats.wrong}${groupStats.important ? ` · 중요 ${groupStats.important}` : ''}</span>
+                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-black ${isActive ? 'text-emerald-700' : 'text-slate-500'}">${escapeHtml(renderProgressSummary(groupStats, true))} · OK ${groupStats.correct} · Miss ${groupStats.wrong}${groupStats.important ? ` · ★ ${groupStats.important}` : ''}</span>
                 `;
                 groupItem.appendChild(button);
 
@@ -3451,10 +3451,10 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 ? 'inline-flex items-center rounded-full border border-yellow-300 bg-yellow-200 px-3 py-1 text-xs font-black text-yellow-900 transition-colors hover:bg-yellow-300'
                 : 'inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700 transition-colors hover:bg-yellow-100';
             btn.innerHTML = important
-                ? '<i class="fa-solid fa-star mr-1"></i>중요 표시됨'
-                : '<i class="fa-regular fa-star mr-1"></i>중요';
+                ? '<i class="fa-solid fa-star"></i>'
+                : '<i class="fa-regular fa-star"></i>';
             btn.setAttribute('aria-pressed', String(important));
-            btn.title = important ? '중요 문장 표시 해제' : '중요 문장으로 표시';
+            btn.title = important ? 'Unmark important' : 'Mark important';
         }
 
         function toggleImportantCurrent() {
