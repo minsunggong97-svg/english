@@ -182,6 +182,7 @@
                         <div>
                             <h4 id="feedback-title" class="font-bold text-lg mb-1"></h4>
                             <p id="feedback-desc" class="text-sm font-medium"></p>
+                            <div id="sentence-ai-feedback-area" class="mt-3 hidden"></div>
                         </div>
                     </div>
                 </div>
@@ -2386,6 +2387,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let masteredQuestions = [];
         let activePassageGroup = "textbook";
         let translatedReaderSentences = new Set();
+        let sentenceAiFeedbacks = {};
+        let sentenceAiFeedbackLoadingKey = null;
 
         function showManagerMessage(message, type = 'info') {
             const box = document.getElementById('manager-message');
@@ -2846,6 +2849,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             document.getElementById('answer-dropzone').querySelectorAll('.answer-chip').forEach(chip => chip.remove());
             document.getElementById('dropzone-placeholder').classList.remove('hidden');
             document.getElementById('feedback-area').classList.add('hidden');
+            const aiFeedbackArea = document.getElementById('sentence-ai-feedback-area');
+            if (aiFeedbackArea) {
+                aiFeedbackArea.classList.add('hidden');
+                aiFeedbackArea.innerHTML = '';
+            }
             document.getElementById('keep-action-area').classList.add('hidden');
             document.getElementById('check-btn').classList.remove('hidden');
             document.getElementById('next-btn').classList.add('hidden');
@@ -2877,6 +2885,136 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                       .replace(/\s{2,}/g, " ")
                       .trim()
                       .toLowerCase();
+        }
+
+        function renderSentenceAiFeedback(question = quizData[currentIndex]) {
+            const area = document.getElementById('sentence-ai-feedback-area');
+            if (!area || !question) return;
+            const questionKey = getQuestionKey(question);
+            const feedback = sentenceAiFeedbacks[questionKey];
+            const isLoading = sentenceAiFeedbackLoadingKey === questionKey;
+            const feedbackHtml = feedback
+                ? `<p class="mt-3 rounded-xl border ${feedback.error ? 'border-red-100 bg-white text-red-700' : 'border-amber-100 bg-amber-50 text-amber-950'} p-3 text-sm font-medium leading-relaxed">${escapeHtml(feedback.error || feedback)}</p>`
+                : '';
+
+            area.classList.remove('hidden');
+            area.innerHTML = `
+                <button type="button" onclick="requestSentenceAiFeedback()" class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-extrabold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60" ${isLoading ? 'disabled' : ''}>
+                    ${isLoading ? 'AI 튜터가 분석 중...' : 'AI 튜터 분석 받기'}
+                </button>
+                ${feedbackHtml}
+            `;
+        }
+
+        function getGeminiText(data) {
+            return data?.candidates?.[0]?.content?.parts
+                ?.map(part => part.text || '')
+                .join('')
+                .trim() || '';
+        }
+
+        function normalizeFeedbackText(text) {
+            const cleaned = text
+                .replace(/```json/gi, '')
+                .replace(/```/g, '')
+                .replace(/^["']|["']$/g, '')
+                .trim();
+            if (cleaned.length <= 500) return cleaned;
+            const sliced = cleaned.slice(0, 500);
+            const sentenceEnd = Math.max(
+                sliced.lastIndexOf('.'),
+                sliced.lastIndexOf('!'),
+                sliced.lastIndexOf('?'),
+                sliced.lastIndexOf('다.'),
+                sliced.lastIndexOf('요.')
+            );
+            return sentenceEnd > 120 ? sliced.slice(0, sentenceEnd + 1) : `${sliced}…`;
+        }
+
+        async function fetchAiFeedbackText(prompt) {
+            const response = await fetch('/api/analyze-wrong', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            role: 'user',
+                            parts: [{ text: prompt }]
+                        }
+                    ],
+                    generationConfig: {
+                        temperature: 0.2,
+                        maxOutputTokens: 2048
+                    }
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'AI 분석 요청에 실패했습니다.');
+            }
+
+            return normalizeFeedbackText(getGeminiText(data));
+        }
+
+        function buildSentenceDiff(userAnswer, correctAnswer) {
+            const userTokens = userAnswer.trim().split(/\s+/).filter(Boolean);
+            const correctTokens = correctAnswer.trim().split(/\s+/).filter(Boolean);
+            const maxLength = Math.max(userTokens.length, correctTokens.length);
+            const diffs = [];
+            for (let index = 0; index < maxLength; index++) {
+                const user = userTokens[index];
+                const correct = correctTokens[index];
+                if (user === correct) continue;
+                if (user && correct) {
+                    diffs.push(`${index + 1}번째 위치: 내 답 '${user}' → 정답 '${correct}'`);
+                } else if (!user && correct) {
+                    diffs.push(`${index + 1}번째 위치: 정답 '${correct}' 누락`);
+                } else if (user) {
+                    diffs.push(`${index + 1}번째 위치: '${user}' 불필요`);
+                }
+                if (diffs.length >= 12) break;
+            }
+            return diffs;
+        }
+
+        async function requestSentenceAiFeedback() {
+            const question = quizData[currentIndex];
+            if (!question) return;
+            const questionKey = getQuestionKey(question);
+            const userAnswer = progressRecords[questionKey]?.userAnswer || document.getElementById('answer-input').value || '미입력';
+            const correctAnswer = question.original;
+            const diffSummary = buildSentenceDiff(userAnswer, correctAnswer);
+
+            sentenceAiFeedbackLoadingKey = questionKey;
+            renderSentenceAiFeedback(question);
+
+            const prompt = [
+                '너는 고등학교 영어 내신 문장 배열을 지도하는 개인 AI 튜터다.',
+                '학생이 배열한 답과 원래 정답을 비교해 왜 틀렸는지 분석하라.',
+                '단순히 틀렸다고 하지 말고, 어순이 어긋난 덩어리, 빠진 표현, 문법/구문상 기준을 설명하라.',
+                '학생이 다음에 같은 유형을 풀 때 무엇을 먼저 확인해야 하는지도 자연스럽게 알려줘라.',
+                '칭찬, 제목, 목록, JSON, 마크다운은 쓰지 말고 한국어 평문 한 단락으로 500자 이내로 답하라.',
+                '',
+                `문장 힌트: ${question.hint}`,
+                `학생 답: ${userAnswer}`,
+                `정답: ${correctAnswer}`,
+                `위치별 차이: ${diffSummary.length ? diffSummary.join(' / ') : '정규화 전후 차이가 작거나 구두점 차이일 수 있음'}`
+            ].join('\n');
+
+            try {
+                const text = await fetchAiFeedbackText(prompt);
+                sentenceAiFeedbacks[questionKey] = text || { error: 'AI 분석을 생성하지 못했습니다. 다시 시도해 주세요.' };
+            } catch (error) {
+                sentenceAiFeedbacks[questionKey] = {
+                    error: `AI 분석을 불러오지 못했습니다: ${error.message}`
+                };
+            } finally {
+                sentenceAiFeedbackLoadingKey = null;
+                if (quizData[currentIndex] && getQuestionKey(quizData[currentIndex]) === questionKey) {
+                    renderSentenceAiFeedback(question);
+                }
+            }
         }
 
         function updateNavigationButtons() {
@@ -3154,6 +3292,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
                 feedbackTitle.innerText = "틀렸습니다.";
                 feedbackDesc.innerHTML = `<span class="block mt-1 text-slate-600">올바른 문장:</span><strong class="text-red-700">${q.original}</strong>`;
+                renderSentenceAiFeedback(q);
                 
             }
 
