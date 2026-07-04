@@ -138,7 +138,13 @@
                             <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Passage Reader</p>
                             <h3 id="passage-reader-title" class="text-lg font-extrabold text-slate-800">지문 전체 보기</h3>
                         </div>
-                        <p class="text-xs font-semibold text-slate-500">문장을 클릭할 때마다 영어/한국어가 바뀝니다.</p>
+                        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                            <button id="label-visibility-toggle" type="button" onclick="toggleStudyLabels()"
+                                class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-500 transition-colors hover:border-emerald-200 hover:text-emerald-700">
+                                라벨 표시
+                            </button>
+                            <p class="text-xs font-semibold text-slate-500">문장을 클릭할 때마다 영어/한국어가 바뀝니다.</p>
+                        </div>
                     </div>
                     <div id="passage-reader-list" class="max-h-72 overflow-y-auto rounded-xl bg-white px-4 py-4 text-base font-medium leading-8 text-slate-800 shadow-inner shadow-slate-100">
                         <!-- Passage sentences will be injected here -->
@@ -2400,6 +2406,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         const PROGRESS_STORAGE_KEY = "sentenceBuilderProgress";
         const MASTERED_STORAGE_KEY = "sentenceBuilderMasteredQuestions";
         const IMPORTANT_STORAGE_KEY = "sentenceBuilderImportantQuestions";
+        const UI_PREFERENCES_STORAGE_KEY = "sentenceBuilderUiPreferences";
         const POSITION_STORAGE_KEY = "sentenceBuilderPosition";
         const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
@@ -2419,6 +2426,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let keptQuestions = [];
         let masteredQuestions = [];
         let importantQuestions = {};
+        let uiPreferences = { showStudyLabels: true, updatedAt: null };
         let activePassageGroup = "textbook";
         let translatedReaderSentences = new Set();
         let sentenceAiFeedbacks = {};
@@ -2546,12 +2554,14 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 const mastered = JSON.parse(localStorage.getItem(MASTERED_STORAGE_KEY) || '[]');
                 const kept = JSON.parse(localStorage.getItem(KEEP_STORAGE_KEY) || '[]');
                 const important = JSON.parse(localStorage.getItem(IMPORTANT_STORAGE_KEY) || '{}');
+                const savedUiPreferences = JSON.parse(localStorage.getItem(UI_PREFERENCES_STORAGE_KEY) || '{}');
                 const position = loadLocalPositionSnapshot();
                 return {
                     progressRecords: progress && typeof progress === 'object' && !Array.isArray(progress) ? progress : {},
                     masteredQuestions: Array.isArray(mastered) ? mastered : [],
                     keptQuestions: Array.isArray(kept) ? kept : [],
                     importantQuestions: normalizeImportantQuestions(important),
+                    uiPreferences: normalizeUiPreferences(savedUiPreferences),
                     position,
                     savedAt: localStorage.getItem(getProgressStorageKey()) || null
                 };
@@ -2567,6 +2577,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 masteredQuestions,
                 keptQuestions,
                 importantQuestions,
+                uiPreferences,
                 position: getPositionSnapshot(),
                 savedAt
             };
@@ -2578,6 +2589,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (saved.masteredQuestions && !Array.isArray(saved.masteredQuestions)) return false;
             if (saved.keptQuestions && !Array.isArray(saved.keptQuestions)) return false;
             if (saved.importantQuestions && (typeof saved.importantQuestions !== 'object' || Array.isArray(saved.importantQuestions))) return false;
+            if (saved.uiPreferences && (typeof saved.uiPreferences !== 'object' || Array.isArray(saved.uiPreferences))) return false;
             if (saved.position && !isValidPositionSnapshot(saved.position)) return false;
             return true;
         }
@@ -2697,6 +2709,28 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return merged;
         }
 
+        function normalizeUiPreferences(preferences = {}) {
+            if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
+                return { showStudyLabels: true, updatedAt: null };
+            }
+            return {
+                showStudyLabels: preferences.showStudyLabels !== false,
+                updatedAt: preferences.updatedAt || null
+            };
+        }
+
+        function mergeUiPreferences(localPreferences = {}, remotePreferences = {}) {
+            const local = normalizeUiPreferences(localPreferences);
+            const remote = normalizeUiPreferences(remotePreferences);
+            const localTime = Date.parse(local.updatedAt || '');
+            const remoteTime = Date.parse(remote.updatedAt || '');
+            if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
+                return remoteTime > localTime ? remote : local;
+            }
+            if (Number.isFinite(remoteTime) && !Number.isFinite(localTime)) return remote;
+            return local;
+        }
+
         function mergeProgressSnapshots(localProgress, remoteProgress) {
             if (!isValidProgressSnapshot(localProgress)) return remoteProgress;
             if (!isValidProgressSnapshot(remoteProgress)) return localProgress;
@@ -2706,6 +2740,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 masteredQuestions: mergeQuestionLists(localProgress.masteredQuestions, remoteProgress.masteredQuestions),
                 keptQuestions: mergeQuestionLists(localProgress.keptQuestions, remoteProgress.keptQuestions),
                 importantQuestions: mergeImportantQuestions(localProgress.importantQuestions, remoteProgress.importantQuestions),
+                uiPreferences: mergeUiPreferences(localProgress.uiPreferences, remoteProgress.uiPreferences),
                 position: isValidPositionSnapshot(localProgress.position) ? localProgress.position : remoteProgress.position,
                 savedAt: localProgress.savedAt || new Date().toISOString()
             };
@@ -2725,12 +2760,14 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 masteredQuestions = Array.isArray(saved.masteredQuestions) ? saved.masteredQuestions : [];
                 keptQuestions = Array.isArray(saved.keptQuestions) ? saved.keptQuestions : [];
                 importantQuestions = normalizeImportantQuestions(saved.importantQuestions);
+                uiPreferences = normalizeUiPreferences(saved.uiPreferences);
                 score = calculateScoreFromProgress(progressRecords);
 
                 localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressRecords));
                 localStorage.setItem(MASTERED_STORAGE_KEY, JSON.stringify(masteredQuestions));
                 localStorage.setItem(KEEP_STORAGE_KEY, JSON.stringify(keptQuestions));
                 localStorage.setItem(IMPORTANT_STORAGE_KEY, JSON.stringify(importantQuestions));
+                localStorage.setItem(UI_PREFERENCES_STORAGE_KEY, JSON.stringify(uiPreferences));
                 if (isValidPositionSnapshot(saved.position)) {
                     localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(saved.position));
                     currentChunkLevel = saved.position.chunkLevel || currentChunkLevel;
@@ -2971,7 +3008,12 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return Boolean(importantQuestions[getQuestionKey(question)]?.important);
         }
 
+        function shouldShowStudyLabels() {
+            return uiPreferences.showStudyLabels !== false;
+        }
+
         function renderImportantBadge(question, extraClass = '') {
+            if (!shouldShowStudyLabels()) return '';
             if (!isQuestionImportant(question)) return '';
             return `<span class="inline-flex shrink-0 items-center rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-[11px] font-black leading-5 text-yellow-700 ${extraClass}" title="중요 문장"><i class="fa-solid fa-star mr-1"></i>중요</span>`;
         }
@@ -3002,6 +3044,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         function renderProgressBadge(record, extraClass = '') {
+            if (!shouldShowStudyLabels()) return '';
             const level = getProgressLevelLabel(record);
             const label = [getProgressStatusLabel(record), level].filter(Boolean).join(' · ');
             return `<span class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-black leading-5 ${getProgressBadgeClasses(record)} ${extraClass}">${escapeHtml(label)}</span>`;
@@ -3058,6 +3101,12 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         function renderCurrentQuestionStudyStatus() {
             const badge = document.getElementById('current-question-status');
             if (!badge) return;
+            if (!shouldShowStudyLabels()) {
+                badge.classList.add('hidden');
+                updateImportantButton();
+                return;
+            }
+            badge.classList.remove('hidden');
             const record = getQuestionProgress(quizData[currentIndex]);
             const level = getProgressLevelLabel(record);
             badge.textContent = record
@@ -3070,10 +3119,51 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             updateImportantButton();
         }
 
+        function saveUiPreferences(syncRemote = true) {
+            uiPreferences = normalizeUiPreferences(uiPreferences);
+            localStorage.setItem(UI_PREFERENCES_STORAGE_KEY, JSON.stringify(uiPreferences));
+            if (syncRemote) {
+                const savedAt = new Date().toISOString();
+                localStorage.setItem(getProgressStorageKey(), savedAt);
+                queueRemoteProgressSave(getProgressSnapshot(savedAt));
+            }
+        }
+
+        function loadUiPreferences() {
+            try {
+                uiPreferences = normalizeUiPreferences(JSON.parse(localStorage.getItem(UI_PREFERENCES_STORAGE_KEY) || '{}'));
+            } catch (error) {
+                uiPreferences = { showStudyLabels: true, updatedAt: null };
+            }
+        }
+
+        function updateLabelVisibilityToggle() {
+            const button = document.getElementById('label-visibility-toggle');
+            if (!button) return;
+            const showing = uiPreferences.showStudyLabels !== false;
+            button.textContent = showing ? '라벨 숨김' : '라벨 표시';
+            button.className = showing
+                ? 'rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 transition-colors hover:bg-emerald-100'
+                : 'rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-500 transition-colors hover:border-emerald-200 hover:text-emerald-700';
+            button.setAttribute('aria-pressed', String(showing));
+            button.title = showing ? '문장 옆 진행 라벨을 숨깁니다.' : '문장 옆 진행 라벨을 표시합니다.';
+        }
+
+        function toggleStudyLabels() {
+            uiPreferences = {
+                ...normalizeUiPreferences(uiPreferences),
+                showStudyLabels: uiPreferences.showStudyLabels === false,
+                updatedAt: new Date().toISOString()
+            };
+            saveUiPreferences();
+            renderStudyProgressDisplays();
+        }
+
         function renderStudyProgressDisplays() {
             renderCurrentQuestionStudyStatus();
             renderPassageReader();
             renderPassageGroups();
+            updateLabelVisibilityToggle();
         }
 
         function escapeHtml(value) {
@@ -4201,6 +4291,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             loadProgressRecords();
             loadMasteredQuestions();
             loadImportantQuestions();
+            loadUiPreferences();
             const localProgress = getLocalProgressSnapshot();
             applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
             if (localProgress?.position) {
