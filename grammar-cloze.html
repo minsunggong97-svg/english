@@ -130,6 +130,17 @@
                                     </button>
                                 </div>
                             </div>
+                            <div id="vocab-difficulty-filter" class="hidden rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3">
+                                <p class="mb-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-600">Vocabulary Level</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <button type="button" data-vocab-difficulty="1" onclick="setVocabDifficulty(1)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">전체</button>
+                                    <button type="button" data-vocab-difficulty="2" onclick="setVocabDifficulty(2)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">2 이상</button>
+                                    <button type="button" data-vocab-difficulty="3" onclick="setVocabDifficulty(3)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">3 이상</button>
+                                    <button type="button" data-vocab-difficulty="4" onclick="setVocabDifficulty(4)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">4 이상</button>
+                                    <button type="button" data-vocab-difficulty="5" onclick="setVocabDifficulty(5)" class="vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors">5만</button>
+                                </div>
+                                <p id="vocab-difficulty-summary" class="mt-2 text-xs font-semibold text-emerald-700"></p>
+                            </div>
                             <div class="flex flex-wrap gap-2">
                                 <span id="filled-count" class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700">0 / 0</span>
                                 <button onclick="resetCurrentSet()" class="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50">
@@ -758,12 +769,12 @@
                     { type: "text", text: " with fans from opposition teams. If someone’s joy, sadness, and even anger emerge from the love of their team, what makes them so loyal? What does it mean for an individual to be a sports fan? And would their passion and cheering actually influence the performance of their team? These questions can be addressed from both an evolutionary and a social psychological perspective." }
                 ],
                 blanks: {
-                    "v1-b1": { answer: ["common"], choices: ["common", "rare", "strange", "private"], grammarPoint: "문맥 어휘 common", explanation: "가장 흔한 취미 중 하나라는 의미이므로 `common`이 맞습니다. `rare`는 드문이라는 반대 의미입니다." },
-                    "v1-b2": { answer: ["live"], choices: ["live", "dead", "silent", "private"], grammarPoint: "live sports games", explanation: "직접 진행되는 경기 관람을 말하므로 `live sports games`가 자연스럽습니다." },
-                    "v1-b3": { answer: ["wildly"], choices: ["wildly", "quietly", "barely", "politely"], grammarPoint: "강도 부사 wildly", explanation: "기쁨에 울 정도로 열광적으로 응원하는 문맥이므로 `wildly`가 적절합니다." },
-                    "v1-b4": { answer: ["extreme"], choices: ["extreme", "ordinary", "gentle", "neutral"], grammarPoint: "extreme fans", explanation: "뒤의 공격적 응원과 충돌로 이어지는 팬들을 설명하므로 `extreme`이 맞습니다." },
-                    "v1-b5": { answer: ["aggressive"], choices: ["aggressive", "peaceful", "weak", "careful"], grammarPoint: "aggressive support", explanation: "상대 팀 팬과의 충돌로 이어지는 지지이므로 `aggressive`가 문맥에 맞습니다." },
-                    "v1-b6": { answer: ["confrontations"], choices: ["confrontations", "celebrations", "agreements", "friendships"], grammarPoint: "confrontation", explanation: "공격적인 응원이 상대 팬과의 대립으로 이어지는 흐름이므로 `confrontations`가 맞습니다." }
+                    "v1-b1": { answer: ["common"], choices: ["common", "rare", "strange", "private"], difficulty: 1, grammarPoint: "문맥 어휘 common", explanation: "가장 흔한 취미 중 하나라는 의미이므로 `common`이 맞습니다. `rare`는 드문이라는 반대 의미입니다." },
+                    "v1-b2": { answer: ["live"], choices: ["live", "dead", "silent", "private"], difficulty: 2, grammarPoint: "live sports games", explanation: "직접 진행되는 경기 관람을 말하므로 `live sports games`가 자연스럽습니다." },
+                    "v1-b3": { answer: ["wildly"], choices: ["wildly", "quietly", "barely", "politely"], difficulty: 3, grammarPoint: "강도 부사 wildly", explanation: "기쁨에 울 정도로 열광적으로 응원하는 문맥이므로 `wildly`가 적절합니다." },
+                    "v1-b4": { answer: ["extreme"], choices: ["extreme", "ordinary", "gentle", "neutral"], difficulty: 3, grammarPoint: "extreme fans", explanation: "뒤의 공격적 응원과 충돌로 이어지는 팬들을 설명하므로 `extreme`이 맞습니다." },
+                    "v1-b5": { answer: ["aggressive"], choices: ["aggressive", "peaceful", "weak", "careful"], difficulty: 4, grammarPoint: "aggressive support", explanation: "상대 팀 팬과의 충돌로 이어지는 지지이므로 `aggressive`가 문맥에 맞습니다." },
+                    "v1-b6": { answer: ["confrontations"], choices: ["confrontations", "celebrations", "agreements", "friendships"], difficulty: 5, grammarPoint: "confrontation", explanation: "공격적인 응원이 상대 팬과의 대립으로 이어지는 흐름이므로 `confrontations`가 맞습니다." }
                 }
             },
             {
@@ -791,13 +802,13 @@
                     { type: "text", text: " for our ancestors, and the instinct to find one’s own tribe or group has been passed down to modern people. This may be how community membership influences our choice of a sports team and our sense of loyalty to that team." }
                 ],
                 blanks: {
-                    "v2-b1": { answer: ["evolutionary"], choices: ["evolutionary", "economic", "artificial", "temporary"], grammarPoint: "evolutionary perspective", explanation: "조상과 생존 기원을 설명하는 관점이므로 `evolutionary`가 맞습니다." },
-                    "v2-b2": { answer: ["emerged"], choices: ["emerged", "disappeared", "borrowed", "escaped"], grammarPoint: "emerge from", explanation: "`emerged from`은 '~에서 생겨나다'라는 뜻으로 기원을 설명합니다." },
-                    "v2-b3": { answer: ["survive"], choices: ["survive", "compete", "celebrate", "wander"], grammarPoint: "survive", explanation: "집단 구성원이었을 때 생존 가능성이 높았다는 문맥이므로 `survive`가 필요합니다." },
-                    "v2-b4": { answer: ["isolated"], choices: ["isolated", "connected", "allied", "crowded"], grammarPoint: "isolated individual", explanation: "집단 구성원과 대비되는 고립된 개인을 뜻하므로 `isolated`가 맞습니다." },
-                    "v2-b5": { answer: ["mutual"], choices: ["mutual", "single", "hostile", "random"], grammarPoint: "mutual cooperation", explanation: "서로 돕는 협력을 말하므로 `mutual`이 자연스럽습니다." },
-                    "v2-b6": { answer: ["fostered"], choices: ["fostered", "damaged", "blocked", "ignored"], grammarPoint: "foster relationships", explanation: "관계를 촉진하고 발전시킨다는 의미이므로 `fostered`가 맞습니다." },
-                    "v2-b7": { answer: ["mechanism"], choices: ["mechanism", "decoration", "accident", "hobby"], grammarPoint: "survival mechanism", explanation: "생존을 가능하게 하는 장치나 방식이라는 뜻으로 `mechanism`이 적절합니다." }
+                    "v2-b1": { answer: ["evolutionary"], choices: ["evolutionary", "economic", "artificial", "temporary"], difficulty: 4, grammarPoint: "evolutionary perspective", explanation: "조상과 생존 기원을 설명하는 관점이므로 `evolutionary`가 맞습니다." },
+                    "v2-b2": { answer: ["emerged"], choices: ["emerged", "disappeared", "borrowed", "escaped"], difficulty: 4, grammarPoint: "emerge from", explanation: "`emerged from`은 '~에서 생겨나다'라는 뜻으로 기원을 설명합니다." },
+                    "v2-b3": { answer: ["survive"], choices: ["survive", "compete", "celebrate", "wander"], difficulty: 2, grammarPoint: "survive", explanation: "집단 구성원이었을 때 생존 가능성이 높았다는 문맥이므로 `survive`가 필요합니다." },
+                    "v2-b4": { answer: ["isolated"], choices: ["isolated", "connected", "allied", "crowded"], difficulty: 4, grammarPoint: "isolated individual", explanation: "집단 구성원과 대비되는 고립된 개인을 뜻하므로 `isolated`가 맞습니다." },
+                    "v2-b5": { answer: ["mutual"], choices: ["mutual", "single", "hostile", "random"], difficulty: 3, grammarPoint: "mutual cooperation", explanation: "서로 돕는 협력을 말하므로 `mutual`이 자연스럽습니다." },
+                    "v2-b6": { answer: ["fostered"], choices: ["fostered", "damaged", "blocked", "ignored"], difficulty: 5, grammarPoint: "foster relationships", explanation: "관계를 촉진하고 발전시킨다는 의미이므로 `fostered`가 맞습니다." },
+                    "v2-b7": { answer: ["mechanism"], choices: ["mechanism", "decoration", "accident", "hobby"], difficulty: 5, grammarPoint: "survival mechanism", explanation: "생존을 가능하게 하는 장치나 방식이라는 뜻으로 `mechanism`이 적절합니다." }
                 }
             },
             {
@@ -823,12 +834,12 @@
                     { type: "text", text: " by sports teams’ deliberate use of their team colors and songs." }
                 ],
                 blanks: {
-                    "v3-b1": { answer: ["theories"], choices: ["theories", "stadiums", "emotions", "arguments"], grammarPoint: "theory", explanation: "팬덤을 설명하는 사회심리학 이론들이므로 `theories`가 맞습니다." },
-                    "v3-b2": { answer: ["distinctiveness"], choices: ["distinctiveness", "similarity", "weakness", "silence"], grammarPoint: "distinctiveness", explanation: "남들과 구별되고 독특해지고 싶은 욕구를 말하므로 `distinctiveness`가 적절합니다." },
-                    "v3-b3": { answer: ["belonging"], choices: ["belonging", "failure", "distance", "confusion"], grammarPoint: "sense of belonging", explanation: "집단에 소속되어 있다는 느낌은 `a sense of belonging`으로 표현합니다." },
-                    "v3-b4": { answer: ["inclusion"], choices: ["inclusion", "exclusion", "competition", "isolation"], grammarPoint: "inclusion", explanation: "어딘가에 포함되고 싶은 욕구를 뜻하므로 `inclusion`이 맞습니다." },
-                    "v3-b5": { answer: ["competing"], choices: ["competing", "identical", "empty", "hidden"], grammarPoint: "competing needs", explanation: "포함되고 싶지만 동시에 달라지고 싶은 두 욕구가 서로 경쟁하므로 `competing`이 맞습니다." },
-                    "v3-b6": { answer: ["reinforced"], choices: ["reinforced", "weakened", "forgotten", "removed"], grammarPoint: "reinforce", explanation: "팀 색과 노래가 독특함의 느낌을 강화하므로 `reinforced`가 자연스럽습니다." }
+                    "v3-b1": { answer: ["theories"], choices: ["theories", "stadiums", "emotions", "arguments"], difficulty: 3, grammarPoint: "theory", explanation: "팬덤을 설명하는 사회심리학 이론들이므로 `theories`가 맞습니다." },
+                    "v3-b2": { answer: ["distinctiveness"], choices: ["distinctiveness", "similarity", "weakness", "silence"], difficulty: 5, grammarPoint: "distinctiveness", explanation: "남들과 구별되고 독특해지고 싶은 욕구를 말하므로 `distinctiveness`가 적절합니다." },
+                    "v3-b3": { answer: ["belonging"], choices: ["belonging", "failure", "distance", "confusion"], difficulty: 3, grammarPoint: "sense of belonging", explanation: "집단에 소속되어 있다는 느낌은 `a sense of belonging`으로 표현합니다." },
+                    "v3-b4": { answer: ["inclusion"], choices: ["inclusion", "exclusion", "competition", "isolation"], difficulty: 5, grammarPoint: "inclusion", explanation: "어딘가에 포함되고 싶은 욕구를 뜻하므로 `inclusion`이 맞습니다." },
+                    "v3-b5": { answer: ["competing"], choices: ["competing", "identical", "empty", "hidden"], difficulty: 4, grammarPoint: "competing needs", explanation: "포함되고 싶지만 동시에 달라지고 싶은 두 욕구가 서로 경쟁하므로 `competing`이 맞습니다." },
+                    "v3-b6": { answer: ["reinforced"], choices: ["reinforced", "weakened", "forgotten", "removed"], difficulty: 4, grammarPoint: "reinforce", explanation: "팀 색과 노래가 독특함의 느낌을 강화하므로 `reinforced`가 자연스럽습니다." }
                 }
             },
             {
@@ -856,13 +867,13 @@
                     { type: "text", text: " in extreme cases." }
                 ],
                 blanks: {
-                    "v4-b1": { answer: ["phenomenon"], choices: ["phenomenon", "punishment", "strategy", "equipment"], grammarPoint: "phenomenon", explanation: "반사된 영광 누리기는 하나의 심리 현상이므로 `phenomenon`이 맞습니다." },
-                    "v4-b2": { answer: ["associating"], choices: ["associating", "separating", "hiding", "defeating"], grammarPoint: "associate A with B", explanation: "자신을 타인의 성공과 연관 짓는다는 의미이므로 `associating`이 적절합니다." },
-                    "v4-b3": { answer: ["immediate"], choices: ["immediate", "distant", "negative", "imaginary"], grammarPoint: "immediate benefits", explanation: "즉각적인 이익을 제공하지 않을 수 있다는 문맥이므로 `immediate`가 맞습니다." },
-                    "v4-b4": { answer: ["satisfaction"], choices: ["satisfaction", "conflict", "pressure", "failure"], grammarPoint: "satisfaction", explanation: "경기를 보는 행위가 만족감을 준다는 흐름이므로 `satisfaction`이 필요합니다." },
-                    "v4-b5": { answer: ["identify"], choices: ["identify", "separate", "compare", "replace"], grammarPoint: "identify with", explanation: "자신을 팀과 동일시한다는 표현은 `identify themselves with`입니다." },
-                    "v4-b6": { answer: ["criticism"], choices: ["criticism", "praise", "support", "victory"], grammarPoint: "criticism", explanation: "팀에 대한 비판을 개인적 공격으로 여긴다는 뜻이므로 `criticism`이 맞습니다." },
-                    "v4-b7": { answer: ["violent"], choices: ["violent", "calm", "friendly", "careful"], grammarPoint: "violent", explanation: "극단적 경우 폭력적으로 변한다는 의미이므로 `violent`가 적절합니다." }
+                    "v4-b1": { answer: ["phenomenon"], choices: ["phenomenon", "punishment", "strategy", "equipment"], difficulty: 5, grammarPoint: "phenomenon", explanation: "반사된 영광 누리기는 하나의 심리 현상이므로 `phenomenon`이 맞습니다." },
+                    "v4-b2": { answer: ["associating"], choices: ["associating", "separating", "hiding", "defeating"], difficulty: 5, grammarPoint: "associate A with B", explanation: "자신을 타인의 성공과 연관 짓는다는 의미이므로 `associating`이 적절합니다." },
+                    "v4-b3": { answer: ["immediate"], choices: ["immediate", "distant", "negative", "imaginary"], difficulty: 3, grammarPoint: "immediate benefits", explanation: "즉각적인 이익을 제공하지 않을 수 있다는 문맥이므로 `immediate`가 맞습니다." },
+                    "v4-b4": { answer: ["satisfaction"], choices: ["satisfaction", "conflict", "pressure", "failure"], difficulty: 3, grammarPoint: "satisfaction", explanation: "경기를 보는 행위가 만족감을 준다는 흐름이므로 `satisfaction`이 필요합니다." },
+                    "v4-b5": { answer: ["identify"], choices: ["identify", "separate", "compare", "replace"], difficulty: 4, grammarPoint: "identify with", explanation: "자신을 팀과 동일시한다는 표현은 `identify themselves with`입니다." },
+                    "v4-b6": { answer: ["criticism"], choices: ["criticism", "praise", "support", "victory"], difficulty: 4, grammarPoint: "criticism", explanation: "팀에 대한 비판을 개인적 공격으로 여긴다는 뜻이므로 `criticism`이 맞습니다." },
+                    "v4-b7": { answer: ["violent"], choices: ["violent", "calm", "friendly", "careful"], difficulty: 3, grammarPoint: "violent", explanation: "극단적 경우 폭력적으로 변한다는 의미이므로 `violent`가 적절합니다." }
                 }
             },
             {
@@ -892,14 +903,14 @@
                     { type: "text", text: " between people." }
                 ],
                 blanks: {
-                    "v5-b1": { answer: ["express"], choices: ["express", "hide", "control", "deny"], grammarPoint: "express emotions", explanation: "감정을 드러내는 수단을 말하므로 `express their emotions`가 맞습니다." },
-                    "v5-b2": { answer: ["passionately"], choices: ["passionately", "carelessly", "silently", "rarely"], grammarPoint: "passionately", explanation: "팀을 열정적으로 지지한다는 뜻이므로 `passionately`가 적절합니다." },
-                    "v5-b3": { answer: ["release"], choices: ["release", "remove", "reject", "reduce"], grammarPoint: "release dopamine", explanation: "뇌가 도파민을 분비한다는 표현은 `release dopamine`입니다." },
-                    "v5-b4": { answer: ["pleasure"], choices: ["pleasure", "anger", "pressure", "danger"], grammarPoint: "pleasure", explanation: "목표 달성 시 느끼는 즐거움이므로 `pleasure`가 맞습니다." },
-                    "v5-b5": { answer: ["pursued"], choices: ["pursued", "ignored", "lost", "avoided"], grammarPoint: "pursue a goal", explanation: "목표를 오랫동안 추구해 왔다는 의미이므로 `pursued`가 필요합니다." },
-                    "v5-b6": { answer: ["thrill"], choices: ["thrill", "burden", "routine", "mistake"], grammarPoint: "thrill", explanation: "연패 뒤 승리가 주는 특별한 짜릿함을 말하므로 `thrill`이 맞습니다." },
-                    "v5-b7": { answer: ["oxytocin"], choices: ["oxytocin", "oxygen", "protein", "vitamin"], grammarPoint: "oxytocin", explanation: "사람 사이의 유대감에 기여하는 호르몬은 `oxytocin`입니다." },
-                    "v5-b8": { answer: ["bonding"], choices: ["bonding", "separation", "competition", "confusion"], grammarPoint: "bonding", explanation: "사람들 사이의 유대감을 뜻하므로 `bonding`이 적절합니다." }
+                    "v5-b1": { answer: ["express"], choices: ["express", "hide", "control", "deny"], difficulty: 2, grammarPoint: "express emotions", explanation: "감정을 드러내는 수단을 말하므로 `express their emotions`가 맞습니다." },
+                    "v5-b2": { answer: ["passionately"], choices: ["passionately", "carelessly", "silently", "rarely"], difficulty: 3, grammarPoint: "passionately", explanation: "팀을 열정적으로 지지한다는 뜻이므로 `passionately`가 적절합니다." },
+                    "v5-b3": { answer: ["release"], choices: ["release", "remove", "reject", "reduce"], difficulty: 3, grammarPoint: "release dopamine", explanation: "뇌가 도파민을 분비한다는 표현은 `release dopamine`입니다." },
+                    "v5-b4": { answer: ["pleasure"], choices: ["pleasure", "anger", "pressure", "danger"], difficulty: 2, grammarPoint: "pleasure", explanation: "목표 달성 시 느끼는 즐거움이므로 `pleasure`가 맞습니다." },
+                    "v5-b5": { answer: ["pursued"], choices: ["pursued", "ignored", "lost", "avoided"], difficulty: 4, grammarPoint: "pursue a goal", explanation: "목표를 오랫동안 추구해 왔다는 의미이므로 `pursued`가 필요합니다." },
+                    "v5-b6": { answer: ["thrill"], choices: ["thrill", "burden", "routine", "mistake"], difficulty: 4, grammarPoint: "thrill", explanation: "연패 뒤 승리가 주는 특별한 짜릿함을 말하므로 `thrill`이 맞습니다." },
+                    "v5-b7": { answer: ["oxytocin"], choices: ["oxytocin", "oxygen", "protein", "vitamin"], difficulty: 5, grammarPoint: "oxytocin", explanation: "사람 사이의 유대감에 기여하는 호르몬은 `oxytocin`입니다." },
+                    "v5-b8": { answer: ["bonding"], choices: ["bonding", "separation", "competition", "confusion"], difficulty: 4, grammarPoint: "bonding", explanation: "사람들 사이의 유대감을 뜻하므로 `bonding`이 적절합니다." }
                 }
             },
             {
@@ -931,15 +942,15 @@
                     { type: "text", text: " a healthy culture of fandom and seek ways to practice fandom that can have a positive influence on society." }
                 ],
                 blanks: {
-                    "v6-b1": { answer: ["benefits"], choices: ["benefits", "problems", "limits", "attacks"], grammarPoint: "benefits", explanation: "팬과 팀 경기력 모두에 이익을 가져온다는 흐름이므로 `benefits`가 맞습니다." },
-                    "v6-b2": { answer: ["performance"], choices: ["performance", "appearance", "location", "expense"], grammarPoint: "performance", explanation: "스포츠 팀의 경기력에 대한 효과를 말하므로 `performance`가 적절합니다." },
-                    "v6-b3": { answer: ["Typically"], choices: ["Typically", "Rarely", "Secretly", "Accidentally"], grammarPoint: "typically", explanation: "일반적인 경향을 말하므로 `Typically`가 자연스럽습니다." },
-                    "v6-b4": { answer: ["dynamic"], choices: ["dynamic", "object", "silence", "tradition"], grammarPoint: "dynamic", explanation: "홈 팬 응원과 경기력 사이의 작용 관계를 가리키므로 `dynamic`이 맞습니다." },
-                    "v6-b5": { answer: ["examined"], choices: ["examined", "ignored", "invented", "predicted"], grammarPoint: "examine", explanation: "연구가 관계를 조사했다는 의미이므로 `examined`가 필요합니다." },
-                    "v6-b6": { answer: ["banned"], choices: ["banned", "invited", "allowed", "encouraged"], grammarPoint: "ban", explanation: "팬데믹 기간 관중 입장이 금지된 상황이므로 `banned`가 맞습니다." },
-                    "v6-b7": { answer: ["decreased"], choices: ["decreased", "increased", "remained", "improved"], grammarPoint: "decrease", explanation: "관중이 없을 때 경기력이 평균 8퍼센트 감소했으므로 `decreased`가 맞습니다." },
-                    "v6-b8": { answer: ["determining"], choices: ["determining", "minor", "hidden", "random"], grammarPoint: "determining factor", explanation: "결정적 요인을 뜻하는 표현은 `determining factor`입니다." },
-                    "v6-b9": { answer: ["establish"], choices: ["establish", "destroy", "ignore", "delay"], grammarPoint: "establish a culture", explanation: "건강한 팬덤 문화를 확립해야 한다는 결론이므로 `establish`가 적절합니다." }
+                    "v6-b1": { answer: ["benefits"], choices: ["benefits", "problems", "limits", "attacks"], difficulty: 2, grammarPoint: "benefits", explanation: "팬과 팀 경기력 모두에 이익을 가져온다는 흐름이므로 `benefits`가 맞습니다." },
+                    "v6-b2": { answer: ["performance"], choices: ["performance", "appearance", "location", "expense"], difficulty: 2, grammarPoint: "performance", explanation: "스포츠 팀의 경기력에 대한 효과를 말하므로 `performance`가 적절합니다." },
+                    "v6-b3": { answer: ["Typically"], choices: ["Typically", "Rarely", "Secretly", "Accidentally"], difficulty: 3, grammarPoint: "typically", explanation: "일반적인 경향을 말하므로 `Typically`가 자연스럽습니다." },
+                    "v6-b4": { answer: ["dynamic"], choices: ["dynamic", "object", "silence", "tradition"], difficulty: 5, grammarPoint: "dynamic", explanation: "홈 팬 응원과 경기력 사이의 작용 관계를 가리키므로 `dynamic`이 맞습니다." },
+                    "v6-b5": { answer: ["examined"], choices: ["examined", "ignored", "invented", "predicted"], difficulty: 4, grammarPoint: "examine", explanation: "연구가 관계를 조사했다는 의미이므로 `examined`가 필요합니다." },
+                    "v6-b6": { answer: ["banned"], choices: ["banned", "invited", "allowed", "encouraged"], difficulty: 3, grammarPoint: "ban", explanation: "팬데믹 기간 관중 입장이 금지된 상황이므로 `banned`가 맞습니다." },
+                    "v6-b7": { answer: ["decreased"], choices: ["decreased", "increased", "remained", "improved"], difficulty: 3, grammarPoint: "decrease", explanation: "관중이 없을 때 경기력이 평균 8퍼센트 감소했으므로 `decreased`가 맞습니다." },
+                    "v6-b8": { answer: ["determining"], choices: ["determining", "minor", "hidden", "random"], difficulty: 4, grammarPoint: "determining factor", explanation: "결정적 요인을 뜻하는 표현은 `determining factor`입니다." },
+                    "v6-b9": { answer: ["establish"], choices: ["establish", "destroy", "ignore", "delay"], difficulty: 4, grammarPoint: "establish a culture", explanation: "건강한 팬덤 문화를 확립해야 한다는 결론이므로 `establish`가 적절합니다." }
                 }
             }
 
@@ -1100,6 +1111,7 @@
         let aiFeedbacks = {};
         let aiFeedbackLoadingId = null;
         let isGraded = false;
+        let vocabDifficultyMin = 1;
         let draggedChoice = null;
         let draggedBlankBlock = null;
 
@@ -1125,7 +1137,8 @@
                     mode: currentMode,
                     setId: set.id,
                     blankAnswers,
-                    isGraded
+                    isGraded,
+                    vocabDifficultyMin
                 }));
             } catch (error) {
                 console.warn('Unable to save cloze progress:', error);
@@ -1145,6 +1158,7 @@
                 currentSetIndex = savedIndex;
                 const set = getCurrentSet();
                 resetState();
+                vocabDifficultyMin = clampVocabDifficulty(saved.vocabDifficultyMin);
                 blankAnswers = sanitizeSavedAnswers(saved.blankAnswers, set);
                 isGraded = Boolean(saved.isGraded);
                 return true;
@@ -1156,6 +1170,23 @@
 
         function getVisibleSets() {
             return clozeSets.filter(set => set.type === currentMode);
+        }
+
+        function clampVocabDifficulty(value) {
+            const numeric = Number(value);
+            return Number.isInteger(numeric) ? Math.min(Math.max(numeric, 1), 5) : 1;
+        }
+
+        function isVocabMode() {
+            return getCurrentSet().type === 'vocab';
+        }
+
+        function isBlankActiveForDifficulty(blank) {
+            return !isVocabMode() || clampVocabDifficulty(blank.difficulty || 1) >= vocabDifficultyMin;
+        }
+
+        function getAllBlankIds() {
+            return Object.keys(getCurrentSet().blanks);
         }
 
         function getCurrentSet() {
@@ -1172,7 +1203,8 @@
         }
 
         function getBlankIds() {
-            return Object.keys(getCurrentSet().blanks);
+            const blanks = getCurrentSet().blanks;
+            return getAllBlankIds().filter((blankId) => isBlankActiveForDifficulty(blanks[blankId]));
         }
 
         function arraysEqual(a, b) {
@@ -1242,6 +1274,31 @@
             document.getElementById('set-list-title').textContent = titleMap[currentMode] || titleMap.grammar;
         }
 
+        function renderVocabDifficultyFilter() {
+            const filter = document.getElementById('vocab-difficulty-filter');
+            const summary = document.getElementById('vocab-difficulty-summary');
+            if (!filter || !summary) return;
+
+            if (!isVocabMode()) {
+                filter.classList.add('hidden');
+                return;
+            }
+
+            const total = getAllBlankIds().length;
+            const active = getBlankIds().length;
+            filter.classList.remove('hidden');
+            summary.textContent = `현재 ${total}개 중 ${active}개 빈칸 표시`;
+
+            document.querySelectorAll('.vocab-difficulty-btn').forEach((button) => {
+                const level = Number(button.dataset.vocabDifficulty);
+                const isActive = level === vocabDifficultyMin;
+                button.className = [
+                    'vocab-difficulty-btn rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors',
+                    isActive ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-emerald-700 hover:bg-emerald-100'
+                ].join(' ');
+            });
+        }
+
         function renderPassage() {
             const set = getCurrentSet();
             const area = document.getElementById('passage-area');
@@ -1257,6 +1314,11 @@
                 }
 
                 const blank = getBlank(part.id);
+                if (!isBlankActiveForDifficulty(blank)) {
+                    area.appendChild(document.createTextNode(blank.answer.join(' ')));
+                    return;
+                }
+
                 const userBlocks = blankAnswers[part.id] || [];
                 const isActive = activeBlankId === part.id;
                 const isFilled = userBlocks.length > 0;
@@ -1565,6 +1627,11 @@
 
             const set = getCurrentSet();
             const blankIds = getBlankIds();
+            if (blankIds.length === 0) {
+                area.classList.remove('hidden');
+                area.innerHTML = '<p class="rounded-xl bg-amber-50 p-4 font-bold text-amber-700">현재 난이도에 표시할 어휘 빈칸이 없습니다.</p>';
+                return;
+            }
             const wrongIds = blankIds.filter((id) => !arraysEqual(blankAnswers[id] || [], set.blanks[id].answer));
             const correctCount = blankIds.length - wrongIds.length;
             const score = Math.round((correctCount / blankIds.length) * 100);
@@ -1773,8 +1840,9 @@
         function updateProgress() {
             const blankIds = getBlankIds();
             const filled = blankIds.filter((id) => (blankAnswers[id] || []).length > 0).length;
-            document.getElementById('filled-count').textContent = `${filled} / ${blankIds.length}`;
-            document.getElementById('progress-bar').style.width = `${(filled / blankIds.length) * 100}%`;
+            const total = blankIds.length;
+            document.getElementById('filled-count').textContent = `${filled} / ${total}`;
+            document.getElementById('progress-bar').style.width = total ? `${(filled / total) * 100}%` : '0%';
         }
 
         function selectSet(index) {
@@ -1798,6 +1866,17 @@
                 vocab: '어휘 빈칸 모드로 전환했습니다.'
             };
             showStatus(messageMap[mode] || messageMap.grammar, 'success');
+        }
+
+        function setVocabDifficulty(level) {
+            const nextLevel = clampVocabDifficulty(level);
+            if (vocabDifficultyMin === nextLevel) return;
+            vocabDifficultyMin = nextLevel;
+            resetState();
+            saveProgress();
+            renderAll();
+            const label = nextLevel === 1 ? '전체' : nextLevel === 5 ? '5만' : `${nextLevel} 이상`;
+            showStatus(`어휘 난이도를 ${label}으로 변경했습니다. 현재 지문 풀이를 초기화했습니다.`, 'success');
         }
 
         function selectBlank(blankId) {
@@ -1893,6 +1972,10 @@
 
         function gradeCurrentSet() {
             const blankIds = getBlankIds();
+            if (blankIds.length === 0) {
+                showStatus('현재 난이도에 채점할 어휘 빈칸이 없습니다.', 'info');
+                return;
+            }
             const incomplete = blankIds.filter((id) => (blankAnswers[id] || []).length !== getBlank(id).answer.length);
             if (incomplete.length > 0) {
                 showStatus(`아직 채우지 않은 빈칸이 ${incomplete.length}개 있습니다. 그래도 채점 결과에는 오답으로 표시됩니다.`, 'error');
@@ -2002,6 +2085,7 @@
             document.getElementById('set-title').textContent = `${set.title} - ${set.subtitle}`;
             document.getElementById('set-description').textContent = set.description;
             renderModeToggle();
+            renderVocabDifficultyFilter();
             renderSetList();
             renderPassage();
             renderChoices();
