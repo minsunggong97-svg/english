@@ -5828,6 +5828,31 @@
             return visibleSets[currentSetIndex] || visibleSets[0] || clozeSets[0];
         }
 
+        function getBaseSetId(set) {
+            return set.sourceSetId || set.id;
+        }
+
+        function getPassageGroupId(set) {
+            const baseSetId = getBaseSetId(set);
+            return baseSetId.replace(/-part-\d+$/, '');
+        }
+
+        function getPassageGroupLabel(groupId) {
+            const labelMap = {
+                'sports-fandom': 'Sports Fandom',
+                getbol: 'Getbol'
+            };
+            return labelMap[groupId] || groupId
+                .split('-')
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        function getPartLabel(set) {
+            const partMatch = getBaseSetId(set).match(/part-(\d+)$/);
+            return partMatch ? `Part ${partMatch[1]}` : set.title;
+        }
+
         function getBlank(blankId) {
             return getCurrentSet().blanks[blankId];
         }
@@ -5892,23 +5917,70 @@
         function renderSetList() {
             const list = document.getElementById('set-list');
             list.innerHTML = '';
-            getVisibleSets().forEach((set, index) => {
+            const visibleSets = getVisibleSets();
+            const currentSet = getCurrentSet();
+            const activeGroupId = getPassageGroupId(currentSet);
+            const groupIds = [...new Set(visibleSets.map((set) => getPassageGroupId(set)))];
+
+            const groupWrapper = document.createElement('div');
+            groupWrapper.className = 'space-y-2';
+            const groupTitle = document.createElement('p');
+            groupTitle.className = 'px-1 text-xs font-black uppercase tracking-[0.16em] text-emerald-600';
+            groupTitle.textContent = 'Passage';
+            groupWrapper.appendChild(groupTitle);
+
+            const groupGrid = document.createElement('div');
+            groupGrid.className = 'grid gap-2';
+            groupIds.forEach((groupId) => {
+                const groupSets = visibleSets.filter((set) => getPassageGroupId(set) === groupId);
+                const isActive = groupId === activeGroupId;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.onclick = () => selectPassageGroup(groupId);
+                button.className = [
+                    'w-full rounded-2xl border px-4 py-3 text-left transition-all',
+                    isActive
+                        ? 'border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-100'
+                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                ].join(' ');
+                button.innerHTML = `
+                    <span class="block text-base font-extrabold ${isActive ? 'text-emerald-800' : 'text-slate-800'}">${escapeHtml(getPassageGroupLabel(groupId))}</span>
+                    <span class="mt-1 block text-xs font-bold text-slate-500">${groupSets.length}개 Part</span>
+                `;
+                groupGrid.appendChild(button);
+            });
+            groupWrapper.appendChild(groupGrid);
+            list.appendChild(groupWrapper);
+
+            const partWrapper = document.createElement('div');
+            partWrapper.className = 'mt-4 space-y-2';
+            const partTitle = document.createElement('p');
+            partTitle.className = 'px-1 text-xs font-black uppercase tracking-[0.16em] text-emerald-600';
+            partTitle.textContent = `${getPassageGroupLabel(activeGroupId)} Parts`;
+            partWrapper.appendChild(partTitle);
+
+            const partGrid = document.createElement('div');
+            partGrid.className = 'grid gap-2';
+            visibleSets.forEach((set, index) => {
+                if (getPassageGroupId(set) !== activeGroupId) return;
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.onclick = () => selectSet(index);
                 button.className = [
-                    'w-full rounded-2xl border px-4 py-3 text-left transition-all',
+                    'w-full rounded-xl border px-3 py-2.5 text-left transition-all',
                     index === currentSetIndex
                         ? 'border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-100'
                         : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
                 ].join(' ');
                 button.innerHTML = `
-                    <span class="block text-base font-extrabold ${index === currentSetIndex ? 'text-emerald-800' : 'text-slate-800'}">${escapeHtml(set.title)}</span>
+                    <span class="block text-sm font-extrabold ${index === currentSetIndex ? 'text-emerald-800' : 'text-slate-800'}">${escapeHtml(getPartLabel(set))}</span>
                     <span class="mt-1 block text-sm font-semibold text-slate-500">${escapeHtml(set.subtitle)}</span>
                     <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-black text-emerald-700">${Object.keys(set.blanks).length}개 빈칸</span>
                 `;
-                list.appendChild(button);
+                partGrid.appendChild(button);
             });
+            partWrapper.appendChild(partGrid);
+            list.appendChild(partWrapper);
         }
 
         function renderModeToggle() {
@@ -6513,10 +6585,22 @@
             showStatus(`${getCurrentSet().title} 지문을 불러왔습니다.`, 'success');
         }
 
+        function selectPassageGroup(groupId) {
+            const nextIndex = getVisibleSets().findIndex((set) => getPassageGroupId(set) === groupId);
+            if (nextIndex < 0 || nextIndex === currentSetIndex) return;
+            currentSetIndex = nextIndex;
+            resetState();
+            saveProgress();
+            renderAll();
+            showStatus(`${getPassageGroupLabel(groupId)} 지문을 불러왔습니다.`, 'success');
+        }
+
         function setMode(mode) {
             if (currentMode === mode) return;
+            const currentBaseSetId = getBaseSetId(getCurrentSet());
             currentMode = mode;
-            currentSetIndex = 0;
+            const nextIndex = getVisibleSets().findIndex((set) => getBaseSetId(set) === currentBaseSetId);
+            currentSetIndex = nextIndex >= 0 ? nextIndex : 0;
             resetState();
             saveProgress();
             renderAll();
