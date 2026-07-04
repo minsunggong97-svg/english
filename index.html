@@ -122,6 +122,7 @@
                 <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 260</span>
+                        <span id="current-question-status" class="text-xs font-black rounded-full bg-slate-100 px-3 py-1 text-slate-500">미학습</span>
                         <input id="passage-select" type="hidden" value="all">
                     </div>
                     <span class="text-sm font-medium text-slate-500">점수: <span id="score-display" class="font-bold text-slate-700">0</span></span>
@@ -2665,6 +2666,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 document.getElementById('score-display').innerText = score;
                 renderMasteredStatus();
                 renderKeptNotes();
+                renderStudyProgressDisplays();
                 return true;
             } finally {
                 isApplyingRemoteProgress = false;
@@ -2886,6 +2888,94 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return hint.replace(/^해석:\s*/i, '').trim() || '해석이 준비되어 있지 않습니다.';
         }
 
+        function getQuestionProgress(question) {
+            return question ? progressRecords[getQuestionKey(question)] || null : null;
+        }
+
+        function getProgressLevelLabel(record) {
+            return record?.chunkLevel ? `L${record.chunkLevel}` : '';
+        }
+
+        function getProgressStatusLabel(record) {
+            if (!record) return '미학습';
+            return record.status === 'correct' ? '정답' : '오답';
+        }
+
+        function getProgressBadgeClasses(record) {
+            if (!record) return 'bg-slate-100 text-slate-500 border-slate-200';
+            if (record.status === 'correct') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            return 'bg-red-50 text-red-700 border-red-200';
+        }
+
+        function renderProgressBadge(record, extraClass = '') {
+            const level = getProgressLevelLabel(record);
+            const label = [getProgressStatusLabel(record), level].filter(Boolean).join(' · ');
+            return `<span class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-black leading-5 ${getProgressBadgeClasses(record)} ${extraClass}">${escapeHtml(label)}</span>`;
+        }
+
+        function getPassageProgressStats(passageId) {
+            const questions = getDefaultPassageData(passageId);
+            const stats = {
+                total: questions.length,
+                completed: 0,
+                correct: 0,
+                wrong: 0,
+                latestLevel: ''
+            };
+            let latestTime = 0;
+            questions.forEach((question) => {
+                const record = getQuestionProgress(question);
+                if (!record) return;
+                stats.completed += 1;
+                if (record.status === 'correct') stats.correct += 1;
+                else stats.wrong += 1;
+                const answeredAt = Date.parse(record.answeredAt || '');
+                if (Number.isFinite(answeredAt) && answeredAt >= latestTime && record.chunkLevel) {
+                    latestTime = answeredAt;
+                    stats.latestLevel = `L${record.chunkLevel}`;
+                }
+            });
+            return stats;
+        }
+
+        function getPassageGroupProgressStats(group) {
+            return getPassagesForGroup(group).reduce((total, passage) => {
+                const stats = getPassageProgressStats(passage.id);
+                total.total += stats.total;
+                total.completed += stats.completed;
+                total.correct += stats.correct;
+                total.wrong += stats.wrong;
+                return total;
+            }, { total: 0, completed: 0, correct: 0, wrong: 0 });
+        }
+
+        function renderProgressSummary(stats, compact = false) {
+            if (!stats.total) return '학습 기록 없음';
+            if (compact) return `완료 ${stats.completed}/${stats.total}`;
+            const latest = stats.latestLevel ? ` · 최근 ${stats.latestLevel}` : '';
+            return `완료 ${stats.completed}/${stats.total} · 정답 ${stats.correct} · 오답 ${stats.wrong}${latest}`;
+        }
+
+        function renderCurrentQuestionStudyStatus() {
+            const badge = document.getElementById('current-question-status');
+            if (!badge) return;
+            const record = getQuestionProgress(quizData[currentIndex]);
+            const level = getProgressLevelLabel(record);
+            badge.textContent = record
+                ? `이 문장: ${getProgressStatusLabel(record)}${level ? ` · ${level}` : ''}`
+                : '이 문장: 미학습';
+            badge.className = [
+                'text-xs font-black rounded-full border px-3 py-1',
+                getProgressBadgeClasses(record)
+            ].join(' ');
+        }
+
+        function renderStudyProgressDisplays() {
+            renderCurrentQuestionStudyStatus();
+            renderPassageReader();
+            renderPassageGroups();
+        }
+
         function escapeHtml(value) {
             return String(value)
                 .replace(/&/g, '&amp;')
@@ -2907,6 +2997,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             quizData.forEach((question, index) => {
                 const isActive = index === currentIndex;
                 const isTranslated = translatedReaderSentences.has(index);
+                const record = getQuestionProgress(question);
                 const item = document.createElement('button');
                 item.type = 'button';
                 item.dataset.readerIndex = String(index);
@@ -2918,9 +3009,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                     isTranslated ? 'bg-emerald-50 font-bold text-emerald-900' : 'text-slate-800',
                     isActive ? 'ring-1 ring-emerald-300' : 'hover:bg-emerald-50 hover:text-emerald-800'
                 ].join(' ');
-                item.innerHTML = isTranslated
-                    ? escapeHtml(getTranslationText(question))
-                    : escapeHtml(question.original);
+                const sentenceText = isTranslated ? getTranslationText(question) : question.original;
+                item.innerHTML = `${escapeHtml(sentenceText)} ${renderProgressBadge(record, 'ml-1 align-middle')}`;
                 list.appendChild(item);
                 list.appendChild(document.createTextNode(' '));
             });
@@ -2949,6 +3039,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 const isActive = group.id === activePassageGroup;
                 const count = getPassageGroupCount(group);
                 const groupPassages = getPassagesForGroup(group);
+                const groupStats = getPassageGroupProgressStats(group);
                 const groupItem = document.createElement('div');
                 groupItem.className = 'space-y-1.5';
 
@@ -2968,6 +3059,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                         <span class="rounded-full px-2.5 py-1 text-xs font-black ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${count}문장</span>
                     </span>
                     <span class="mt-1 block text-sm font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}">${group.description}</span>
+                    <span class="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-black ${isActive ? 'text-emerald-700' : 'text-slate-500'}">${escapeHtml(renderProgressSummary(groupStats, true))} · 정답 ${groupStats.correct} · 오답 ${groupStats.wrong}</span>
                 `;
                 groupItem.appendChild(button);
 
@@ -2989,6 +3081,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
                 groupPassages.forEach((passage) => {
                     const isPassageActive = passage.id === activeId;
+                    const passageStats = getPassageProgressStats(passage.id);
                     const passageButton = document.createElement('button');
                     passageButton.type = 'button';
                     passageButton.onclick = () => selectPassage(passage.id);
@@ -3004,6 +3097,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                         <span class="min-w-0 flex-1 truncate font-bold">${passage.label}</span>
                         <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black ${isPassageActive ? 'text-emerald-700' : 'text-slate-500'}">${getPassageCount(passage)}</span>
                     </span>
+                    <span class="mt-1 block text-[11px] font-black ${isPassageActive ? 'text-emerald-700' : 'text-slate-500'}">${escapeHtml(renderProgressSummary(passageStats))}</span>
                     `;
                     detailInner.appendChild(passageButton);
                 });
@@ -3175,15 +3269,20 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             progressRecords[key] = {
                 status: isCorrect ? 'correct' : 'wrong',
                 userAnswer,
+                chunkLevel: currentChunkLevel,
+                passageId: getCurrentPassageId(),
+                questionIndex: currentIndex,
                 answeredAt: new Date().toISOString()
             };
             saveProgressRecords();
+            renderStudyProgressDisplays();
         }
 
         function clearQuestionProgress(question) {
             if (!question) return;
             delete progressRecords[getQuestionKey(question)];
             saveProgressRecords();
+            renderStudyProgressDisplays();
         }
 
         function saveMasteredQuestions() {
@@ -3505,6 +3604,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             updateNavigationButtons();
             renderPassageReader();
             renderChunkLevelButtons();
+            renderCurrentQuestionStudyStatus();
             persistStudyPosition();
         }
 
