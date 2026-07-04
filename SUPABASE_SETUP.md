@@ -14,12 +14,13 @@
 
 Authentication > Providers에서 사용할 로그인 방식을 켭니다.
 
-권장 시작 방식:
+현재 앱은 Google OAuth 로그인 방식을 사용합니다.
 
-- Email provider: 켜기
-- Confirm email: 필요에 따라 켜기
+- Google provider: 켜기
+- Google Cloud OAuth Client ID와 Client Secret 연결
+- Supabase의 Google Callback URL을 Google Cloud Console의 Authorized redirect URIs에 등록
 
-Google 로그인을 쓰려면 Google Cloud OAuth 설정이 추가로 필요합니다.
+Email provider나 Magic Link는 이 앱에서 사용하지 않습니다.
 
 ## 3. Site URL과 Redirect URL 설정
 
@@ -90,6 +91,7 @@ const SUPABASE_ANON_KEY = 'your-anon-public-key';
 ## 6. 동작 방식
 
 - 로그인하지 않은 사용자는 기존처럼 `localStorage`에 저장됩니다.
+- 사용자는 `Google 계정으로 로그인` 버튼을 눌러 Google OAuth 창에서 로그인합니다.
 - 로그인한 사용자는 `localStorage`에 저장하면서 Supabase에도 같이 저장됩니다.
 - 로그인 직후 서버 기록과 로컬 기록을 비교해 더 최신인 기록을 사용합니다.
 - Supabase 연결이나 저장에 실패해도 앱은 멈추지 않고 `localStorage`만으로 계속 동작합니다.
@@ -97,7 +99,8 @@ const SUPABASE_ANON_KEY = 'your-anon-public-key';
 ## 7. 확인 항목
 
 1. Supabase 설정값이 비어 있으면 로그인 UI가 "동기화 설정 필요" 상태로 보이는가?
-2. 설정값을 입력하면 이메일 로그인 요청이 가능한가?
-3. 로그인 후 문제를 풀고 채점하면 `cloze_progress`에 데이터가 저장되는가?
-4. 다른 기기나 다른 브라우저에서 로그인했을 때 점수와 진행 상태가 복원되는가?
-5. 로그아웃 후에도 로컬 저장 모드로 앱이 정상 동작하는가?
+2. `Google 계정으로 로그인` 버튼을 누르면 Google OAuth 창으로 이동하는가?
+3. Google 로그인 후 다시 `grammar-cloze.html`로 돌아오는가?
+4. 로그인 후 문제를 풀고 채점하면 `cloze_progress`에 데이터가 저장되는가?
+5. 다른 기기나 다른 브라우저에서 같은 Google 계정으로 로그인했을 때 점수와 진행 상태가 복원되는가?
+6. 로그아웃 후에도 로컬 저장 모드로 앱이 정상 동작하는가?
