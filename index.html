@@ -2394,6 +2394,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         const KEEP_STORAGE_KEY = "sentenceBuilderKeptQuestions";
         const PROGRESS_STORAGE_KEY = "sentenceBuilderProgress";
         const MASTERED_STORAGE_KEY = "sentenceBuilderMasteredQuestions";
+        const POSITION_STORAGE_KEY = "sentenceBuilderPosition";
         const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
         const REMOTE_PROGRESS_TABLE = 'app_progress';
@@ -2482,15 +2483,67 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return REMOTE_PROGRESS_KEY;
         }
 
+        function getCurrentPassageId() {
+            return document.getElementById('passage-select')?.value || 'all';
+        }
+
+        function getCurrentQuestionKey() {
+            const question = quizData[currentIndex];
+            return question ? getQuestionKey(question) : '';
+        }
+
+        function getPositionSnapshot() {
+            return {
+                passageId: getCurrentPassageId(),
+                currentIndex,
+                currentQuestionKey: getCurrentQuestionKey(),
+                chunkLevel: currentChunkLevel,
+                score,
+                activePassageGroup
+            };
+        }
+
+        function isValidPositionSnapshot(position) {
+            if (!position || typeof position !== 'object') return false;
+            if (position.passageId && typeof position.passageId !== 'string') return false;
+            if (position.currentQuestionKey && typeof position.currentQuestionKey !== 'string') return false;
+            if (position.chunkLevel && !['1', '2', '3', '4'].includes(position.chunkLevel)) return false;
+            if (position.currentIndex !== undefined && !Number.isInteger(Number(position.currentIndex))) return false;
+            return true;
+        }
+
+        function loadLocalPositionSnapshot() {
+            try {
+                const position = JSON.parse(localStorage.getItem(POSITION_STORAGE_KEY) || 'null');
+                return isValidPositionSnapshot(position) ? position : null;
+            } catch (error) {
+                console.warn('Unable to parse sentence builder position:', error);
+                return null;
+            }
+        }
+
+        function persistStudyPosition(syncRemote = true) {
+            if (isApplyingRemoteProgress) return;
+            const savedAt = new Date().toISOString();
+            const position = getPositionSnapshot();
+            localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
+            if (syncRemote) {
+                localStorage.setItem(getProgressStorageKey(), savedAt);
+                queueRemoteProgressSave(getProgressSnapshot(savedAt));
+            }
+        }
+
         function getLocalProgressSnapshot() {
             try {
                 const progress = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
                 const mastered = JSON.parse(localStorage.getItem(MASTERED_STORAGE_KEY) || '[]');
                 const kept = JSON.parse(localStorage.getItem(KEEP_STORAGE_KEY) || '[]');
+                const position = loadLocalPositionSnapshot();
                 return {
                     progressRecords: progress && typeof progress === 'object' && !Array.isArray(progress) ? progress : {},
                     masteredQuestions: Array.isArray(mastered) ? mastered : [],
                     keptQuestions: Array.isArray(kept) ? kept : [],
+                    position,
                     savedAt: localStorage.getItem(getProgressStorageKey()) || null
                 };
             } catch (error) {
@@ -2504,6 +2557,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 progressRecords,
                 masteredQuestions,
                 keptQuestions,
+                position: getPositionSnapshot(),
                 savedAt
             };
         }
@@ -2513,6 +2567,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (saved.progressRecords && (typeof saved.progressRecords !== 'object' || Array.isArray(saved.progressRecords))) return false;
             if (saved.masteredQuestions && !Array.isArray(saved.masteredQuestions)) return false;
             if (saved.keptQuestions && !Array.isArray(saved.keptQuestions)) return false;
+            if (saved.position && !isValidPositionSnapshot(saved.position)) return false;
             return true;
         }
 
@@ -2559,6 +2614,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progressRecords));
                 localStorage.setItem(MASTERED_STORAGE_KEY, JSON.stringify(masteredQuestions));
                 localStorage.setItem(KEEP_STORAGE_KEY, JSON.stringify(keptQuestions));
+                if (isValidPositionSnapshot(saved.position)) {
+                    localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(saved.position));
+                    currentChunkLevel = saved.position.chunkLevel || currentChunkLevel;
+                    activePassageGroup = saved.position.activePassageGroup || activePassageGroup;
+                }
                 localStorage.setItem(getProgressStorageKey(), saved.savedAt || new Date().toISOString());
                 document.getElementById('score-display').innerText = score;
                 renderMasteredStatus();
@@ -2567,6 +2627,40 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             } finally {
                 isApplyingRemoteProgress = false;
             }
+        }
+
+        function restoreStudyPosition(saved, message = '마지막으로 공부하던 위치를 불러왔습니다.') {
+            const position = isValidPositionSnapshot(saved?.position) ? saved.position : loadLocalPositionSnapshot();
+            const passageId = defaultPassages.some(passage => passage.id === position?.passageId)
+                ? position.passageId
+                : 'all';
+            const data = getDefaultPassageData(passageId);
+
+            isApplyingRemoteProgress = true;
+            try {
+                applyQuizData(data, message, passageId);
+
+                if (position?.chunkLevel && ['1', '2', '3', '4'].includes(position.chunkLevel)) {
+                    currentChunkLevel = position.chunkLevel;
+                }
+
+                const keyIndex = position?.currentQuestionKey
+                    ? quizData.findIndex(question => getQuestionKey(question) === position.currentQuestionKey)
+                    : -1;
+                const fallbackIndex = Number.isInteger(Number(position?.currentIndex))
+                    ? Math.min(Math.max(Number(position.currentIndex), 0), Math.max(quizData.length - 1, 0))
+                    : 0;
+
+                currentIndex = keyIndex >= 0 ? keyIndex : fallbackIndex;
+                score = calculateScoreFromProgress(progressRecords);
+                document.getElementById('score-display').innerText = score;
+                if (quizData.length > 0) {
+                    loadQuestion();
+                }
+            } finally {
+                isApplyingRemoteProgress = false;
+            }
+            persistStudyPosition(false);
         }
 
         async function fetchRemoteProgress() {
@@ -2629,9 +2723,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 const remoteProgress = await fetchRemoteProgress();
                 const selectedProgress = chooseBetterProgress(localProgress, remoteProgress);
                 if (selectedProgress && applyProgressSnapshot(selectedProgress)) {
-                    applyQuizData(defaultQuizData, '로그인 기록을 불러와 동기화를 시작했습니다.', document.getElementById('passage-select')?.value || 'all');
-                    score = calculateScoreFromProgress(progressRecords);
-                    document.getElementById('score-display').innerText = score;
+                    restoreStudyPosition(selectedProgress, '로그인 기록을 불러와 동기화를 시작했습니다.');
                 }
                 await upsertRemoteProgress(selectedProgress || getProgressSnapshot());
                 showManagerMessage('로그인 기록을 불러와 동기화를 시작했습니다.', 'success');
@@ -3100,6 +3192,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             } else {
                 renderChunkLevelButtons();
             }
+            persistStudyPosition();
         }
 
         function handleChunkLevelChange() {
@@ -3365,6 +3458,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             updateNavigationButtons();
             renderPassageReader();
             renderChunkLevelButtons();
+            persistStudyPosition();
         }
 
         function createWordChip(word, location = 'bank') {
@@ -3800,7 +3894,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             loadKeptQuestions();
             loadProgressRecords();
             loadMasteredQuestions();
+            const localProgress = getLocalProgressSnapshot();
             applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
+            if (localProgress?.position) {
+                restoreStudyPosition(localProgress, '마지막으로 공부하던 위치를 불러왔습니다.');
+            }
             score = calculateScoreFromProgress(progressRecords);
             document.getElementById('score-display').innerText = score;
             renderAuthSyncPanel();
