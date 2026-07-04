@@ -4958,6 +4958,10 @@
             "gv6-b8": "/prɪˈzɜːrv/"
         };
 
+        let activeClozeSets = [...clozeSets];
+        let activeBlankTranslations = { ...blankTranslations };
+        let activeVocabPronunciations = { ...vocabPronunciations };
+        let activePassageGroupLabels = {};
         let currentMode = "grammar";
         let currentSetIndex = 0;
         let activeBlankId = null;
@@ -5009,7 +5013,7 @@
                 const saved = JSON.parse(localStorage.getItem(getProgressStorageKey()) || 'null');
                 if (!saved || !['grammar', 'writing', 'vocab'].includes(saved.mode)) return false;
 
-                const visibleSets = clozeSets.filter((set) => set.type === saved.mode);
+                const visibleSets = activeClozeSets.filter((set) => set.type === saved.mode);
                 const savedIndex = visibleSets.findIndex((set) => set.id === saved.setId);
                 if (savedIndex < 0) return false;
 
@@ -5031,7 +5035,7 @@
         }
 
         function getVisibleSets() {
-            return clozeSets.filter(set => set.type === currentMode);
+            return activeClozeSets.filter(set => set.type === currentMode);
         }
 
         function clampVocabDifficulty(value) {
@@ -5054,7 +5058,7 @@
 
         function getCurrentSet() {
             const visibleSets = getVisibleSets();
-            return visibleSets[currentSetIndex] || visibleSets[0] || clozeSets[0];
+            return visibleSets[currentSetIndex] || visibleSets[0] || activeClozeSets[0] || clozeSets[0];
         }
 
         function getBaseSetId(set) {
@@ -5062,6 +5066,7 @@
         }
 
         function getPassageGroupId(set) {
+            if (set.passageId) return set.passageId;
             const baseSetId = getBaseSetId(set);
             return baseSetId.replace(/-part-\d+$/, '');
         }
@@ -5071,7 +5076,7 @@
                 'sports-fandom': 'Sports Fandom',
                 getbol: 'Getbol'
             };
-            return labelMap[groupId] || groupId
+            return activePassageGroupLabels[groupId] || labelMap[groupId] || groupId
                 .split('-')
                 .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
@@ -5087,13 +5092,13 @@
         }
 
         function getBlankTranslation(blankId) {
-            return blankTranslations[blankId] || getBlank(blankId).answer.join(' ');
+            return activeBlankTranslations[blankId] || getBlank(blankId).answer.join(' ');
         }
 
         function getVocabStudyMeta(blankId, blank = getBlank(blankId)) {
             if (getCurrentSet().type !== 'vocab') return '';
             const meaning = getBlankTranslation(blankId);
-            const pronunciation = vocabPronunciations[blankId] || '발음기호 준비 중';
+            const pronunciation = activeVocabPronunciations[blankId] || '발음기호 준비 중';
             const level = clampVocabDifficulty(blank.difficulty || 1);
             return `
                 <div class="mt-3 grid gap-2 rounded-xl border border-emerald-100 bg-emerald-50/80 p-3 text-sm font-semibold text-emerald-900 sm:grid-cols-3">
@@ -5189,6 +5194,175 @@
             box.className = `rounded-xl p-3 text-sm font-bold ${styleMap[type] || styleMap.info}`;
             box.textContent = message;
             box.classList.remove('hidden');
+        }
+
+        function isStringArray(value) {
+            return Array.isArray(value) && value.every((item) => typeof item === 'string');
+        }
+
+        function validateImportedClozePack(pack, existingSetIds) {
+            const errors = [];
+            const warnings = [];
+            const validTypes = ['grammar', 'writing', 'vocab'];
+
+            if (!pack || typeof pack !== 'object') {
+                return { ok: false, errors: ['JSON root must be an object.'], warnings };
+            }
+            if (pack.schemaVersion !== 1) errors.push('schemaVersion must be 1.');
+            if (typeof pack.passageId !== 'string' || !pack.passageId.trim()) errors.push('passageId is required.');
+            if (typeof pack.title !== 'string' || !pack.title.trim()) errors.push('title is required.');
+            if (typeof pack.groupLabel !== 'string' || !pack.groupLabel.trim()) errors.push('groupLabel is required.');
+            if (!Array.isArray(pack.sets) || pack.sets.length === 0) errors.push('sets must be a non-empty array.');
+            if (!pack.translations || typeof pack.translations !== 'object' || Array.isArray(pack.translations)) errors.push('translations must be an object.');
+            if (!pack.pronunciations || typeof pack.pronunciations !== 'object' || Array.isArray(pack.pronunciations)) errors.push('pronunciations must be an object.');
+            if (errors.length) return { ok: false, errors, warnings };
+
+            const localSetIds = new Set();
+            const grammarSetIds = new Set();
+            const blankIds = new Set();
+
+            pack.sets.forEach((set, setIndex) => {
+                const label = set?.id || `sets[${setIndex}]`;
+                if (!set || typeof set !== 'object') {
+                    errors.push(`${label}: set must be an object.`);
+                    return;
+                }
+                if (typeof set.id !== 'string' || !set.id.trim()) errors.push(`${label}: id is required.`);
+                if (set.id && (existingSetIds.has(set.id) || localSetIds.has(set.id))) errors.push(`${label}: duplicate set id.`);
+                if (set.id) localSetIds.add(set.id);
+                if (!validTypes.includes(set.type)) errors.push(`${label}: type must be grammar, writing, or vocab.`);
+                if (set.type === 'grammar' && set.id) grammarSetIds.add(set.id);
+                if (set.type !== 'grammar' && typeof set.sourceSetId !== 'string') errors.push(`${label}: writing/vocab set must include sourceSetId.`);
+                if (typeof set.title !== 'string' || !set.title.trim()) errors.push(`${label}: title is required.`);
+                if (typeof set.subtitle !== 'string') errors.push(`${label}: subtitle must be a string.`);
+                if (typeof set.description !== 'string') errors.push(`${label}: description must be a string.`);
+                if (!Array.isArray(set.passageParts)) errors.push(`${label}: passageParts must be an array.`);
+                if (!set.blanks || typeof set.blanks !== 'object' || Array.isArray(set.blanks)) errors.push(`${label}: blanks must be an object.`);
+
+                const partBlankIds = new Set();
+                (set.passageParts || []).forEach((part, partIndex) => {
+                    if (!part || typeof part !== 'object') {
+                        errors.push(`${label}: passageParts[${partIndex}] must be an object.`);
+                        return;
+                    }
+                    if (part.type === 'text') {
+                        if (typeof part.text !== 'string') errors.push(`${label}: text part ${partIndex} needs text string.`);
+                    } else if (part.type === 'blank') {
+                        if (typeof part.id !== 'string' || !part.id.trim()) {
+                            errors.push(`${label}: blank part ${partIndex} needs id.`);
+                        } else {
+                            if (blankIds.has(part.id)) errors.push(`${label}: duplicate blank id ${part.id}.`);
+                            blankIds.add(part.id);
+                            partBlankIds.add(part.id);
+                        }
+                    } else {
+                        errors.push(`${label}: passageParts[${partIndex}] has invalid type.`);
+                    }
+                });
+
+                Object.entries(set.blanks || {}).forEach(([blankId, blank]) => {
+                    if (!partBlankIds.has(blankId)) errors.push(`${label}: blank ${blankId} is not used in passageParts.`);
+                    if (!blank || typeof blank !== 'object') {
+                        errors.push(`${label}: blank ${blankId} must be an object.`);
+                        return;
+                    }
+                    if (!isStringArray(blank.answer) || blank.answer.length === 0) errors.push(`${label}: blank ${blankId} answer must be a non-empty string array.`);
+                    if (!isStringArray(blank.choices) || blank.choices.length === 0) errors.push(`${label}: blank ${blankId} choices must be a non-empty string array.`);
+                    if (isStringArray(blank.answer) && isStringArray(blank.choices)) {
+                        blank.answer.forEach((token) => {
+                            if (!blank.choices.includes(token)) errors.push(`${label}: answer token "${token}" is missing from choices for ${blankId}.`);
+                        });
+                    }
+                    if (typeof blank.grammarPoint !== 'string' || !blank.grammarPoint.trim()) errors.push(`${label}: blank ${blankId} grammarPoint is required.`);
+                    if (typeof blank.explanation !== 'string' || !blank.explanation.trim()) errors.push(`${label}: blank ${blankId} explanation is required.`);
+                    if (set.type === 'vocab') {
+                        const difficulty = Number(blank.difficulty);
+                        if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) errors.push(`${label}: vocab blank ${blankId} difficulty must be 1-5.`);
+                        if (!pack.translations?.[blankId]) warnings.push(`${label}: vocab blank ${blankId} is missing translation.`);
+                        if (!pack.pronunciations?.[blankId]) warnings.push(`${label}: vocab blank ${blankId} is missing pronunciation.`);
+                    }
+                });
+
+                partBlankIds.forEach((blankId) => {
+                    if (!set.blanks?.[blankId]) errors.push(`${label}: passage blank ${blankId} is missing in blanks.`);
+                });
+            });
+
+            pack.sets.forEach((set) => {
+                if (set?.type !== 'grammar' && set?.sourceSetId && !grammarSetIds.has(set.sourceSetId) && !existingSetIds.has(set.sourceSetId)) {
+                    errors.push(`${set.id}: sourceSetId ${set.sourceSetId} does not point to a known grammar set.`);
+                }
+            });
+
+            return { ok: errors.length === 0, errors, warnings };
+        }
+
+        function mergeImportedClozePack(pack) {
+            const groupLabel = pack.groupLabel || pack.title || pack.passageId;
+            const importedSets = pack.sets.map((set) => ({
+                ...set,
+                passageId: pack.passageId,
+                groupLabel
+            }));
+            activeClozeSets = [...activeClozeSets, ...importedSets];
+            activeBlankTranslations = {
+                ...activeBlankTranslations,
+                ...(pack.translations || {})
+            };
+            activeVocabPronunciations = {
+                ...activeVocabPronunciations,
+                ...(pack.pronunciations || {})
+            };
+            activePassageGroupLabels = {
+                ...activePassageGroupLabels,
+                [pack.passageId]: groupLabel
+            };
+        }
+
+        async function loadExternalClozeData() {
+            try {
+                const manifestResponse = await fetch('data/cloze-manifest.json', { cache: 'no-store' });
+                if (!manifestResponse.ok) {
+                    showStatus('외부 JSON manifest를 찾지 못해 내장 문제만 불러왔습니다.', 'info');
+                    return;
+                }
+                const manifest = await manifestResponse.json();
+                if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.files)) {
+                    showStatus('외부 JSON manifest 형식이 잘못되어 내장 문제만 불러왔습니다.', 'error');
+                    return;
+                }
+                const importedMessages = [];
+                for (const file of manifest.files) {
+                    if (typeof file !== 'string') {
+                        importedMessages.push('manifest에 문자열이 아닌 파일 경로가 있어 건너뛰었습니다.');
+                        continue;
+                    }
+                    try {
+                        const response = await fetch(file, { cache: 'no-store' });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const pack = await response.json();
+                        const validation = validateImportedClozePack(
+                            pack,
+                            new Set(activeClozeSets.map((set) => set.id))
+                        );
+                        if (!validation.ok) {
+                            importedMessages.push(`${file}: ${validation.errors.slice(0, 3).join(' / ')}`);
+                            continue;
+                        }
+                        mergeImportedClozePack(pack);
+                        if (validation.warnings.length) {
+                            importedMessages.push(`${file}: ${validation.warnings.slice(0, 2).join(' / ')}`);
+                        }
+                    } catch (error) {
+                        importedMessages.push(`${file}: ${error.message}`);
+                    }
+                }
+                if (importedMessages.length) {
+                    showStatus(`일부 외부 JSON을 건너뛰었습니다. ${importedMessages.join(' | ')}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`외부 JSON 로딩 실패: ${error.message}. 내장 문제만 사용합니다.`, 'info');
+            }
         }
 
         function renderSetList() {
@@ -6122,7 +6296,8 @@
             renderResult();
         }
 
-        window.onload = () => {
+        window.onload = async () => {
+            await loadExternalClozeData();
             if (!loadProgress()) {
                 resetState();
             }

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "passageId": "sample-passage",
+  "title": "Sample Passage",
+  "groupLabel": "Sample Passage",
+  "sets": [
+    {
+      "id": "sample-passage-part-1",
+      "title": "Sample Passage Part 1",
+      "subtitle": "도입부",
+      "type": "grammar",
+      "description": "핵심 어법을 점검합니다.",
+      "passageParts": [
+        { "type": "text", "text": "The sample sentence " },
+        { "type": "blank", "id": "sample-passage-g1-b1" },
+        { "type": "text", "text": " ready for practice." }
+      ],
+      "blanks": {
+        "sample-passage-g1-b1": {
+          "answer": ["is"],
+          "choices": ["is", "are", "be", "being"],
+          "grammarPoint": "주어-동사 수일치",
+          "explanation": "주어가 단수이므로 단수 동사 is가 맞습니다."
+        }
+      }
+    },
+    {
+      "id": "sample-passage-part-1-writing",
+      "sourceSetId": "sample-passage-part-1",
+      "title": "Sample Passage Part 1",
+      "subtitle": "서술형 배열",
+      "type": "writing",
+      "description": "서술형 예상 핵심 구문만 짧게 배열합니다.",
+      "passageParts": [
+        { "type": "text", "text": "The phrase " },
+        { "type": "blank", "id": "sample-passage-w1-b1" },
+        { "type": "text", "text": " is likely to appear in a written-answer question." }
+      ],
+      "blanks": {
+        "sample-passage-w1-b1": {
+          "answer": ["known", "as", "blue", "carbon"],
+          "choices": ["known", "knowing", "as", "for", "blue", "carbon"],
+          "grammarPoint": "과거분사 후치수식 known as",
+          "explanation": "수동 의미이므로 known as를 사용합니다."
+        }
+      }
+    },
+    {
+      "id": "sample-passage-part-1-vocab",
+      "sourceSetId": "sample-passage-part-1",
+      "title": "Sample Passage Part 1",
+      "subtitle": "어휘 빈칸",
+      "type": "vocab",
+      "description": "핵심 어휘를 Level별로 연습합니다.",
+      "passageParts": [
+        { "type": "text", "text": "This is a " },
+        { "type": "blank", "id": "sample-passage-v1-b1" },
+        { "type": "text", "text": " example." }
+      ],
+      "blanks": {
+        "sample-passage-v1-b1": {
+          "answer": ["notable"],
+          "choices": ["notable", "ordinary", "hidden", "minor"],
+          "difficulty": 3,
+          "grammarPoint": "notable",
+          "explanation": "문맥상 '주목할 만한'이라는 뜻의 notable이 적절합니다."
+        }
+      }
+    }
+  ],
+  "translations": {
+    "sample-passage-g1-b1": "~이다",
+    "sample-passage-w1-b1": "~로 알려진 블루카본",
+    "sample-passage-v1-b1": "주목할 만한"
+  },
+  "pronunciations": {
+    "sample-passage-v1-b1": "/ˈnoʊtəbl/"
+  }
+}
