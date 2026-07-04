@@ -102,14 +102,6 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 260</span>
                         <input id="passage-select" type="hidden" value="all">
-                        <label for="chunk-level-select" class="text-sm font-semibold text-slate-500 ml-0 sm:ml-2">청킹</label>
-                        <select id="chunk-level-select" onchange="handleChunkLevelChange()" class="text-sm font-semibold border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
-                            <option value="saved">저장된 청크</option>
-                            <option value="1">Level 1 큰 덩어리</option>
-                            <option value="2">Level 2 의미 단위</option>
-                            <option value="3">Level 3 기능어 분리</option>
-                            <option value="4" selected>Level 4 단어별</option>
-                        </select>
                     </div>
                     <span class="text-sm font-medium text-slate-500">점수: <span id="score-display" class="font-bold text-slate-700">0</span></span>
                 </div>
@@ -134,7 +126,6 @@
 
                 <!-- Available Words -->
                 <div class="mb-6">
-                    <p class="text-sm font-semibold text-slate-500 mb-3"><i class="fa-solid fa-hand-pointer mr-1"></i> 단어를 클릭하거나 직접 아래에 타이핑하세요.</p>
                     <div id="word-bank" class="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[100px]">
                         <!-- Word chips will be injected here -->
                     </div>
@@ -142,8 +133,13 @@
 
                 <!-- User Answer Input -->
                 <div class="mb-6">
-                    <div class="flex items-center justify-between mb-3">
-                        <p class="text-sm font-semibold text-slate-500"><i class="fa-solid fa-grip mr-1"></i> 블록을 이곳으로 드래그하거나 클릭해서 문장을 조합하세요.</p>
+                    <div class="flex flex-wrap items-center justify-end gap-2 mb-3">
+                        <div id="chunk-level-buttons" class="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                            <button type="button" data-chunk-level="1" onclick="setChunkLevel('1')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 1 큰 덩어리">L1</button>
+                            <button type="button" data-chunk-level="2" onclick="setChunkLevel('2')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 2 의미 단위">L2</button>
+                            <button type="button" data-chunk-level="3" onclick="setChunkLevel('3')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 3 기능어 분리">L3</button>
+                            <button type="button" data-chunk-level="4" onclick="setChunkLevel('4')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 4 단어별">L4</button>
+                        </div>
                         <button onclick="clearInput()" class="text-sm text-slate-400 hover:text-red-500 transition-colors font-semibold" title="지우기">
                             <i class="fa-solid fa-eraser mr-1"></i>전체 지우기
                         </button>
@@ -2695,6 +2691,16 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return generated || question.words;
         }
 
+        function renderChunkLevelButtons() {
+            document.querySelectorAll('.chunk-level-btn').forEach(button => {
+                const isActive = button.dataset.chunkLevel === currentChunkLevel;
+                button.className = [
+                    'chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors',
+                    isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-emerald-700'
+                ].join(' ');
+            });
+        }
+
         function loadProgressRecords() {
             try {
                 progressRecords = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '{}');
@@ -2765,12 +2771,18 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return questions.filter(question => !progressRecords[getQuestionKey(question)]);
         }
 
-        function handleChunkLevelChange() {
-            const select = document.getElementById('chunk-level-select');
-            currentChunkLevel = select.value;
+        function setChunkLevel(level) {
+            if (!['1', '2', '3', '4'].includes(level) || currentChunkLevel === level) return;
+            currentChunkLevel = level;
             if (quizData.length > 0) {
                 loadQuestion();
+            } else {
+                renderChunkLevelButtons();
             }
+        }
+
+        function handleChunkLevelChange() {
+            renderChunkLevelButtons();
         }
 
         function applyQuizData(newData, message, sourceValue = 'custom') {
@@ -2880,6 +2892,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             });
             updateNavigationButtons();
             renderPassageReader();
+            renderChunkLevelButtons();
         }
 
         function createWordChip(word, location = 'bank') {
