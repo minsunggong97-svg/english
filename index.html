@@ -208,13 +208,19 @@
                         <p id="typing-flow-description" class="text-sm font-semibold text-indigo-800">
                             한국어 청크를 보고 영어를 입력한 뒤 Enter로 바로 채점하세요.
                         </p>
-                        <div id="typing-flow-buttons" class="flex shrink-0 rounded-lg border border-indigo-200 bg-white p-1">
-                            <button id="drill-typing-flow-btn" type="button" onclick="setTypingFlow('drill')" class="typing-flow-btn rounded-md px-3 py-1.5 text-xs font-black transition-colors">
-                                반복 연습
-                            </button>
-                            <button id="all-typing-flow-btn" type="button" onclick="setTypingFlow('all')" class="typing-flow-btn rounded-md px-3 py-1.5 text-xs font-black transition-colors">
-                                전체 입력
-                            </button>
+                        <div class="flex shrink-0 flex-wrap items-center gap-2">
+                            <div id="typing-timer-display" class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-black tabular-nums text-indigo-700" role="timer" aria-atomic="true">
+                                <i class="fa-regular fa-clock"></i>
+                                <span id="typing-timer-text">입력하면 시작</span>
+                            </div>
+                            <div id="typing-flow-buttons" class="flex rounded-lg border border-indigo-200 bg-white p-1">
+                                <button id="drill-typing-flow-btn" type="button" onclick="setTypingFlow('drill')" class="typing-flow-btn rounded-md px-3 py-1.5 text-xs font-black transition-colors">
+                                    반복 연습
+                                </button>
+                                <button id="all-typing-flow-btn" type="button" onclick="setTypingFlow('all')" class="typing-flow-btn rounded-md px-3 py-1.5 text-xs font-black transition-colors">
+                                    전체 입력
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div id="typing-drill-progress" class="mb-3 hidden"></div>
@@ -2482,6 +2488,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let translatedReaderSentences = new Set();
         let easyTypingChunks = new Map();
         let typingDrillState = { questionKey: null, chunkIndex: 0, mistakes: 0, phase: 'answering' };
+        let typingTimerState = { questionKey: null, startedAt: null, elapsedMs: 0, status: 'idle', intervalId: null };
         let sentenceAiFeedbacks = {};
         let sentenceAiFeedbackLoadingKey = null;
         let supabaseClient = null;
@@ -2673,6 +2680,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 : localProgress;
         }
 
+        function getBestTypingTimeMs(record) {
+            const milliseconds = Number(record?.bestTypingTimeMs);
+            return Number.isFinite(milliseconds) && milliseconds > 0 ? milliseconds : null;
+        }
+
         function chooseBetterQuestionRecord(localRecord, remoteRecord) {
             if (!localRecord) return remoteRecord;
             if (!remoteRecord) return localRecord;
@@ -2690,19 +2702,28 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 localCorrectLevel,
                 remoteCorrectLevel
             ) || '');
+            const typingTimes = [getBestTypingTimeMs(localRecord), getBestTypingTimeMs(remoteRecord)]
+                .filter(milliseconds => milliseconds !== null);
+            const bestTypingTimeMs = typingTimes.length ? Math.min(...typingTimes) : null;
+            const preservedBestValues = {
+                bestAttemptLevel,
+                bestCorrectLevel,
+                ...(bestTypingTimeMs !== null ? { bestTypingTimeMs } : {})
+            };
             const mergedRecord = {
                 ...remoteRecord,
                 ...localRecord,
-                bestAttemptLevel,
-                bestCorrectLevel
+                ...preservedBestValues
             };
             const localTime = Date.parse(localRecord.answeredAt || '');
             const remoteTime = Date.parse(remoteRecord.answeredAt || '');
             if (Number.isFinite(localTime) && Number.isFinite(remoteTime) && localTime !== remoteTime) {
                 const newerRecord = remoteTime > localTime ? remoteRecord : localRecord;
-                return { ...newerRecord, bestAttemptLevel, bestCorrectLevel };
+                return { ...newerRecord, ...preservedBestValues };
             }
-            if (remoteRecord.status === 'correct' && localRecord.status !== 'correct') return { ...remoteRecord, bestAttemptLevel, bestCorrectLevel };
+            if (remoteRecord.status === 'correct' && localRecord.status !== 'correct') {
+                return { ...remoteRecord, ...preservedBestValues };
+            }
             return mergedRecord;
         }
 
@@ -3136,6 +3157,11 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return attemptLevel > 0 ? `시도 ${getChunkLevelLabel(attemptLevel)}` : '';
         }
 
+        function getBestTypingTimeLabel(record) {
+            const bestTypingTimeMs = getBestTypingTimeMs(record);
+            return bestTypingTimeMs !== null ? `최고 ${formatTypingTime(bestTypingTimeMs)}` : '';
+        }
+
         function getProgressStatusLabel(record) {
             if (!record) return '미학습';
             if (getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0)) > 0) return '정답';
@@ -3151,7 +3177,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         function renderProgressBadge(record, extraClass = '') {
             if (!shouldShowStudyLabels()) return '';
             const level = getProgressLevelLabel(record);
-            const label = [getProgressStatusLabel(record), level].filter(Boolean).join(' · ');
+            const typingTime = getBestTypingTimeLabel(record);
+            const label = [getProgressStatusLabel(record), level, typingTime].filter(Boolean).join(' · ');
             return `<span class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-black leading-5 ${getProgressBadgeClasses(record)} ${extraClass}">${escapeHtml(label)}</span>`;
         }
 
@@ -3214,8 +3241,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             badge.classList.remove('hidden');
             const record = getQuestionProgress(quizData[currentIndex]);
             const level = getProgressLevelLabel(record);
+            const typingTime = getBestTypingTimeLabel(record);
             badge.textContent = record
-                ? `이 문장: ${getProgressStatusLabel(record)}${level ? ` · ${level}` : ''}`
+                ? `이 문장: ${[getProgressStatusLabel(record), level, typingTime].filter(Boolean).join(' · ')}`
                 : '이 문장: 미학습';
             badge.className = [
                 'text-xs font-black rounded-full border px-3 py-1',
@@ -3318,6 +3346,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             }
             updatePracticeModeButtons();
             updateTypingFlowButtons();
+            renderTypingTimerDisplay();
             if (typing) renderTypingInputs();
         }
 
@@ -3646,7 +3675,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             queueRemoteProgressSave(getProgressSnapshot(savedAt));
         }
 
-        function markQuestionProgress(question, isCorrect, userAnswer) {
+        function markQuestionProgress(question, isCorrect, userAnswer, typingElapsedMs = null) {
             const key = getQuestionKey(question);
             const previousRecord = progressRecords[key] || {};
             const effectiveChunkLevel = getEffectiveChunkLevel();
@@ -3659,6 +3688,16 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 getNumericProgressLevel(previousRecord.bestCorrectLevel || (previousRecord.status === 'correct' ? previousRecord.chunkLevel : 0)),
                 isCorrect ? currentLevel : 0
             ) || '');
+            const completedTypingTimeMs = isCorrect
+                && getPracticeMode() === 'typing'
+                && Number.isFinite(typingElapsedMs)
+                && typingElapsedMs > 0
+                ? Math.round(typingElapsedMs)
+                : null;
+            const previousBestTypingTimeMs = getBestTypingTimeMs(previousRecord);
+            const bestTypingTimeMs = completedTypingTimeMs !== null
+                ? Math.min(previousBestTypingTimeMs ?? Number.POSITIVE_INFINITY, completedTypingTimeMs)
+                : previousBestTypingTimeMs;
             progressRecords[key] = {
                 ...previousRecord,
                 status: isCorrect ? 'correct' : 'wrong',
@@ -3666,6 +3705,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 chunkLevel: effectiveChunkLevel,
                 bestAttemptLevel,
                 bestCorrectLevel,
+                ...(bestTypingTimeMs !== null ? { bestTypingTimeMs } : {}),
                 passageId: getCurrentPassageId(),
                 questionIndex: currentIndex,
                 answeredAt: new Date().toISOString()
@@ -3929,6 +3969,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             document.getElementById('answer-dropzone').querySelectorAll('.answer-chip').forEach(chip => chip.remove());
             document.getElementById('typing-chunk-list').innerHTML = '';
             resetTypingDrillState();
+            resetTypingTimer();
             document.getElementById('dropzone-placeholder').classList.remove('hidden');
             document.getElementById('feedback-area').classList.add('hidden');
             const aiFeedbackArea = document.getElementById('sentence-ai-feedback-area');
@@ -3956,6 +3997,86 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 mistakes: 0,
                 phase: 'answering'
             };
+        }
+
+        function formatTypingTime(milliseconds) {
+            if (!Number.isFinite(milliseconds) || milliseconds < 0) return '';
+            const totalTenths = Math.floor(milliseconds / 100);
+            const minutes = Math.floor(totalTenths / 600);
+            const seconds = (totalTenths % 600) / 10;
+            return minutes > 0
+                ? `${minutes}분 ${seconds.toFixed(1)}초`
+                : `${seconds.toFixed(1)}초`;
+        }
+
+        function clearTypingTimerInterval() {
+            if (typingTimerState.intervalId !== null) {
+                window.clearInterval(typingTimerState.intervalId);
+                typingTimerState.intervalId = null;
+            }
+        }
+
+        function renderTypingTimerDisplay() {
+            const display = document.getElementById('typing-timer-display');
+            const text = document.getElementById('typing-timer-text');
+            if (!display || !text) return;
+
+            const statusStyles = {
+                idle: 'border-indigo-200 bg-white text-indigo-700',
+                running: 'border-amber-200 bg-amber-50 text-amber-700',
+                completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                failed: 'border-red-200 bg-red-50 text-red-700'
+            };
+            display.className = `inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-black tabular-nums ${statusStyles[typingTimerState.status] || statusStyles.idle}`;
+            if (typingTimerState.status === 'running') {
+                text.innerText = formatTypingTime(typingTimerState.elapsedMs);
+            } else if (typingTimerState.status === 'completed') {
+                text.innerText = `완료 ${formatTypingTime(typingTimerState.elapsedMs)}`;
+            } else if (typingTimerState.status === 'failed') {
+                text.innerText = `오답 ${formatTypingTime(typingTimerState.elapsedMs)}`;
+            } else {
+                text.innerText = '입력하면 시작';
+            }
+        }
+
+        function resetTypingTimer(question = quizData[currentIndex]) {
+            clearTypingTimerInterval();
+            typingTimerState = {
+                questionKey: question ? getQuestionKey(question) : null,
+                startedAt: null,
+                elapsedMs: 0,
+                status: 'idle',
+                intervalId: null
+            };
+            renderTypingTimerDisplay();
+        }
+
+        function updateTypingTimer() {
+            if (typingTimerState.status !== 'running' || typingTimerState.startedAt === null) return;
+            typingTimerState.elapsedMs = performance.now() - typingTimerState.startedAt;
+            renderTypingTimerDisplay();
+        }
+
+        function startTypingTimer() {
+            if (getPracticeMode() !== 'typing' || hasAnsweredCurrent || typingTimerState.status !== 'idle') return;
+            const question = quizData[currentIndex];
+            if (!question) return;
+            const questionKey = getQuestionKey(question);
+            if (typingTimerState.questionKey !== questionKey) resetTypingTimer(question);
+            typingTimerState.status = 'running';
+            typingTimerState.startedAt = performance.now();
+            typingTimerState.elapsedMs = 0;
+            typingTimerState.intervalId = window.setInterval(updateTypingTimer, 100);
+            renderTypingTimerDisplay();
+        }
+
+        function finishTypingTimer(isCorrect) {
+            if (getPracticeMode() !== 'typing' || typingTimerState.status !== 'running') return null;
+            updateTypingTimer();
+            clearTypingTimerInterval();
+            typingTimerState.status = isCorrect ? 'completed' : 'failed';
+            renderTypingTimerDisplay();
+            return Math.round(typingTimerState.elapsedMs);
         }
 
         function renderTypingInputs() {
@@ -3996,7 +4117,10 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 input.className = getTypingInputClasses();
                 input.placeholder = '영어로 입력하세요';
                 input.setAttribute('aria-label', `Easy 청크 ${index + 1} 영어 입력`);
-                input.addEventListener('input', syncTypingAnswer);
+                input.addEventListener('input', () => {
+                    if (input.value.trim()) startTypingTimer();
+                    syncTypingAnswer();
+                });
                 input.addEventListener('keydown', event => handleTypingInputKeydown(event, index, chunks.length));
 
                 const feedback = document.createElement('p');
@@ -4057,6 +4181,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             input.placeholder = '영어로 입력하고 Enter';
             input.setAttribute('aria-label', `반복 연습 청크 ${typingDrillState.chunkIndex + 1} 영어 입력`);
             input.addEventListener('input', () => {
+                if (input.value.trim()) startTypingTimer();
                 document.getElementById('answer-input').value = input.value.trim();
             });
             input.addEventListener('keydown', handleTypingDrillKeydown);
@@ -4600,11 +4725,14 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             const normalizedInput = normalizeString(inputVal);
             const normalizedOriginal = normalizeString(q.original);
             const isCorrect = normalizedInput === normalizedOriginal;
-            const wasAlreadyCorrect = progressRecords[getQuestionKey(q)]?.status === 'correct';
+            const wasAlreadyCorrect = getProgressStatusLabel(progressRecords[getQuestionKey(q)]) === '정답';
+            const typingElapsedMs = getPracticeMode() === 'typing'
+                ? finishTypingTimer(isCorrect)
+                : null;
 
             hasAnsweredCurrent = true;
             document.getElementById('answer-input').disabled = true;
-            markQuestionProgress(q, isCorrect, inputVal);
+            markQuestionProgress(q, isCorrect, inputVal, typingElapsedMs);
             if (getPracticeMode() === 'typing' && getTypingFlow() === 'all') renderTypingChunkFeedback();
 
             const feedbackArea = document.getElementById('feedback-area');
@@ -4754,14 +4882,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             const q = quizData[currentIndex];
             if (!q) return;
 
-            const wasAlreadyCorrect = progressRecords[getQuestionKey(q)]?.status === 'correct';
-            clearQuestionProgress(q);
-            if (wasAlreadyCorrect && score >= 20) {
-                score -= 20;
-                document.getElementById('score-display').innerText = score;
-            }
             loadQuestion();
-            showManagerMessage('현재 문장을 다시 풀 수 있게 초기화했습니다.', 'info');
+            showManagerMessage('현재 문장을 다시 풉니다. 기존 최고 기록은 유지됩니다.', 'info');
         }
 
         function toggleEasyCurrent() {
