@@ -106,8 +106,11 @@
                     <div id="passage-group-list" class="grid gap-2">
                         <!-- Passage group buttons will be injected here -->
                     </div>
-                    <button onclick="clearMasteredQuestions()" class="w-full rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-100">
-                        <i class="fa-solid fa-filter-circle-xmark mr-1"></i>제외 문장 복구
+                    <button id="important-review-btn" onclick="startImportantReview()" class="w-full rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-3 text-left text-sm font-bold text-yellow-800 transition-colors hover:bg-yellow-100 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span class="flex items-center justify-between gap-2">
+                            <span><i class="fa-solid fa-star mr-1"></i>중요 문장 모아보기</span>
+                            <span id="important-review-count" class="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-black text-yellow-700">0개</span>
+                        </span>
                     </button>
                 </div>
             </aside>
@@ -123,6 +126,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full" id="question-counter">문제 1 / 260</span>
                         <span id="current-question-status" class="text-xs font-black rounded-full bg-slate-100 px-3 py-1 text-slate-500">미학습</span>
+                        <span id="current-easy-badge" class="hidden inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700"><i class="fa-solid fa-feather mr-1"></i>쉬움</span>
                         <button id="important-current-btn" type="button" onclick="toggleImportantCurrent()"
                             class="inline-flex items-center rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700 transition-colors hover:bg-yellow-100">
                             <i class="fa-regular fa-star mr-1"></i>중요
@@ -178,10 +182,10 @@
                     </button>
                     <div class="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
                         <div id="chunk-level-buttons" class="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-                            <button type="button" data-chunk-level="1" onclick="setChunkLevel('1')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 1 큰 덩어리">L1</button>
-                            <button type="button" data-chunk-level="2" onclick="setChunkLevel('2')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 2 의미 단위">L2</button>
-                            <button type="button" data-chunk-level="3" onclick="setChunkLevel('3')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 3 기능어 분리">L3</button>
-                            <button type="button" data-chunk-level="4" onclick="setChunkLevel('4')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Level 4 단어별">L4</button>
+                            <button type="button" data-chunk-level="1" onclick="setChunkLevel('1')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Easy · 큰 덩어리">Easy</button>
+                            <button type="button" data-chunk-level="2" onclick="setChunkLevel('2')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Normal · 의미 단위">Normal</button>
+                            <button type="button" data-chunk-level="3" onclick="setChunkLevel('3')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Hard · 기능어 분리">Hard</button>
+                            <button type="button" data-chunk-level="4" onclick="setChunkLevel('4')" class="chunk-level-btn rounded-lg px-2.5 py-1 text-xs font-black transition-colors" title="Expert · 단어별">Expert</button>
                         </div>
                         <button onclick="clearInput()" class="text-sm text-slate-400 hover:text-red-500 transition-colors font-semibold" title="지우기">
                             <i class="fa-solid fa-eraser mr-1"></i>전체 지우기
@@ -199,8 +203,8 @@
                     <button id="retry-question-btn" onclick="retryCurrentQuestion()" class="px-4 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold border border-orange-200 transition-colors">
                         <i class="fa-solid fa-rotate-right mr-2"></i>다시풀기
                     </button>
-                    <button id="easy-question-btn" onclick="markCurrentQuestionMastered()" class="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                        <i class="fa-solid fa-check-double mr-2"></i>쉬움 - 제외
+                    <button id="easy-question-btn" onclick="toggleEasyCurrent()" class="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-feather mr-2"></i>쉬움 표시
                     </button>
                     <button id="jump-next-question-btn" onclick="goToQuestion(1)" class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 font-bold border border-slate-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white">
                         다음 문장<i class="fa-solid fa-arrow-right ml-2"></i>
@@ -3018,17 +3022,34 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return `<span class="inline-flex shrink-0 items-center rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-[11px] font-black leading-5 text-yellow-700 ${extraClass}" title="중요 문장"><i class="fa-solid fa-star mr-1"></i>중요</span>`;
         }
 
+        function renderEasyBadge(question, extraClass = '') {
+            if (!shouldShowStudyLabels()) return '';
+            if (!isQuestionMastered(question)) return '';
+            return `<span class="inline-flex shrink-0 items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-black leading-5 text-indigo-700 ${extraClass}" title="쉬운 문장"><i class="fa-solid fa-feather mr-1"></i>쉬움</span>`;
+        }
+
         function getNumericProgressLevel(level) {
             const numeric = Number(level);
             return Number.isInteger(numeric) && numeric >= 1 && numeric <= 4 ? numeric : 0;
         }
 
+        const CHUNK_LEVEL_LABELS = {
+            1: 'Easy',
+            2: 'Normal',
+            3: 'Hard',
+            4: 'Expert'
+        };
+
+        function getChunkLevelLabel(level) {
+            return CHUNK_LEVEL_LABELS[getNumericProgressLevel(level)] || '';
+        }
+
         function getProgressLevelLabel(record) {
             if (!record) return '';
             const correctLevel = getNumericProgressLevel(record.bestCorrectLevel || (record.status === 'correct' ? record.chunkLevel : 0));
-            if (correctLevel > 0) return `최고 L${correctLevel}`;
+            if (correctLevel > 0) return `최고 ${getChunkLevelLabel(correctLevel)}`;
             const attemptLevel = getNumericProgressLevel(record.bestAttemptLevel || record.chunkLevel);
-            return attemptLevel > 0 ? `시도 L${attemptLevel}` : '';
+            return attemptLevel > 0 ? `시도 ${getChunkLevelLabel(attemptLevel)}` : '';
         }
 
         function getProgressStatusLabel(record) {
@@ -3071,7 +3092,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                     const recordLevel = getNumericProgressLevel(record.bestCorrectLevel || record.bestAttemptLevel || record.chunkLevel);
                     if (recordLevel > highestLevel) {
                         highestLevel = recordLevel;
-                        stats.latestLevel = `L${recordLevel}`;
+                        stats.latestLevel = getChunkLevelLabel(recordLevel);
                     }
                 }
             });
@@ -3163,6 +3184,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             renderCurrentQuestionStudyStatus();
             renderPassageReader();
             renderPassageGroups();
+            renderMasteredStatus();
+            updateImportantReviewSection();
             updateLabelVisibilityToggle();
         }
 
@@ -3200,7 +3223,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                     isActive ? 'ring-1 ring-emerald-300' : 'hover:bg-emerald-50 hover:text-emerald-800'
                 ].join(' ');
                 const sentenceText = isTranslated ? getTranslationText(question) : question.original;
-                item.innerHTML = `${escapeHtml(sentenceText)} ${renderImportantBadge(question, 'ml-1 align-middle')} ${renderProgressBadge(record, 'ml-1 align-middle')}`;
+                item.innerHTML = `${escapeHtml(sentenceText)} ${renderEasyBadge(question, 'ml-1 align-middle')} ${renderImportantBadge(question, 'ml-1 align-middle')} ${renderProgressBadge(record, 'ml-1 align-middle')}`;
                 list.appendChild(item);
                 list.appendChild(document.createTextNode(' '));
             });
@@ -3509,12 +3532,30 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         function getStudyQuestions(questions) {
-            return questions.filter(question => !isQuestionMastered(question));
+            return questions;
         }
 
         function renderMasteredStatus() {
             const count = document.getElementById('mastered-menu-count');
             if (count) count.innerText = `${masteredQuestions.length}개`;
+            updateEasyButton();
+            const badge = document.getElementById('current-easy-badge');
+            const question = quizData[currentIndex];
+            if (badge) badge.classList.toggle('hidden', !question || !isQuestionMastered(question));
+        }
+
+        function updateEasyButton() {
+            const button = document.getElementById('easy-question-btn');
+            const question = quizData[currentIndex];
+            if (!button || !question) return;
+            const easy = isQuestionMastered(question);
+            button.className = easy
+                ? 'px-4 py-2 rounded-xl bg-indigo-200 hover:bg-indigo-300 text-indigo-900 font-bold border border-indigo-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+                : 'px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+            button.innerHTML = easy
+                ? '<i class="fa-solid fa-feather mr-2"></i>쉬움 표시됨'
+                : '<i class="fa-solid fa-feather mr-2"></i>쉬움 표시';
+            button.setAttribute('aria-pressed', String(easy));
         }
 
         function saveImportantQuestions() {
@@ -3530,6 +3571,40 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             } catch (error) {
                 importantQuestions = {};
             }
+            updateImportantReviewSection();
+        }
+
+        function getImportantQuestionList() {
+            return Object.values(importantQuestions)
+                .filter(item => item?.important && item.original)
+                .map((item) => {
+                    const source = defaultQuizData.find(question => getQuestionKey(question) === item.original)
+                        || activeQuestionPool.find(question => getQuestionKey(question) === item.original);
+                    return source
+                        ? JSON.parse(JSON.stringify(source))
+                        : {
+                            original: item.original,
+                            hint: item.hint || '중요 표시한 문장입니다.',
+                            words: chunkSentence(item.original)
+                        };
+                });
+        }
+
+        function updateImportantReviewSection() {
+            const button = document.getElementById('important-review-btn');
+            const count = document.getElementById('important-review-count');
+            const importantCount = countImportantQuestions(importantQuestions);
+            if (count) count.innerText = `${importantCount}개`;
+            if (button) button.disabled = importantCount === 0;
+        }
+
+        function startImportantReview() {
+            const questions = getImportantQuestionList();
+            if (!questions.length) {
+                showManagerMessage('중요 표시한 문장이 없습니다.', 'info');
+                return;
+            }
+            applyQuizData(questions, '중요 표시한 문장만 불러왔습니다.', 'custom');
         }
 
         function updateImportantButton() {
@@ -3561,18 +3636,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             saveImportantQuestions();
             updateImportantButton();
             renderStudyProgressDisplays();
-        }
-
-        function clearMasteredQuestions() {
-            if (!masteredQuestions.length) {
-                showManagerMessage('복구할 제외 문장이 없습니다.', 'info');
-                return;
-            }
-            if (!confirm('제외한 쉬운 문장을 모두 다시 학습 목록에 복구할까요?')) return;
-            masteredQuestions = [];
-            saveMasteredQuestions();
-            renderMasteredStatus();
-            applyQuizData(activeQuestionPool.length ? activeQuestionPool : defaultQuizData, '제외 문장을 모두 복구했습니다.', document.getElementById('passage-select')?.value || 'all');
         }
 
         function getUnsolvedQuestions(questions) {
@@ -3613,7 +3676,6 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             activeQuestionPool = JSON.parse(JSON.stringify(cleaned));
             translatedReaderSentences.clear();
             const studyQuestions = getStudyQuestions(cleaned);
-            const masteredCountForSet = cleaned.length - studyQuestions.length;
 
             if (studyQuestions.length === 0) {
                 quizData = [];
@@ -3623,17 +3685,14 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 renderMasteredStatus();
                 document.getElementById('app-container').classList.add('hidden');
                 document.getElementById('completion-screen').classList.remove('hidden');
-                showManagerMessage(`${message || `${cleaned.length}개 문제가 적용되었습니다.`} 쉬움 제외된 문장 ${masteredCountForSet}개를 건너뛰어 풀 문제가 없습니다. 제외 문장 복구를 누르면 다시 나타납니다.`, 'info');
+                showManagerMessage(message || '불러올 문장이 없습니다.', 'info');
                 return;
             }
 
             quizData = studyQuestions;
             syncPassageSelect(sourceValue);
             resetSession();
-            const masteredMessage = masteredCountForSet > 0
-                ? ` 쉬움 제외 ${masteredCountForSet}개를 건너뛰었습니다.`
-                : '';
-            showManagerMessage(`${message || `${cleaned.length}개 문제가 적용되었습니다.`}${masteredMessage}`, 'success');
+            showManagerMessage(message || `${cleaned.length}개 문제가 적용되었습니다.`, 'success');
         }
 
         function shuffleArray(array) {
@@ -3854,6 +3913,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             renderPassageReader();
             renderChunkLevelButtons();
             renderCurrentQuestionStudyStatus();
+            renderMasteredStatus();
             persistStudyPosition();
         }
 
@@ -4235,29 +4295,18 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             showManagerMessage('현재 문장을 다시 풀 수 있게 초기화했습니다.', 'info');
         }
 
-        function markCurrentQuestionMastered() {
+        function toggleEasyCurrent() {
             const q = quizData[currentIndex];
             if (!q) return;
 
-            if (!isQuestionMastered(q)) {
+            if (isQuestionMastered(q)) {
+                masteredQuestions = masteredQuestions.filter(item => getQuestionKey(item) !== getQuestionKey(q));
+            } else {
                 masteredQuestions.push(JSON.parse(JSON.stringify(q)));
-                saveMasteredQuestions();
-                renderMasteredStatus();
             }
-            clearQuestionProgress(q);
-
-            const currentKey = getQuestionKey(q);
-            quizData = quizData.filter(question => getQuestionKey(question) !== currentKey);
-            if (quizData.length === 0) {
-                finishQuiz();
-                showManagerMessage('현재 문장을 쉬움 제외로 저장했습니다. 남은 문장이 없습니다.', 'info');
-                return;
-            }
-
-            if (currentIndex >= quizData.length) currentIndex = quizData.length - 1;
-            updateTotalCountLabel();
-            loadQuestion();
-            showManagerMessage('현재 문장을 쉬움 제외로 저장하고 다음 문장으로 이동했습니다.', 'success');
+            saveMasteredQuestions();
+            renderStudyProgressDisplays();
+            showManagerMessage(isQuestionMastered(q) ? '현재 문장에 쉬움 표시를 추가했습니다.' : '현재 문장의 쉬움 표시를 해제했습니다.', 'success');
         }
 
         function nextQuestion() {
@@ -4275,15 +4324,13 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             document.getElementById('completion-screen').classList.remove('hidden');
         }
 
-        document.getElementById('answer-input').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!hasAnsweredCurrent) {
-                    checkAnswer();
-                } else if (!document.getElementById('next-btn').classList.contains('hidden')) {
-                    nextQuestion();
-                }
-            }
+        document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter' || e.shiftKey || hasAnsweredCurrent) return;
+            const answerInput = document.getElementById('answer-input');
+            const remainingChunks = document.querySelectorAll('#word-bank .word-chip').length;
+            if (!answerInput.value.trim() || remainingChunks > 0) return;
+            e.preventDefault();
+            checkAnswer();
         });
 
         window.onload = async () => {
