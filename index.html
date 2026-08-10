@@ -2465,6 +2465,46 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         const IMPORTANT_STORAGE_KEY = "sentenceBuilderImportantQuestions";
         const UI_PREFERENCES_STORAGE_KEY = "sentenceBuilderUiPreferences";
         const POSITION_STORAGE_KEY = "sentenceBuilderPosition";
+        const DEFAULT_IMPORTANT_SEEDED_AT = "2000-01-01T00:00:00.000Z";
+        const DEFAULT_IMPORTANT_QUESTION_KEYS = [
+            `If you go to any sports stadium, you will be able to find fans cheering wildly, crying with joy.`,
+            `In the case of football, some famous matches are accompanied by extreme fans, whose overly aggressive support of their team sometimes leads to confrontations with fans from opposition teams.`,
+            `From an evolutionary perspective, sports fandom emerged from our tribal hunter-gatherer ancestors tens of thousands of years ago.`,
+            `At that time, a person was far more likely to survive as a member of a group than as an isolated individual.`,
+            `People could help each other in groups when dealing with difficult tasks, such as carrying hunted animals that were too heavy for one person to handle.`,
+            `In fact, group membership was so important that tribes with a stronger sense of community were likely to defeat tribes whose members were less closely allied.`,
+            `Because of this, community membership was a survival mechanism for our ancestors, and the instinct to find one’s own tribe or group has been passed down to modern people.`,
+            `This may be how community membership influences our choice of a sports team and our sense of loyalty to that team.`,
+            `Though it may be human nature to form a group and feel a sense of belonging to that group, being a fan of a sports team is different from just having friends.`,
+            `For example, if you are a fan of a football team based in your city, you can satisfy your need for inclusion by supporting the same team with other in-group members.`,
+            `Another explanation for sports fandom is a phenomenon called “basking in reflected glory.” This means that you feel successful by associating yourself with others’ success, especially when you are connected to them in some way.`,
+            `This connection with sports teams can sometimes grow so strong among some passionate supporters that they even identify themselves with their teams.`,
+            `However, as long as the behavior of sports fans does not go too far and harm others, cheering can become a means for them to express their emotions.`,
+            `Dopamine, a chemical known as the “happy hormone,” makes you feel pleasure when you reach a goal.`,
+            `Sports fandom brings benefits not only to individual fans but also to the performance of sports teams.`,
+            `Typically, the cheers from the home team’s fans are louder than those from the visiting team’s supporters.`,
+            `It was found that the home team’s performance decreased by eight percent on average without crowds.`,
+            `Given that sports fandom has become more and more common in modern times, we should think about our role as fans.`,
+            `We should establish a healthy culture of fandom and seek ways to practice fandom that can have a positive influence on society.`,
+            `Soil on land has flowed into the sea and accumulated for more than 8,500 years, creating one of the thickest tidal layers in the world.`,
+            `Without getbol, they would not have a place to rest and feed themselves during their long journeys, and they would become extinct.`,
+            `Since getbol is not only a unique ecosystem crowded with diverse species but also a resting place for endangered birds, it was added to the UNESCO World Natural Heritage List in 2021.`,
+            `When people think of a changing climate, images of melting glaciers and polar bears losing their habitat often come to mind.`,
+            `Approximately 30 percent of the koalas in the region are said to have been killed due to the fires.`,
+            `One key strategy to combat it is to achieve “carbon neutrality,” which involves maintaining a balance between the amount of carbon emitted and carbon absorbed.`,
+            `Let’s imagine that the Earth’s atmosphere is a large bathtub, and the greenhouse gases emitted into the atmosphere are like water flowing from a tap into the bathtub.`,
+            `If we keep the tap running, the water level in the bathtub will rise, just as greenhouse gas emissions have led to an increase in atmospheric carbon.`,
+            `One of the most promising ways to reduce carbon in the atmosphere is to use the “good” carbon on Earth.`,
+            `Green carbon, on the other hand, is carbon absorbed by and stored in land ecosystems, such as rainforests like the Amazon in South America.`,
+            `The carbon absorption rate of marine ecosystems is about 50 times faster than that of land ecosystems.`,
+            `Blue carbon can store up to 10 times more carbon per unit area than forests on land, making it highly cost-effective.`,
+            `Research conducted in 2021 has revealed that getbol in Korea stores approximately 13 million tons of carbon and absorbs over 260,000 tons of carbon dioxide each year.`,
+            `Considering that getbol contains numerous organisms and marine animals that store carbon, the treasure house of blue carbon has become a promising and sustainable solution to the current environmental problem.`,
+            `Scientists worldwide are continuing to explore the capabilities of tidal flats with the goal of having them officially recognized as blue carbon.`,
+            `Getbol in Korea was once considered useless muddy land, so much of it has been reclaimed for farming and urbanization.`,
+            `To prevent further damage to the marine ecosystem, both the government and environmental organizations have been making efforts to protect the tidal flats by regulating unnecessary development.`,
+            `Without further efforts to restore getbol, we would fail to preserve this valuable ecosystem for future generations.`
+        ];
         const SUPABASE_URL = 'https://lljwqaipwvgowaahqpxc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_XNyIPkcYIA8enBSBf_hOdw_OVZQK8DY';
         const REMOTE_PROGRESS_TABLE = 'app_progress';
@@ -3825,6 +3865,20 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             } catch (error) {
                 importantQuestions = {};
             }
+            let seededCount = 0;
+            DEFAULT_IMPORTANT_QUESTION_KEYS.forEach((questionKey) => {
+                if (Object.prototype.hasOwnProperty.call(importantQuestions, questionKey)) return;
+                const question = defaultQuizData.find(item => getQuestionKey(item) === questionKey);
+                if (!question) return;
+                importantQuestions[questionKey] = {
+                    original: questionKey,
+                    hint: question?.hint || '',
+                    important: true,
+                    updatedAt: DEFAULT_IMPORTANT_SEEDED_AT
+                };
+                seededCount += 1;
+            });
+            if (seededCount > 0) saveImportantQuestions();
             updateImportantReviewSection();
         }
 
