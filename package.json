@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "validate:typing-data": "node scripts/validate-easy-typing-chunks.mjs"
   }
 }

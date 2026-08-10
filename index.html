@@ -161,11 +161,26 @@
                                 class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-500 transition-colors hover:border-emerald-200 hover:text-emerald-700">
                                 라벨 표시
                             </button>
-                            <p class="text-xs font-semibold text-slate-500">문장을 클릭할 때마다 영어/한국어가 바뀝니다.</p>
+                            <p class="text-xs font-semibold text-slate-500">선택한 한 문장만 한국어로 바뀝니다.</p>
                         </div>
                     </div>
                     <div id="passage-reader-list" class="max-h-72 overflow-y-auto rounded-xl bg-white px-4 py-4 text-base font-medium leading-8 text-slate-800 shadow-inner shadow-slate-100">
                         <!-- Passage sentences will be injected here -->
+                    </div>
+                </div>
+
+                <div class="mb-6 flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm font-extrabold text-emerald-900">연습 방식</p>
+                        <p class="text-xs font-semibold text-emerald-700">배열하거나, 한국어 Easy 청크를 보고 직접 입력하세요.</p>
+                    </div>
+                    <div id="practice-mode-buttons" class="flex rounded-xl border border-emerald-200 bg-white p-1">
+                        <button id="arrange-mode-btn" type="button" onclick="setPracticeMode('arrange')" class="practice-mode-btn rounded-lg px-4 py-2 text-sm font-black transition-colors">
+                            <i class="fa-solid fa-grip mr-1"></i>배열 모드
+                        </button>
+                        <button id="typing-mode-btn" type="button" onclick="setPracticeMode('typing')" class="practice-mode-btn rounded-lg px-4 py-2 text-sm font-black transition-colors">
+                            <i class="fa-solid fa-keyboard mr-1"></i>직접 입력
+                        </button>
                     </div>
                 </div>
                 
@@ -175,19 +190,26 @@
                 </div>
 
                 <!-- Available Words -->
-                <div class="mb-6">
+                <div id="word-bank-section" class="mb-6">
                     <div id="word-bank" class="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[100px]">
                         <!-- Word chips will be injected here -->
                     </div>
                 </div>
 
                 <!-- User Answer Input -->
-                <div class="mb-6">
+                <div id="arrange-answer-section" class="mb-6">
                     <div id="answer-dropzone" class="min-h-[92px] p-4 bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-wrap gap-2 items-start transition-all" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
                         <span id="dropzone-placeholder" class="text-slate-400 font-medium">여기에 블록을 놓으세요...</span>
                     </div>
-                    <textarea id="answer-input" rows="2" class="hidden" aria-hidden="true"></textarea>
                 </div>
+
+                <div id="typing-mode-area" class="mb-6 hidden">
+                    <div class="mb-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800">
+                        각 한국어 청크 아래에 대응하는 영어를 입력하세요. Enter를 누르면 다음 칸으로 이동합니다.
+                    </div>
+                    <div id="typing-chunk-list" class="space-y-3"></div>
+                </div>
+                <textarea id="answer-input" rows="2" class="hidden" aria-hidden="true"></textarea>
 
                 <!-- Actions & Feedback -->
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -2444,9 +2466,10 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let keptQuestions = [];
         let masteredQuestions = [];
         let importantQuestions = {};
-        let uiPreferences = { showStudyLabels: true, hideEasyQuestions: false, updatedAt: null };
+        let uiPreferences = { showStudyLabels: true, hideEasyQuestions: false, practiceMode: 'arrange', updatedAt: null };
         let activePassageGroup = "textbook";
         let translatedReaderSentences = new Set();
+        let easyTypingChunks = new Map();
         let sentenceAiFeedbacks = {};
         let sentenceAiFeedbackLoadingKey = null;
         let supabaseClient = null;
@@ -2729,11 +2752,12 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function normalizeUiPreferences(preferences = {}) {
             if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
-                return { showStudyLabels: true, hideEasyQuestions: false, updatedAt: null };
+                return { showStudyLabels: true, hideEasyQuestions: false, practiceMode: 'arrange', updatedAt: null };
             }
             return {
                 showStudyLabels: preferences.showStudyLabels !== false,
                 hideEasyQuestions: preferences.hideEasyQuestions === true,
+                practiceMode: preferences.practiceMode === 'typing' ? 'typing' : 'arrange',
                 updatedAt: preferences.updatedAt || null
             };
         }
@@ -3018,6 +3042,38 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             return hint.replace(/^해석:\s*/i, '').trim() || '해석이 준비되어 있지 않습니다.';
         }
 
+        async function loadEasyTypingChunks() {
+            try {
+                const response = await fetch('data/easy-typing-chunks.json', { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const entries = await response.json();
+                if (!Array.isArray(entries)) throw new Error('청크 데이터가 배열이 아닙니다.');
+                easyTypingChunks = new Map(
+                    entries
+                        .filter(entry => entry?.original && Array.isArray(entry.chunks) && entry.chunks.length > 0)
+                        .map(entry => [entry.original, entry.chunks])
+                );
+                const missingQuestions = defaultQuizData.filter(question => !easyTypingChunks.has(getQuestionKey(question)));
+                if (missingQuestions.length > 0) {
+                    console.warn(`Easy typing chunks are missing for ${missingQuestions.length} default sentences.`);
+                }
+            } catch (error) {
+                easyTypingChunks = new Map();
+                console.warn('Unable to load Easy typing chunks:', error);
+            }
+        }
+
+        function getTypingChunks(question) {
+            const savedChunks = easyTypingChunks.get(getQuestionKey(question));
+            if (Array.isArray(savedChunks) && savedChunks.length > 0) {
+                return savedChunks.map(chunk => ({ ko: chunk.ko, en: chunk.en }));
+            }
+            return [{
+                ko: getTranslationText(question),
+                en: question.original
+            }];
+        }
+
         function getQuestionProgress(question) {
             return question ? progressRecords[getQuestionKey(question)] || null : null;
         }
@@ -3169,7 +3225,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             try {
                 uiPreferences = normalizeUiPreferences(JSON.parse(localStorage.getItem(UI_PREFERENCES_STORAGE_KEY) || '{}'));
             } catch (error) {
-                uiPreferences = { showStudyLabels: true, hideEasyQuestions: false, updatedAt: null };
+                uiPreferences = { showStudyLabels: true, hideEasyQuestions: false, practiceMode: 'arrange', updatedAt: null };
             }
         }
 
@@ -3193,6 +3249,50 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             };
             saveUiPreferences();
             renderStudyProgressDisplays();
+        }
+
+        function getPracticeMode() {
+            return uiPreferences.practiceMode === 'typing' ? 'typing' : 'arrange';
+        }
+
+        function getEffectiveChunkLevel() {
+            return getPracticeMode() === 'typing' ? '1' : currentChunkLevel;
+        }
+
+        function updatePracticeModeButtons() {
+            const mode = getPracticeMode();
+            document.querySelectorAll('.practice-mode-btn').forEach(button => {
+                const active = button.id === `${mode}-mode-btn`;
+                button.className = [
+                    'practice-mode-btn rounded-lg px-4 py-2 text-sm font-black transition-colors',
+                    active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'
+                ].join(' ');
+                button.setAttribute('aria-pressed', String(active));
+            });
+        }
+
+        function renderPracticeMode() {
+            const typing = getPracticeMode() === 'typing';
+            document.getElementById('word-bank-section').classList.toggle('hidden', typing);
+            document.getElementById('arrange-answer-section').classList.toggle('hidden', typing);
+            document.getElementById('typing-mode-area').classList.toggle('hidden', !typing);
+            document.getElementById('chunk-level-buttons').classList.toggle('hidden', typing);
+            updatePracticeModeButtons();
+            if (typing) renderTypingInputs();
+        }
+
+        function setPracticeMode(mode) {
+            if (!['arrange', 'typing'].includes(mode) || getPracticeMode() === mode) return;
+            uiPreferences = {
+                ...normalizeUiPreferences(uiPreferences),
+                practiceMode: mode,
+                updatedAt: new Date().toISOString()
+            };
+            saveUiPreferences();
+            resetAnswerArea();
+            renderWordBankForCurrentQuestion();
+            renderPracticeMode();
+            persistStudyPosition();
         }
 
         function renderStudyProgressDisplays() {
@@ -3249,9 +3349,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function selectPassageSentence(index) {
             if (index < 0 || index >= quizData.length) return;
-            if (translatedReaderSentences.has(index)) {
-                translatedReaderSentences.delete(index);
-            } else {
+            const wasTranslated = translatedReaderSentences.has(index);
+            translatedReaderSentences.clear();
+            if (!wasTranslated) {
                 translatedReaderSentences.add(index);
             }
             currentIndex = index;
@@ -3496,7 +3596,8 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         function markQuestionProgress(question, isCorrect, userAnswer) {
             const key = getQuestionKey(question);
             const previousRecord = progressRecords[key] || {};
-            const currentLevel = getNumericProgressLevel(currentChunkLevel);
+            const effectiveChunkLevel = getEffectiveChunkLevel();
+            const currentLevel = getNumericProgressLevel(effectiveChunkLevel);
             const bestAttemptLevel = String(Math.max(
                 getNumericProgressLevel(previousRecord.bestAttemptLevel || previousRecord.chunkLevel),
                 currentLevel
@@ -3509,7 +3610,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 ...previousRecord,
                 status: isCorrect ? 'correct' : 'wrong',
                 userAnswer,
-                chunkLevel: currentChunkLevel,
+                chunkLevel: effectiveChunkLevel,
                 bestAttemptLevel,
                 bestCorrectLevel,
                 passageId: getCurrentPassageId(),
@@ -3773,6 +3874,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             answerInput.value = "";
             answerInput.disabled = false;
             document.getElementById('answer-dropzone').querySelectorAll('.answer-chip').forEach(chip => chip.remove());
+            document.getElementById('typing-chunk-list').innerHTML = '';
             document.getElementById('dropzone-placeholder').classList.remove('hidden');
             document.getElementById('feedback-area').classList.add('hidden');
             const aiFeedbackArea = document.getElementById('sentence-ai-feedback-area');
@@ -3784,6 +3886,95 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             document.getElementById('check-btn').classList.remove('hidden');
             document.getElementById('next-btn').classList.add('hidden');
             hasAnsweredCurrent = false;
+        }
+
+        function getTypingInputClasses(state = 'default') {
+            const base = 'typing-chunk-input mt-2 w-full rounded-xl border-2 bg-white px-4 py-3 text-base font-semibold text-slate-800 outline-none transition-colors';
+            if (state === 'correct') return `${base} border-emerald-300 bg-emerald-50 focus:border-emerald-400`;
+            if (state === 'wrong') return `${base} border-red-300 bg-red-50 focus:border-red-400`;
+            return `${base} border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100`;
+        }
+
+        function renderTypingInputs() {
+            const question = quizData[currentIndex];
+            const list = document.getElementById('typing-chunk-list');
+            if (!question || !list) return;
+            list.innerHTML = '';
+
+            getTypingChunks(question).forEach((chunk, index, chunks) => {
+                const card = document.createElement('div');
+                card.className = 'typing-chunk-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm';
+
+                const label = document.createElement('p');
+                label.className = 'text-xs font-black uppercase tracking-[0.15em] text-indigo-500';
+                label.innerText = `Easy Chunk ${index + 1}`;
+
+                const korean = document.createElement('p');
+                korean.className = 'mt-1 text-base font-bold leading-relaxed text-slate-800';
+                korean.innerText = chunk.ko;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.autocomplete = 'off';
+                input.spellcheck = false;
+                input.dataset.expected = chunk.en;
+                input.dataset.typingIndex = String(index);
+                input.className = getTypingInputClasses();
+                input.placeholder = '영어로 입력하세요';
+                input.setAttribute('aria-label', `Easy 청크 ${index + 1} 영어 입력`);
+                input.addEventListener('input', syncTypingAnswer);
+                input.addEventListener('keydown', event => handleTypingInputKeydown(event, index, chunks.length));
+
+                const feedback = document.createElement('p');
+                feedback.className = 'typing-chunk-feedback mt-2 hidden text-sm font-bold';
+
+                card.append(label, korean, input, feedback);
+                list.appendChild(card);
+            });
+
+            list.querySelector('.typing-chunk-input')?.focus({ preventScroll: true });
+            syncTypingAnswer();
+        }
+
+        function syncTypingAnswer() {
+            const values = [...document.querySelectorAll('#typing-chunk-list .typing-chunk-input')]
+                .map(input => input.value.trim());
+            document.getElementById('answer-input').value = values.join(' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function handleTypingInputKeydown(event, index, total) {
+            if (event.key !== 'Enter' || event.shiftKey || hasAnsweredCurrent) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const inputs = [...document.querySelectorAll('#typing-chunk-list .typing-chunk-input')];
+            if (index < total - 1) {
+                inputs[index + 1]?.focus();
+                return;
+            }
+            syncTypingAnswer();
+            const firstEmpty = inputs.find(input => !input.value.trim());
+            if (firstEmpty) {
+                firstEmpty.focus();
+                showManagerMessage('모든 영어 청크를 입력한 뒤 정답을 확인해 주세요.', 'info');
+                return;
+            }
+            checkAnswer();
+        }
+
+        function renderTypingChunkFeedback() {
+            document.querySelectorAll('#typing-chunk-list .typing-chunk-card').forEach(card => {
+                const input = card.querySelector('.typing-chunk-input');
+                const feedback = card.querySelector('.typing-chunk-feedback');
+                if (!input || !feedback) return;
+                const correct = normalizeString(input.value) === normalizeString(input.dataset.expected || '');
+                input.className = getTypingInputClasses(correct ? 'correct' : 'wrong');
+                input.disabled = true;
+                feedback.classList.toggle('hidden', correct);
+                feedback.className = correct
+                    ? 'typing-chunk-feedback mt-2 hidden text-sm font-bold'
+                    : 'typing-chunk-feedback mt-2 text-sm font-bold text-red-600';
+                feedback.innerText = correct ? '' : `정답: ${input.dataset.expected}`;
+            });
         }
 
         function renderWordBankForCurrentQuestion() {
@@ -3807,7 +3998,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         function normalizeString(str) {
-            return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()“”"']/g, "")
+            return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()“”"'‘’]/g, "")
                       .replace(/\s{2,}/g, " ")
                       .trim()
                       .toLowerCase();
@@ -3970,6 +4161,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
             resetAnswerArea();
             renderWordBankForCurrentQuestion();
+            renderPracticeMode();
             updateNavigationButtons();
             renderPassageReader();
             renderChunkLevelButtons();
@@ -4030,6 +4222,19 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function clearInput() {
             if (hasAnsweredCurrent) return;
+            if (getPracticeMode() === 'typing') {
+                document.querySelectorAll('#typing-chunk-list .typing-chunk-input').forEach(input => {
+                    input.value = '';
+                    input.className = getTypingInputClasses();
+                });
+                document.querySelectorAll('#typing-chunk-list .typing-chunk-feedback').forEach(feedback => {
+                    feedback.className = 'typing-chunk-feedback mt-2 hidden text-sm font-bold';
+                    feedback.innerText = '';
+                });
+                syncTypingAnswer();
+                document.querySelector('#typing-chunk-list .typing-chunk-input')?.focus();
+                return;
+            }
             const dropzone = document.getElementById('answer-dropzone');
             const wordBank = document.getElementById('word-bank');
             [...dropzone.querySelectorAll('.answer-chip')].forEach(chip => {
@@ -4200,6 +4405,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             hasAnsweredCurrent = true;
             document.getElementById('answer-input').disabled = true;
             markQuestionProgress(q, isCorrect, inputVal);
+            if (getPracticeMode() === 'typing') renderTypingChunkFeedback();
 
             const feedbackArea = document.getElementById('feedback-area');
             const feedbackIcon = document.getElementById('feedback-icon');
@@ -4215,7 +4421,9 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 feedbackArea.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
                 feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
                 feedbackTitle.innerText = "정답입니다!";
-                feedbackDesc.innerText = "완벽하게 문장을 배열했습니다.";
+                feedbackDesc.innerText = getPracticeMode() === 'typing'
+                    ? "영어 문장을 정확히 완성했습니다."
+                    : "완벽하게 문장을 배열했습니다.";
             } else {
                 feedbackArea.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
                 feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
@@ -4390,7 +4598,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         document.addEventListener('keydown', function(e) {
-            if (e.key !== 'Enter' || e.shiftKey || hasAnsweredCurrent) return;
+            if (getPracticeMode() !== 'arrange' || e.key !== 'Enter' || e.shiftKey || hasAnsweredCurrent) return;
             const answerInput = document.getElementById('answer-input');
             const remainingChunks = document.querySelectorAll('#word-bank .word-chip').length;
             if (!answerInput.value.trim() || remainingChunks > 0) return;
@@ -4404,6 +4612,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             loadMasteredQuestions();
             loadImportantQuestions();
             loadUiPreferences();
+            await loadEasyTypingChunks();
             const localProgress = getLocalProgressSnapshot();
             applyQuizData(defaultQuizData, '저장된 진행상황을 불러왔습니다.', 'all');
             if (localProgress?.position) {
