@@ -4281,14 +4281,25 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             });
             input.addEventListener('keydown', handleSentenceTypingKeydown);
 
-            card.append(label, korean, input);
+            const feedback = document.createElement('div');
+            feedback.className = 'typing-sentence-feedback mt-3 hidden rounded-xl p-3 text-sm font-bold';
+
+            card.append(label, korean, input, feedback);
             list.appendChild(card);
             document.getElementById('answer-input').value = '';
             input.focus({ preventScroll: true });
         }
 
         function handleSentenceTypingKeydown(event) {
-            if (event.key !== 'Enter' || event.shiftKey || hasAnsweredCurrent) return;
+            if (event.key !== 'Enter' || event.shiftKey) return;
+            if (hasAnsweredCurrent) {
+                if (event.currentTarget.dataset.retry === 'true') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    retryCurrentQuestion();
+                }
+                return;
+            }
             event.preventDefault();
             event.stopPropagation();
             const answer = event.currentTarget.value.trim();
@@ -4906,9 +4917,21 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (getPracticeMode() === 'typing' && getTypingFlow() === 'chunks') renderTypingChunkFeedback();
             if (getPracticeMode() === 'typing' && getTypingFlow() === 'sentence') {
                 const sentenceInput = document.querySelector('#typing-chunk-list textarea.typing-chunk-input');
+                const sentenceFeedback = document.querySelector('#typing-chunk-list .typing-sentence-feedback');
                 if (sentenceInput) {
                     sentenceInput.readOnly = true;
+                    sentenceInput.dataset.retry = String(!isCorrect);
                     sentenceInput.className = `${getTypingInputClasses(isCorrect ? 'correct' : 'wrong')} resize-y leading-relaxed`;
+                    if (!isCorrect) sentenceInput.focus({ preventScroll: true });
+                }
+                if (sentenceFeedback) {
+                    sentenceFeedback.className = isCorrect
+                        ? 'typing-sentence-feedback mt-3 hidden rounded-xl p-3 text-sm font-bold'
+                        : 'typing-sentence-feedback mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700';
+                    sentenceFeedback.innerHTML = isCorrect
+                        ? ''
+                        : `<p>정답 문장: <span class="text-red-900">${escapeHtml(q.original)}</span></p>
+                           <p class="mt-2 text-indigo-700">정답을 확인한 뒤 Enter를 한 번 더 누르면 바로 다시 풀 수 있습니다.</p>`;
                 }
             }
 
