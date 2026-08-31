@@ -3512,7 +3512,15 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             });
 
             const activeItem = list.querySelector(`[data-reader-index="${currentIndex}"]`);
-            if (activeItem) activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            if (activeItem) {
+                const listRect = list.getBoundingClientRect();
+                const itemRect = activeItem.getBoundingClientRect();
+                if (itemRect.top < listRect.top) {
+                    list.scrollTop -= listRect.top - itemRect.top;
+                } else if (itemRect.bottom > listRect.bottom) {
+                    list.scrollTop += itemRect.bottom - listRect.bottom;
+                }
+            }
         }
 
         function selectPassageSentence(index) {
