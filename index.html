@@ -2535,6 +2535,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         let translatedReaderSentences = new Set();
         let easyTypingChunks = new Map();
         let typingDrillState = { questionKey: null, chunkIndex: 0, mistakes: 0, phase: 'answering' };
+        let typingChunkHintOrder = { questionKey: null, chunks: [] };
         let typingTimerState = { questionKey: null, startedAt: null, elapsedMs: 0, status: 'idle', intervalId: null };
         let sentenceAiFeedbacks = {};
         let sentenceAiFeedbackLoadingKey = null;
@@ -3421,8 +3422,20 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 updatedAt: new Date().toISOString()
             };
             saveUiPreferences();
+            if (wantsTypingChunkHints()) typingChunkHintOrder = { questionKey: null, chunks: [] };
             updateTypingChunkHintButton();
             renderTypingChunkHint();
+        }
+
+        function getShuffledHardChunks(question) {
+            const key = getQuestionKey(question);
+            const source = chunkSentenceByLevel(question.original, '3') || [question.original];
+            if (typingChunkHintOrder.questionKey === key && typingChunkHintOrder.chunks.length === source.length) {
+                return typingChunkHintOrder.chunks;
+            }
+            const chunks = shuffleArray([...source]);
+            typingChunkHintOrder = { questionKey: key, chunks };
+            return chunks;
         }
 
         function renderTypingChunkHint() {
@@ -3437,8 +3450,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
                 return;
             }
 
-            const chunks = chunkSentenceByLevel(question.original, '3') || [question.original];
-            const chips = chunks.map(chunk => (
+            const chips = getShuffledHardChunks(question).map(chunk => (
                 `<span class="inline-flex items-center rounded-full border border-indigo-100 bg-white px-3 py-1 text-sm font-semibold text-slate-700">${escapeHtml(chunk)}</span>`
             )).join('');
 
