@@ -3668,7 +3668,12 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
 
         function getWordTokens(sentence) {
             return sentence
-                .replace(/([,;:!?])(?=\S)/g, '$1 ')
+                .replace(/([,;:!?])(?=\S)/g, (match, _punct, offset, text) => {
+                    const prev = text[offset - 1] || '';
+                    const next = text[offset + match.length] || '';
+                    if (match === ',' && /\d/.test(prev) && /\d/.test(next)) return match;
+                    return `${match} `;
+                })
                 .replace(/\s+/g, ' ')
                 .trim()
                 .split(/\s+/)
@@ -3698,7 +3703,7 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
             if (tokens.length <= 1) return tokens;
 
             if (level === '1') {
-                const commaIndex = tokens.findIndex(token => /[,;:]$/.test(token));
+                const commaIndex = tokens.findIndex(token => /[,;:]$/.test(token) && !/^\d+,$/.test(token));
                 if (commaIndex > 2 && commaIndex < tokens.length - 2) {
                     return [tokens.slice(0, commaIndex + 1).join(' '), ...groupTokens(tokens.slice(commaIndex + 1), Math.ceil((tokens.length - commaIndex - 1) / 2))];
                 }
@@ -4495,8 +4500,10 @@ Fortunately, you wouldn’t need to worry about giant insects chasing after you 
         }
 
         function normalizeString(str) {
-            return str.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()“”"'‘’]/g, "")
-                      .replace(/\s+/g, " ")
+            return str.replace(/(\d)\s*,\s*(?=\d)/g, '$1')
+                      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()“”"'‘’]/g, '')
+                      .replace(/(\d)\s+(?=\d)/g, '$1')
+                      .replace(/\s+/g, ' ')
                       .trim()
                       .toLowerCase();
         }
